@@ -63,9 +63,36 @@ def _config_cl_parser(parser):
     
 
 if __name__ == "__main__":
-    from cl_options import parse_command_line_parameters
+    from cogent.util.misc import parse_command_line_parameters
+    from optparse import make_option
     
-    opts, args = parse_command_line_parameters(_config_cl_parser,
-        required_options=['input_psl_file', 'input_file', 'output_file'])
+    script_info = {}
+    descr = "Write seqs without primer/adapter match to separate file."
+    script_info['brief_description']= descr
+    script_info['script_description'] = descr
+    script_info['version'] = '0.1.alpha'
+    script_info['script_usage']=[]
+    script_info['script_usage'].append(
+        ("Example 1","""Test run of write pristine:""",
+        """python get_pristine_seqs.py -p <somefile.psl> -i <seqs.fasta> -o <pristine_seqs.fasta> -t"""))
+    
+    script_info['help_on_no_arguments'] = True
+    script_info['required_options'] = [
+        make_option('-p','--input_psl_file',
+                    help='The input psl file from blat'),
+        make_option('-i','--input_file',
+                    help='The input fasta sequence file'),
+        make_option('-o','--output_file',
+                    help='The file to write pristine seqs to'),
+        ]
+    
+    script_info['optional_options'] = [\
+        make_option('-t','--test_run', action='store_true',
+                    dest='test', default = False,
+                    help='Dry run without writing any data'
+                    +'[default: %default]'),
+                    ]
+    
+    parser, opts, args = parse_command_line_parameters(**script_info)
     
     run(opts.input_psl_file, opts.input_file, opts.output_file, opts.test_run)

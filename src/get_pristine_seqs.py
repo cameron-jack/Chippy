@@ -25,7 +25,7 @@ def write_pristine(fasta_name, output_file, not_pristine, test_run):
     if not test_run:
         outfile = open(output_file, 'w')
     
-    for name, seq in MinimalFastaParser(fasta_name):
+    for name, seq in MinimalFastaParser(open(fasta_name)):
         num += 1
         if name in not_pristine:
             continue
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     
     script_info['optional_options'] = [\
         make_option('-t','--test_run', action='store_true',
-                    dest='test', default = False,
+                    dest='test_run', default = False,
                     help='Dry run without writing any data'
                     +'[default: %default]'),
                     ]

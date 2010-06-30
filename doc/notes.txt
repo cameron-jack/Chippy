@@ -1,0 +1,18 @@
+*****
+Tasks
+*****
+
+#. convert fastq to fasta (NB ask Stephen if he can export scarf files, probably quicker to parse)
+#. search for primer, adapter sequences in fasta files using blat
+#. write code to remove primer sequence, filter by length
+#. map to the genome
+
+***************
+Data properties
+***************
+
+Saturday, 05 June 2010
+
+s6 file - 26963573 sequences
+s7 file - 24755667 sequences
+s8 file - 27669319 sequences

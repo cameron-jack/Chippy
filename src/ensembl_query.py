@@ -9,9 +9,9 @@ def ensembl_query():
     else:
         account = None
     Mouse = Genome(Species='Mouse', Release = 58, account=account)
-    chr_MT = Mouse.getRegion(CoordName = chrMT)
-    out = open('chr_MT.fasta','w')
-    out.write(chr_MT.Seq.toFasta()+'\n')
+    chr_MT = Mouse.getRegion(CoordName = 19)
+    out = open('chr_19.fasta','w')
+    out.write(chr_19.Seq.toFasta()+'\n')
     out.close()
     
 ensembl_query()

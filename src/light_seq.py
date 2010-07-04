@@ -40,12 +40,12 @@ class LightSeq(object):
 
 
     def __str__(self):
-        """__str__ returns self.seq unmodified."""
+        """__str__ returns self.Seq unmodified."""
         return 'Name:\t\t%s\nSequence:\t%s\nQuality:\t%s\n'%\
                (self.Name, self.seq, self.Quality)
 
 
-    def get_numeric_quality(self, scheme='illumina'):
+    def getNumericQuality(self, scheme='illumina'):
         """Quality scores are stored as ascii strings. This method returns a
         list of the quality scores as numbers depending on the scheme specified.
         Currently, only phred and illumina are supported. """
@@ -57,20 +57,24 @@ class LightSeq(object):
                 return [v-33 for v in map(ord, self.Quality)]
         return None
 
+    def toFasta(self):
+        """return a fasta formatted string from the sequence object"""
+        return '\n'.join(['>%s' % self.Name, self.seq])
 
+    def toFastq(self, quality=None):
+        """return a fastq formatted string from the sequence object. Quality
+        can be specified. This method will also update the Quality of the
+        LightSeq object if it was empty"""
 
-#name = '@GAPC_0015:6:1:1259:10413#0/1'
-#seq = 'AACACCAAACTTCTCCACCACGTGAGCTACAAAAG'
-#quality = '````Y^T]`]c^cabcacc`^Lb^ccYT\T\Y\WF'
+        if quality is None:
+            if self.Quality is '':
+                print 'Quality Scores need to specified for fastq format'
+                raise ValueError
+        else:
+            assert len(quality) == len(self.seq)
+            self.Quality = quality
 
-#sequence = LightSeq(Seq=seq, Name=name, Quality=quality)
-#print sequence
-#print sequence.get_numeric_quality()
-#trimSeq = sequence[5:15]
-#print trimSeq
-#print trimSeq.get_numeric_quality()
-
-
+        return '\n'.join(['>%s' % self.Name, self.seq, '>%s' % self.Name, self.Quality])
 
 
 

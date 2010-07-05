@@ -6,7 +6,7 @@ class LightSeq(object):
     def __init__(self, Seq = '', Name = None, Quality = ''):
 
         if isinstance(Seq, LightSeq):
-            Seq = Seq.seq
+            Seq = Seq.Seq
             Name = Seq.Name
             Quality = Seq.Quality
 
@@ -20,7 +20,7 @@ class LightSeq(object):
             if Quality is not '':
                 assert len(Quality) == len(Seq)
 
-        self.seq = Seq
+        self.Seq = Seq
         self.Name = Name
         self.Quality = Quality
 
@@ -29,7 +29,7 @@ class LightSeq(object):
         """ability to index and slice this sequence object. Returns another
         LightSeq object"""
 
-        seq = self.seq[index]
+        seq = self.Seq[index]
         name = self.Name
         if self.Quality is not '':
             quality = self.Quality[index]
@@ -42,7 +42,7 @@ class LightSeq(object):
     def __str__(self):
         """__str__ returns self.Seq unmodified."""
         return 'Name:\t\t%s\nSequence:\t%s\nQuality:\t%s\n'%\
-               (self.Name, self.seq, self.Quality)
+               (self.Name, self.Seq, self.Quality)
 
 
     def getNumericQuality(self, scheme='illumina'):
@@ -59,7 +59,7 @@ class LightSeq(object):
 
     def toFasta(self):
         """return a fasta formatted string from the sequence object"""
-        return '\n'.join(['>%s' % self.Name, self.seq])
+        return '\n'.join(['>%s' % self.Name, self.Seq])
 
     def toFastq(self, quality=None):
         """return a fastq formatted string from the sequence object. Quality
@@ -71,10 +71,10 @@ class LightSeq(object):
                 print 'Quality Scores need to specified for fastq format'
                 raise ValueError
         else:
-            assert len(quality) == len(self.seq)
+            assert len(quality) == len(self.Seq)
             self.Quality = quality
 
-        return '\n'.join(['>%s' % self.Name, self.seq, '>%s' % self.Name, self.Quality])
+        return '\n'.join(['>%s' % self.Name, self.Seq, '>%s' % self.Name, self.Quality])
 
 
 

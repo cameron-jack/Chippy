@@ -2,35 +2,54 @@ import numpy
 
 class RunningStats(object):
     """computes running mean and SD"""
-    def __init__(self, length):
+    def __init__(self, length=1):
         super(RunningStats, self).__init__()
         self.length = length
-        self.mean = numpy.zeros(length, float)
-        self.meansqr = numpy.zeros(length, float)
-        self.counts = numpy.zeros(length, float)
-    
-    def __call__(self, val):
-        self.mean += val
-        self.meansqr += (val*val)
-        self.counts += 1
-    
-    def _get_mean(self):
-        """docstring for _get_mean"""
-        return self.mean / self.counts
-    
-    Mean = property(_get_mean)
-    
-    def _get_sd(self):
-        return self.meansqr / self.counts
-    
-    SD = property(_get_sd)
-    
+        self.sumx = numpy.zeros(length, numpy.uint64)
+        self.sumx2 = numpy.zeros(length, numpy.uint64)
+        self.counts = numpy.zeros(length, numpy.uint32)
 
-if __name__ == "__main__":
-    vals = range(10)
-    stats = RunningStats(1)
-    for val in vals:
-        stats(val)
-    
-    print stats.Mean
-    print stats.SD
+    def __call__(self, vals):
+        """update the sum, and sum of squared and counts when called"""
+
+        # grow the length if needed
+        valLength = len(vals)
+        if valLength > self.length:
+            self.sumx.resize(valLength)
+            self.sumx2.resize(valLength)
+            self.counts.resize(valLength)
+            self.length = valLength
+
+        index = 0
+        for val in vals:
+            self.counts[index] += 1
+            self.sumx[index] += val
+            self.sumx2[index] += (val*val)
+            index += 1
+
+
+    def _get_mean(self):
+        """Compute the mean for each index"""
+        mean = numpy.zeros(self.length, float)
+        index = 0
+        for val in self.sumx:
+            mean[index] = (float(val) / self.counts[index])
+            index += 1
+
+        return mean
+
+    Mean = property(_get_mean)
+
+    def _get_sd(self):
+        """Compute the standard deviation for each index"""
+        sd = numpy.zeros(self.length, float)
+        index = 0
+        for x2sum in self.sumx2:
+            xsum = self.sumx[index]
+            n = self.counts[index]
+            sd[index] = numpy.sqrt((x2sum - (xsum*xsum / n))/n)
+            index += 1
+
+        return numpy.around(sd, 2)
+
+    SD = property(_get_sd)

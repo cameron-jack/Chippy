@@ -30,7 +30,8 @@ def MinimalFastqParser(data):
             qual_label = None
     
 
-def _make_seq(name, seq, qual):
+
+def _make_seq(seq, name, qual):
     """makes a DnaSeq object"""
     info = Info(qual=qual)
     seq = DNA.makeSequence(seq, name)
@@ -78,6 +79,6 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
         
         if numeric_qual:
             qual = [v-64 for v in map(ord, qual)]
-        
-        yield make_seq(name, seq, qual)
+
+        yield make_seq(seq, name, qual)
 

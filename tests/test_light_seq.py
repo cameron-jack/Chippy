@@ -15,7 +15,7 @@ class LightSeqTest(TestCase):
         """test the loading of the data into the sequence object"""
 
         sequence = LightSeq(Seq=test_seq, Name=test_seq_name, Quality=test_seq_qual)
-        self.assertEqual(sequence.seq, test_seq)
+        self.assertEqual(sequence.Seq, test_seq)
         self.assertEqual(sequence.Name, test_seq_name)
         self.assertEqual(sequence.Quality, test_seq_qual)
 
@@ -38,7 +38,7 @@ class LightSeqTest(TestCase):
 
         sequence = LightSeq(Seq=test_seq, Name=test_seq_name, Quality=test_seq_qual)
         new_sequence = sequence[:-10]
-        self.assertEqual(new_sequence.seq, test_seq[:-10])
+        self.assertEqual(new_sequence.Seq, test_seq[:-10])
         self.assertEqual(new_sequence.Quality, test_seq_qual[:-10])
 
     def test_toFasta(self):

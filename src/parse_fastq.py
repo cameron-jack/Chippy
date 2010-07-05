@@ -67,7 +67,7 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
         if trim_bad_bases:
             # we find B and trim seq and qual
             bad = qual.find('B')
-            if bad == -1 or bad == 0:
+            if bad == 0:
                 continue
             elif bad > 0:
                 seq = seq[: bad]

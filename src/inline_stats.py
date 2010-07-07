@@ -1,13 +1,16 @@
-import numpy
+import numpy, cPickle
 
 class RunningStats(object):
     """computes running mean and SD"""
-    def __init__(self, length=1):
+    def __init__(self, length=1, in_file=None):
         super(RunningStats, self).__init__()
         self.length = length
         self.sumx = numpy.zeros(length, numpy.uint64)
         self.sumx2 = numpy.zeros(length, numpy.uint64)
         self.counts = numpy.zeros(length, numpy.uint32)
+
+        if in_file is not None:
+            self.loadStats(in_file)
 
     def __call__(self, vals):
         """update the sum, and sum of squared and counts when called"""
@@ -53,3 +56,29 @@ class RunningStats(object):
         return numpy.around(sd, 2)
 
     SD = property(_get_sd)
+
+    def storeStats(self, out_file=None):
+        """Store stats in pickle file for easy retrieval"""
+
+        if out_file is None:
+            out_file = 'stats.pkl'
+
+        pklFile = open(out_file, 'wb')
+        cPickle.dump(self.sumx, pklFile)
+        cPickle.dump(self.sumx2, pklFile)
+        cPickle.dump(self.counts, pklFile)
+        cPickle.dump(self.length, pklFile)
+        pklFile.close()
+
+    def loadStats(self, in_file):
+        """Initialise the object from previously saved data"""
+
+        pklFile = file(in_file)
+        self.sumx = cPickle.load(pklFile)
+        self.sumx2 = cPickle.load(pklFile)
+        self.counts = cPickle.load(pklFile)
+        self.length = cPickle.load(pklFile)
+        pklFile.close()
+
+
+

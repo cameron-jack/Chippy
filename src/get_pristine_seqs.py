@@ -47,21 +47,6 @@ def run(input_psl_file, input_file, output_file, test_run):
     write_pristine(input_file, output_file, not_pristine, test_run)
     print '\n Done!'
 
-def _config_cl_parser(parser):
-    """configures the command line options"""
-    parser.add_option('-p', '--input_psl_file',
-       help="name of the input psl file")
-    
-    parser.add_option('-i', '--input_file',
-       help="name of the input fasta file")
-    
-    parser.add_option('-o', '--output_file',
-       help="name of the output fasta file")
-    
-    parser.add_option('-t', '--test_run', action='store_true', default=False,
-        help="test run, [default: %default]")
-    
-
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters
     from optparse import make_option

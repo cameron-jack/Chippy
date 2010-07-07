@@ -6,7 +6,7 @@ def get_corrupt_seq_names(psl_name, test_run):
     psl_parser = MinimalPslParser(psl_name)
     psl_parser.next()
     psl_parser.next()
-    
+
     num = 0
     to_trim = set()
     for record in psl_parser:
@@ -15,7 +15,7 @@ def get_corrupt_seq_names(psl_name, test_run):
         to_trim.update([name])
         if test_run and num >= 1000:
             break
-    
+
     return to_trim
 
 to_fasta = lambda name, seq: '\n'.join(['>%s' % name, seq])
@@ -24,12 +24,12 @@ def write_pristine(fasta_name, output_file, not_pristine, test_run):
     num = 0
     if not test_run:
         outfile = open(output_file, 'w')
-    
+
     for name, seq in MinimalFastaParser(open(fasta_name)):
         num += 1
         if name in not_pristine:
             continue
-        
+
         fasta_formatted = to_fasta(name, seq)
         if test_run:
             print fasta_formatted
@@ -37,7 +37,7 @@ def write_pristine(fasta_name, output_file, not_pristine, test_run):
                 break
         else:
             outfile.write(fasta_formatted + '\n')
-    
+
     if not test_run:
         outfile.close()
 
@@ -50,7 +50,7 @@ def run(input_psl_file, input_file, output_file, test_run):
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters
     from optparse import make_option
-    
+
     script_info = {}
     descr = "Write seqs without primer/adapter match to separate file."
     script_info['brief_description']= descr
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     script_info['script_usage'].append(
         ("Example 1","""Test run of write pristine:""",
         """python get_pristine_seqs.py -p <somefile.psl> -i <seqs.fasta> -o <pristine_seqs.fasta> -t"""))
-    
+
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [
         make_option('-p','--input_psl_file',
@@ -70,14 +70,14 @@ if __name__ == "__main__":
         make_option('-o','--output_file',
                     help='The file to write pristine seqs to'),
         ]
-    
+
     script_info['optional_options'] = [\
         make_option('-t','--test_run', action='store_true',
                     dest='test_run', default = False,
                     help='Dry run without writing any data'
                     +'[default: %default]'),
                     ]
-    
+
     parser, opts, args = parse_command_line_parameters(**script_info)
-    
+
     run(opts.input_psl_file, opts.input_file, opts.output_file, opts.test_run)

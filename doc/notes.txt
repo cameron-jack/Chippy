@@ -15,7 +15,7 @@ TODO handle the output format for bowtie
     - options?
     - sizes
     - parsing difficulty?
-TODO remove usage of cl_options, now use the PyCogent builtin. See get_pristine_seqs.py for example usage.
+DONE remove usage of cl_options, now use the PyCogent builtin. See get_pristine_seqs.py for example usage.
 
 ***************
 Data properties

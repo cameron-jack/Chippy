@@ -6,7 +6,7 @@ def MinimalFastqParser(data):
     """
     if type(data) == str:
         data = open(data)
-    
+
     seq = None
     qual = None
     seq_label = None
@@ -28,7 +28,7 @@ def MinimalFastqParser(data):
             qual = None
             seq_label = None
             qual_label = None
-    
+
 
 
 def _make_seq(seq, name, qual):
@@ -41,7 +41,7 @@ def _make_seq(seq, name, qual):
 def FastqParser(data, numeric_qual=False, remove_ambig=True,
     trim_bad_bases=True, make_seq=None):
     """yields name, seq from fastq file
-    
+
     Arguments:
         - data is a data series (e.g. file, list)
         - numeric_qual: whether base quality score is returned or raw ASCII
@@ -49,10 +49,10 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
         - trim_bad_bases: trims terminal positions with B quality score
         - make_seq: a function that takes name, seq, qual and returns data
     """
-    
+
     if make_seq is None:
         make_seq = _make_seq
-    
+
     ambig_count = 0
     parser = MinimalFastqParser(data)
     for name, seq, qual in parser:
@@ -64,7 +64,7 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
                 qual_label = None
                 ambig_count+=1
                 continue
-        
+
         if trim_bad_bases:
             # we find B and trim seq and qual
             bad = qual.find('B')
@@ -73,10 +73,10 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
             elif bad > 0:
                 seq = seq[: bad]
                 qual = qual[: bad]
-        
+
         if len(seq) == 0:
             continue
-        
+
         if numeric_qual:
             qual = [v-64 for v in map(ord, qual)]
 

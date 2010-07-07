@@ -20,12 +20,12 @@ def plot_quality(input_file, output_file=None):
 
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
-    plt.plot(x, mean, x, mean+sd, 'r--', x, mean-sd, 'r--')
+    plt.plot(x, mean, x, mean+2*sd, 'r--', x, mean-2*sd, 'r--')
     plt.xlabel('Base Number')
     plt.ylabel('Quality Scores')
     plt.title('Quality Scores Across All Bases')
     plt.legend(('Mean', 'SD'), loc='upper right')
-    plt.fill_between(x,mean+sd, mean-sd, alpha=0.1, color='c')
+    plt.fill_between(x,mean+2*sd, mean-2*sd, alpha=0.1, color='c')
     plt.setp(plt.gca(), 'ylim', [0,50])
     plt.savefig(output_file)
 

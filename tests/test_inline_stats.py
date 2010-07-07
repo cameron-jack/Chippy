@@ -23,7 +23,11 @@ class RunningStatsTest(TestCase):
             if seqLength > maxSeqLength:
                 maxSeqLength = seqLength
 
+        self.assertEqual(stats.counts[0], len(seqs))
+        self.assertEqual(stats.length, maxSeqLength)
 
+        # Also try initialising the object from stored file
+        stats = RunningStats(in_file='data/test_stats.pkl')
         self.assertEqual(stats.counts[0], len(seqs))
         self.assertEqual(stats.length, maxSeqLength)
 

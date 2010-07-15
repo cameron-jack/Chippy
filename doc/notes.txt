@@ -1,0 +1,54 @@
+*****
+Tasks
+*****
+
+TODO write a fastq 'writer'
+TODO handle writing out non-pristine seqs too
+DONE write lightweight seq class that allows:
+    - slicing of sequence and quality scores; __getitem__
+    - converts qual scores to int's
+TODO instead of fastq --> fasta --> blat --> fasta from fasta;
+    fastq --> fasta --> blat --> fastq from fastq;
+TODO retain writing out fastq to separate files for pristine and not-pristine
+DONE write code for displaying quality scores along sequence reads
+TODO handle the output format for bowtie
+    - options?
+    - sizes
+    - parsing difficulty?
+DONE remove usage of cl_options, now use the PyCogent builtin. See get_pristine_seqs.py for example usage.
+
+***************
+Data properties
+***************
+
+Saturday, 05 June 2010
+
+s6 file - 26963573 sequences
+s7 file - 24755667 sequences
+s8 file - 27669319 sequences
+
+**************
+Running Bowtie
+**************
+
+#. The batch_bowtie_m.txt is in /Chipseq/src
+#. bowtie command used for analyeses is: gridsub -x ./bowtie -a "-f -t -a -m 1 mouse_genome_index reads/s_6_pristine.fasta s_6_pristine_bowtie_m.map"
+#. The output is stored tremethcik/results/bowtie_results/*bowtie_m.map
+#. -f: query input files are fasta
+#. -t: the amount of wall-clock time taken by each phase
+#. -a: report all valid alignments per read or pair
+#. -m 1: suppress all alignments for a particular read or pair if more than 1 reportable alignments exist for it
+
+**********
+References
+**********
+
+Fastq Format:
+http://en.wikipedia.org/wiki/FASTQ_format
+http://maq.sourceforge.net/fastq.shtml
+
+Quality Scores:
+http://docs.google.com/fileview?id=0B-lLYVUOliJFYjlkNjAwZjgtNDg4ZC00MTIyLTljNjgtMmUzN2M0NTUyNDE3&hl=en
+
+Calculating Standard Deviation for large data sets"
+http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance"

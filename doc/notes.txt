@@ -2,20 +2,15 @@
 Tasks
 *****
 
-TODO write a fastq 'writer'
+
 TODO handle writing out non-pristine seqs too
-DONE write lightweight seq class that allows:
-    - slicing of sequence and quality scores; __getitem__
-    - converts qual scores to int's
 TODO instead of fastq --> fasta --> blat --> fasta from fasta;
     fastq --> fasta --> blat --> fastq from fastq;
 TODO retain writing out fastq to separate files for pristine and not-pristine
-DONE write code for displaying quality scores along sequence reads
 TODO handle the output format for bowtie
     - options?
     - sizes
     - parsing difficulty?
-DONE remove usage of cl_options, now use the PyCogent builtin. See get_pristine_seqs.py for example usage.
 
 ***************
 Data properties

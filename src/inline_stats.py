@@ -1,4 +1,8 @@
+from __future__ import division
+
 import numpy, cPickle
+
+_data = numpy.zeros((38, 75), int)
 
 class RunningStats(object):
     """computes running mean and SD"""
@@ -14,7 +18,10 @@ class RunningStats(object):
 
     def __call__(self, vals):
         """update the sum, and sum of squared and counts when called"""
-
+        for i, v in enumerate(vals):
+            qual_index = v-2
+            _data[qual_index, i] += 1
+        
         # grow the length if needed
         valLength = len(vals)
         if valLength > self.length:
@@ -40,7 +47,20 @@ class RunningStats(object):
             index += 1
 
         return mean
-
+    
+    def _get_array_based_mean(self):
+        column_sums = _data.sum(axis=0)
+        row_sums = _data.sum(axis=1)
+        result = []
+        for p, num in enumerate(column_sums):
+            if num == 0:
+                continue
+            col_total = 0
+            for qual, count in enumerate(_data[:, p]):
+                col_total += ((2+qual) * count)
+            result.append(col_total / num)
+        return numpy.array(result)
+    
     Mean = property(_get_mean)
 
     def _get_sd(self):
@@ -54,7 +74,20 @@ class RunningStats(object):
             index += 1
 
         return numpy.around(sd, 2)
-
+    
+    def _get_array_based_sd(self):
+        col_means = self._get_array_based_mean()
+        column_sums = _data.sum(axis=0)
+        row_sums = _data.sum(axis=1)
+        result = []
+        for pos in range(col_means.shape[0]):
+            mean = col_means[pos]
+            var = 0.0
+            for qual in range(38):
+                var += ((mean - qual)**2  * _data[qual, pos])
+            result.append(numpy.sqrt(var / column_sums[pos]))
+        return numpy.array(result)
+    
     SD = property(_get_sd)
 
     def storeStats(self, out_file=None):

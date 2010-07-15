@@ -1,0 +1,3 @@
+-f -t -a -m 1 mouse_genome_index reads/s_6_pristine.fasta s_6_pristine_bowtie_m.map
+-f -t -a -m 1 mouse_genome_index reads/s_7_pristine.fasta s_7_pristine_bowtie_m.map
+-f -t -a -m 1 mouse_genome_index reads/s_8_pristine.fasta s_8_pristine_bowtie_m.map

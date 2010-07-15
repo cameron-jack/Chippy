@@ -50,7 +50,9 @@ class RunningStatsTest(TestCase):
         sd = numpy.around(qualArray.std(axis=0), 2)
 
         self.assertEqual(stats.Mean, mean)
-        self.assertFloatEqualRel(stats.SD, sd, eps=0.05)
+        self.assertEqual(stats._get_array_based_mean(), mean)
+        self.assertFloatEqualRel(stats._get_array_based_sd(), sd, eps=0.05)
+        print 
 
 
 if __name__ == "__main__":

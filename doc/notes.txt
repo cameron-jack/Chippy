@@ -2,11 +2,6 @@
 Tasks
 *****
 
-TODO handle the output format for bowtie
-    - options?
-    - sizes
-    - parsing difficulty?
-
 TODO handle writing out non-pristine seqs too
 - retain writing out fastq to separate files for pristine and not-pristine
 

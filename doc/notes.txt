@@ -15,6 +15,8 @@ TODO instead of:
 Do
 - fastq --> fasta --> blat --> fastq from fastq;
 
+TODO better approach to running stats
+    - we have a bounded integer problem so we should exploit it. I.e. each sequence position takes a value between 2-40 and the sequences are L long. So we only need to store an array of counts such that each row index is the score. This will also allow us to compute the median, quantiles etc ..
 
 ***************
 Data properties

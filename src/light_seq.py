@@ -24,7 +24,9 @@ class LightSeq(object):
         self.Name = Name
         self.Quality = Quality
 
-
+    def __len__(self):
+        return len(self.Seq)
+    
     def __getitem__(self, index):
         """ability to index and slice this sequence object. Returns another
         LightSeq object"""

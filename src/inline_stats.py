@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy, cPickle
+from cogent.maths.stats.util import NumberFreqs, Numbers
 
 def resized(array, length):
     # required because a.resize broken in latest numpy release
@@ -28,7 +29,8 @@ class RunningStats(object):
         self._sd = None
         
         if len(vals) > self.length:
-            self._counts = resized(self._counts, len(vals))
+            self.length = len(vals)
+            self._counts = resized(self._counts, self.length)
         
         for i, v in enumerate(vals):
             qual_index = v-2
@@ -71,6 +73,19 @@ class RunningStats(object):
         return self._sd
     
     SD = property(_get_sd)
+    
+    def quantile(self, q):
+        """returns position-wise quantiles
+        
+        Uses Cogent's NumberFreqs and Numbers objects"""
+        quals = [qual+2 for qual in range(38)]
+        results = []
+        for position in range(self._counts.shape[1]):
+            column = NumberFreqs(data=dict(zip(quals,
+                        self._counts[:, position])))
+            column = Numbers(column.expand())
+            results += [column.quantile(q)]
+        return results
     
     def storeStats(self, out_file=None):
         """Store stats in pickle file for easy retrieval"""

@@ -5,7 +5,7 @@ from light_seq import LightSeq
 from inline_stats import RunningStats
 from parse_fastq import FastqParser
 
-def plot_quality(input_file, output_file=None):
+def plot_quality(input_file, upper_quantile, lower_quantile, output_file=None):
     
     if output_file is None:
         output_file = 'quality.png'
@@ -15,19 +15,18 @@ def plot_quality(input_file, output_file=None):
         stats(seq.getNumericQuality())
     
     # obtain the mean and standard deviation accross all bases
-    mean = stats.Mean
-    sd = stats.SD
+    median = stats.quantile(0.5)
     
-    upper = [min(mean[i]+2*sd[i], 40) for i in range(mean.shape[0])]
-    lower = [max(mean[i]-2*sd[i], 2) for i in range(mean.shape[0])]
+    upper = stats.quantile(upper_quantile)#[min(mean[i]+2*sd[i], 40) for i in range(mean.shape[0])]
+    lower = stats.quantile(lower_quantile)#[max(mean[i]-2*sd[i], 2) for i in range(mean.shape[0])]
     
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
-    plt.plot(x, mean, x, upper, 'r--', x, lower, 'r--')
+    plt.plot(x, median, x, upper, 'r--', x, lower, 'r--')
     plt.xlabel('Base Number')
     plt.ylabel('Quality Scores')
     plt.title('Quality Scores Across All Bases')
-    plt.legend(('Mean', 'SD'), loc='upper right')
+    plt.legend(('Median', 'Quantiles [%.2f - %.2f]' % (lower_quantile, upper_quantile)), loc='upper right')
     plt.fill_between(x, upper, lower, alpha=0.1, color='c')
     plt.setp(plt.gca(), 'ylim', [0,50])
     plt.savefig(output_file)
@@ -53,6 +52,13 @@ if __name__ == "__main__":
     script_info['optional_options'] = [
         make_option('-o','--output_file',
                     help='The file to store the quality plot to. If not '\
-                    'specified, plot is stored to quality.png')]
+                    'specified, plot is stored to quality.png'),
+        make_option('-u', '--upper_quantile', type='float', default=0.95,
+            help='upper quantile [default: %default]'),
+        make_option('-l', '--lower_quantile', type='float', default=0.05,
+            help='lower quantile [default: %default]')]
     parser, opts, args = parse_command_line_parameters(**script_info)
-    plot_quality(opts.input_file, opts.output_file)
+    plot_quality(opts.input_file,
+        opts.upper_quantile,
+        opts.lower_quantile,
+        opts.output_file)

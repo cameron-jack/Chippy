@@ -55,6 +55,18 @@ class RunningStatsTest(TestCase):
         self.assertEqual(stats.Mean, mean)
         self.assertFloatEqualRel(stats.SD, sd, eps=0.05)
     
+    def test_quantiles(self):
+        """compute quantiles, just excercising at present"""
+        seqs = [a for a in FastqParser('data/test.txt', numeric_qual=False,
+                make_seq=LightSeq)]
+        stats = RunningStats()
+        
+        qualList = []
+        for seq in seqs:
+            stats(seq.getNumericQuality())
+            qualList.append(seq.getNumericQuality())
+        
+        self.assertEqual(len(stats.quantile(0.5)), len(seq))
 
 if __name__ == "__main__":
     main()

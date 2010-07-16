@@ -22,20 +22,17 @@ class RunningStatsTest(TestCase):
             seqLength = len(seq.Seq)
             if seqLength > maxSeqLength:
                 maxSeqLength = seqLength
-
-        self.assertEqual(stats.counts[0], len(seqs))
-        self.assertEqual(stats.length, maxSeqLength)
-
+        
         # Also try initialising the object from stored file
-        stats = RunningStats(in_file='data/test_stats.pkl')
-        self.assertEqual(stats.counts[0], len(seqs))
-        self.assertEqual(stats.length, maxSeqLength)
-
+        stats.storeStats('data/test_stats.pkl')
+        loaded_stats = RunningStats(in_file='data/test_stats.pkl')
+        self.assertFloatEqual(stats.Mean, loaded_stats.Mean)
+    
     def test_stats(self):
         """Test whether the mean and the std. deviation computed by RunningStats
         approximates real mean and std. deviation. Mean should be exact, however
         standard deviation is an approximation"""
-
+        
         seqs = [a for a in FastqParser('data/test.txt', numeric_qual=False, make_seq=LightSeq)]
         stats = RunningStats()
 
@@ -50,9 +47,7 @@ class RunningStatsTest(TestCase):
         sd = numpy.around(qualArray.std(axis=0), 2)
 
         self.assertEqual(stats.Mean, mean)
-        self.assertEqual(stats._get_array_based_mean(), mean)
-        self.assertFloatEqualRel(stats._get_array_based_sd(), sd, eps=0.05)
-        print 
+        self.assertFloatEqualRel(stats.SD, sd, eps=0.05)
 
 
 if __name__ == "__main__":

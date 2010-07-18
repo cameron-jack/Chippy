@@ -3,39 +3,28 @@ from __future__ import division
 import numpy, cPickle
 from cogent.maths.stats.util import NumberFreqs, Numbers
 
-def resized(array, length):
-    # required because a.resize broken in latest numpy release
-    new = numpy.zeros((array.shape[0], length), numpy.uint64)
-    indices = range(array.shape[1])
-    for i in range(array.shape[0]):
-        new[i].put(indices, array[i])
-    return new
+def dict_to_array(data):
+    qual_char = dict([(ord(c)-66, c) for c in data])
+    counts = numpy.zeros([len(data), len(data[c])], int)
+    positions = numpy.arange(counts.shape[1])
+    for i in range(counts.shape[0]):
+        c = qual_char[i]
+        counts[i].put(positions, data[c])
+    return counts
 
 class RunningStats(object):
-    """computes running mean and SD"""
-    def __init__(self, length=1, in_file=None):
+    def __init__(self, data=None, in_file=None):
         super(RunningStats, self).__init__()
-        self.length = length
+        assert data is not None or in_file is not None
         self._mean = None
         self._sd = None
-        self._counts = numpy.zeros((38, length), numpy.uint64)
         
         if in_file is not None:
             self.loadStats(in_file)
-
-    def __call__(self, vals):
-        """record counts of quality scores when called"""
-        self._mean = None
-        self._sd = None
+        else:
+            self._counts = dict_to_array(data)
         
-        if len(vals) > self.length:
-            self.length = len(vals)
-            self._counts = resized(self._counts, self.length)
-        
-        for i, v in enumerate(vals):
-            qual_index = v-2
-            self._counts[qual_index, i] += 1
-        
+        self.length = self._counts.shape[1]
     
     def _get_mean(self):
         if self._mean is not None:
@@ -74,18 +63,20 @@ class RunningStats(object):
     
     SD = property(_get_sd)
     
-    def quantile(self, q):
+    def quantiles(self, quantiles_):
         """returns position-wise quantiles
         
         Uses Cogent's NumberFreqs and Numbers objects"""
+        # this is very inefficient
         quals = [qual+2 for qual in range(38)]
         results = []
         for position in range(self._counts.shape[1]):
             column = NumberFreqs(data=dict(zip(quals,
                         self._counts[:, position])))
             column = Numbers(column.expand())
-            results += [column.quantile(q)]
-        return results
+            results += [[column.quantile(q) for q in quantiles_]]
+        
+        return numpy.array(results).T
     
     def storeStats(self, out_file=None):
         """Store stats in pickle file for easy retrieval"""
@@ -99,10 +90,8 @@ class RunningStats(object):
 
     def loadStats(self, in_file):
         """Initialise the object from previously saved data"""
-
+        
         pklFile = file(in_file)
         self._counts = cPickle.load(pklFile)
         pklFile.close()
-
-
 

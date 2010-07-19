@@ -27,7 +27,7 @@ def quantile(values, counts, quant):
 def qual_counts_dict_to_array(data, scheme='illumina'):
     adjust = [33, 66][scheme == 'illumina']
     qual_char = dict([(ord(c)-adjust, c) for c in data])
-    counts = numpy.zeros([len(data), len(data[c])], numpy.uint64)
+    counts = numpy.zeros([len(data), len(data.items()[0])], numpy.uint64)
     positions = numpy.arange(counts.shape[1])
     for i in range(counts.shape[0]):
         c = qual_char[i]

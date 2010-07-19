@@ -43,20 +43,23 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
         output_file=None, limit=None):
     if output_file is None:
         output_file = 'quality.png'
-    
-    data = dict([(chr(i+66), [0]*75) for i in range(38)])
+
+    data = None
     num = 0
     start = time.time()
     for label, seq, qual in MinimalFastqParser(input_file):
         if limit is not None and num > limit:
             break
-        
+
+        if data is None:
+            data = dict([(chr(i+66), [0]*len(seq)) for i in range(39)])
+
         if num % 100000 == 0:
             print 'Working on seq %d' % num
         
         num += 1
         if num % sample_freq == 0:
-            for i in range(75):
+            for i in range(len(seq)):
                 data[qual[i]][i] += 1
             
     end = time.time()

@@ -77,7 +77,7 @@ class RunningStats(object):
         for pos in range(pos_means.shape[0]):
             mean = pos_means[pos]
             var = 0.0
-            for qual in range(38):
+            for qual in range(39):
                 var += ((qual + 2 - mean)**2  * self._counts[qual, pos])
             result.append(numpy.sqrt(var / pos_sums[pos]))
         self._sd = numpy.array(result)
@@ -87,7 +87,7 @@ class RunningStats(object):
     
     def quantiles(self, quantiles_):
         """returns position-wise quantiles"""
-        quals = numpy.array([qual+2 for qual in range(38)])
+        quals = numpy.array([qual+2 for qual in range(39)])
         results = []
         for position in range(self._counts.shape[1]):
             column = self._counts[:, position]

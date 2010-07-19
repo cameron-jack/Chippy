@@ -23,7 +23,7 @@ def _to_freqs(values):
 
 def _get_data_dict(length):
     """returns a dict for incrementing counts"""
-    data = dict([(chr(i+66), [0]*length) for i in range(38)])
+    data = dict([(chr(i+66), [0]*length) for i in range(39)])
     return data
 
 def RecordQuality(data):

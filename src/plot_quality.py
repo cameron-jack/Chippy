@@ -5,16 +5,34 @@ from light_seq import LightSeq
 from inline_stats import RunningStats
 from parse_fastq import FastqParser, MinimalFastqParser
 
-def make_display(stats, output_file, upper_quantile, lower_quantile):
+def _num_suffix(num):
+    """returns suffix for expressing proportions"""
+    assert num > 1
+    if 2 <= num <= 3:
+        suffix = 'rd'
+    else:
+        suffix = 'th'
+    return suffix
+
+def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq):
+    """produces a png file"""
     print 'Computing stats'
     
     lower, median, upper = stats.quantiles([0.05, 0.5, 0.95])
+    # lower, median, upper = stats.quantiles_by_nums([0.05, 0.5, 0.95])
+    
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
     plt.plot(x, median, x, upper, 'r--', x, lower, 'r--')
     plt.xlabel('Base Number')
     plt.ylabel('Quality Scores')
-    plt.title('Quality Scores Across All Bases')
+    
+    sampled = ''
+    if sample_freq > 1:
+        sampled = ' (sampled every %s%s seq)' % (sample_freq,
+                                            _num_suffix(sample_freq))
+    
+    plt.title('Quality Scores Across All Bases%s' % sampled)
     plt.legend(('Median', 'Quantiles [%.2f - %.2f]' % (lower_quantile,
                                                        upper_quantile)),
                                                        loc='upper right')
@@ -24,7 +42,6 @@ def make_display(stats, output_file, upper_quantile, lower_quantile):
 
 def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
         output_file=None, limit=None):
-    
     if output_file is None:
         output_file = 'quality.png'
     
@@ -37,13 +54,14 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
             break
         
         num += 1
-        if num % sample_freq:
+        if num % sample_freq == 0:
             for i in range(75):
                 data[qual[i]][i] += 1
             
     
     stats = RunningStats(data)
-    make_display(stats, output_file, upper_quantile, lower_quantile)
+    make_display(stats, output_file, upper_quantile, lower_quantile,
+                sample_freq)
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters
@@ -78,6 +96,6 @@ if __name__ == "__main__":
     plot_quality(opts.input_file,
         opts.upper_quantile,
         opts.lower_quantile,
-        opts.output_file,
-        opts.sample_freq)
+        opts.sample_freq,
+        opts.output_file)
     

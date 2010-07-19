@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from light_seq import LightSeq
 from inline_stats import RunningStats
 from parse_fastq import FastqParser, MinimalFastqParser
+import time
 
 def _num_suffix(num):
     """returns suffix for expressing proportions"""
@@ -19,8 +20,6 @@ def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq
     print 'Computing stats'
     
     lower, median, upper = stats.quantiles([0.05, 0.5, 0.95])
-    # lower, median, upper = stats.quantiles_by_nums([0.05, 0.5, 0.95])
-    
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
     plt.plot(x, median, x, upper, 'r--', x, lower, 'r--')
@@ -47,18 +46,21 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
     
     data = dict([(chr(i+66), [0]*75) for i in range(38)])
     num = 0
+    start = time.time()
     for label, seq, qual in MinimalFastqParser(input_file):
-        if num % 100000 == 0:
-            print 'Did seq %d' % num
         if limit is not None and num > limit:
             break
+        
+        if num % 100000 == 0:
+            print 'Working on seq %d' % num
         
         num += 1
         if num % sample_freq == 0:
             for i in range(75):
                 data[qual[i]][i] += 1
             
-    
+    end = time.time()
+    print 'Took %s minutes' % ((end-start)/60)
     stats = RunningStats(data)
     make_display(stats, output_file, upper_quantile, lower_quantile,
                 sample_freq)

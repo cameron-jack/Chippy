@@ -5,11 +5,11 @@ import numpy, cPickle
 def value_at_expanded_index(values, counts, index):
     """return the value at index from expansion, using counts, of values"""
     num = 0
-    for val, count in zip(values, counts):
-        for j in range(count):
-            if num == index:
-                return val
-            num += 1
+    cumsum = counts.cumsum()
+    
+    for i in range(cumsum.shape[0]):
+        if cumsum[i] > index:
+            return values[i]
 
 def quantile(values, counts, quant):
     index = quant * (sum(counts)-1)
@@ -27,7 +27,7 @@ def quantile(values, counts, quant):
 def qual_counts_dict_to_array(data, scheme='illumina'):
     adjust = [33, 66][scheme == 'illumina']
     qual_char = dict([(ord(c)-adjust, c) for c in data])
-    counts = numpy.zeros([len(data), len(data[c])], int)
+    counts = numpy.zeros([len(data), len(data[c])], numpy.uint64)
     positions = numpy.arange(counts.shape[1])
     for i in range(counts.shape[0]):
         c = qual_char[i]
@@ -92,8 +92,9 @@ class RunningStats(object):
         for position in range(self._counts.shape[1]):
             column = self._counts[:, position]
             indices = [i for i in range(len(column)) if column[i] != 0]
-            results += [[quantile(quals.take(indices),
-                                column.take(indices), q) for q in quantiles_]]
+            qual = quals.take(indices)
+            counts = column.take(indices)
+            results += [[quantile(qual, counts, q) for q in quantiles_]]
         
         return numpy.array(results).T
     

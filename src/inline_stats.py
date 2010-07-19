@@ -1,10 +1,32 @@
 from __future__ import division
 
 import numpy, cPickle
-from cogent.maths.stats.util import NumberFreqs, Numbers
 
-def dict_to_array(data):
-    qual_char = dict([(ord(c)-66, c) for c in data])
+def value_at_expanded_index(values, counts, index):
+    """return the value at index from expansion, using counts, of values"""
+    num = 0
+    for val, count in zip(values, counts):
+        for j in range(count):
+            if num == index:
+                return val
+            num += 1
+
+def quantile(values, counts, quant):
+    index = quant * (sum(counts)-1)
+    lo = int(numpy.floor(index))
+    hi = int(numpy.ceil(index))
+    diff = index - lo
+    lo_val = value_at_expanded_index(values, counts, lo)
+    if diff != 0:
+        hi_val = value_at_expanded_index(values, counts, hi)
+    else:
+        hi_val = 0
+    stat = (1-diff) * lo_val + diff * hi_val
+    return stat
+
+def qual_counts_dict_to_array(data, scheme='illumina'):
+    adjust = [33, 66][scheme == 'illumina']
+    qual_char = dict([(ord(c)-adjust, c) for c in data])
     counts = numpy.zeros([len(data), len(data[c])], int)
     positions = numpy.arange(counts.shape[1])
     for i in range(counts.shape[0]):
@@ -22,7 +44,7 @@ class RunningStats(object):
         if in_file is not None:
             self.loadStats(in_file)
         else:
-            self._counts = dict_to_array(data)
+            self._counts = qual_counts_dict_to_array(data)
         
         self.length = self._counts.shape[1]
     
@@ -64,17 +86,14 @@ class RunningStats(object):
     SD = property(_get_sd)
     
     def quantiles(self, quantiles_):
-        """returns position-wise quantiles
-        
-        Uses Cogent's NumberFreqs and Numbers objects"""
-        # this is very inefficient
-        quals = [qual+2 for qual in range(38)]
+        """returns position-wise quantiles"""
+        quals = numpy.array([qual+2 for qual in range(38)])
         results = []
         for position in range(self._counts.shape[1]):
-            column = NumberFreqs(data=dict(zip(quals,
-                        self._counts[:, position])))
-            column = Numbers(column.expand())
-            results += [[column.quantile(q) for q in quantiles_]]
+            column = self._counts[:, position]
+            indices = [i for i in range(len(column)) if column[i] != 0]
+            results += [[quantile(quals.take(indices),
+                                column.take(indices), q) for q in quantiles_]]
         
         return numpy.array(results).T
     

@@ -96,7 +96,7 @@ class RunningStatsTest(TestCase):
             freqs = Numbers(qualArray[0, :])
             for quant in 0.05, 0.5, 0.95:
                 values, counts = _to_freqs(qualArray[0, :])
-                got = quantile(values, counts, quant)
+                got = quantile(numpy.array(values), numpy.array(counts), quant)
                 expect = freqs.quantile(quant)
                 self.assertFloatEqual(got, expect)
         

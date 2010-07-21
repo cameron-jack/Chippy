@@ -1,5 +1,4 @@
 from numpy import array
-from cogent.core import moltype
 
 class LightSeq(object):
 

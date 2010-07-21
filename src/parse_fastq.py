@@ -1,5 +1,5 @@
-from cogent import DNA, LoadSeqs
-from cogent.parse.fasta import MinimalFastaParser, Info
+from cogent import DNA
+from cogent.parse.fasta import Info
 
 def MinimalFastqParser(data):
     """yields name, seq, qual from fastq file

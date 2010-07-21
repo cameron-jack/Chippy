@@ -96,11 +96,14 @@ if __name__ == "__main__":
             help='lower quantile [default: %default]'),
         make_option('-s', '--sample_freq', type='int', default=1,
             help='sample frequency [default: %default]'),
+        make_option('-L', '--limit', type='int', default=0,
+            help='number of sequences to limit to [default: %default]'),
             ]
     parser, opts, args = parse_command_line_parameters(**script_info)
     plot_quality(opts.input_file,
         opts.upper_quantile,
         opts.lower_quantile,
         opts.sample_freq,
-        opts.output_file)
+        opts.output_file,
+        opts.limit or None)
     

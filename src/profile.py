@@ -6,9 +6,12 @@ except ImportError:
     print '$ sudo easy_install -U line_profiler'
     exit()
 
-from parse_fastq import FastqParser
+from plot_quality import plot_quality, make_display
+from inline_stats import RunningStats
+from light_seq import LightSeq
 
-profiler = line_profiler.LineProfiler(FastqParser)
-parser = FastqParser('../data/sample.txt')
-profiler.run("[(n,s,q) for n, s, q in parser]")
+stats = RunningStats(in_file='stats.pkl')
+profiler = line_profiler.LineProfiler(stats.quantiles)
+
+profiler.run("stats.quantiles([0.05, 0.5, 0.95])")
 profiler.print_stats()

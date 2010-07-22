@@ -2,9 +2,6 @@
 Tasks
 *****
 
-TODO handle writing out non-pristine seqs too
-- retain writing out fastq to separate files for pristine and not-pristine
-
 TODO instead of:
 - fastq --> fasta --> blat --> fasta from fasta;
 Do

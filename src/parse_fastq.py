@@ -73,7 +73,7 @@ def FastqParser(data, remove_ambig=True, trim_bad_bases=True,
             elif bad > 0:
                 seq_object = seq_object[:bad]
 
-        if len(seq_object.Seq) == 0:
+        if len(seq_object) == 0:
             continue
 
         yield seq_object

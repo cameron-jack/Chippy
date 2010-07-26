@@ -1,6 +1,6 @@
 from parse_fastq import FastqParser
 
-def make_seq(name, seq, qual):
+def make_seq(seq, name, qual):
     """over-ride default, slower, sequence constructor"""
     return name, seq
 
@@ -9,17 +9,19 @@ def run(input_file, output_file, minimum_length, test_run, verbose):
         outfile = open(output_file, 'w')
     i = 0
     num_too_small = 0
-    for name, seq in FastqParser(input_file, verbose, trim_bad_bases=True, make_seq=make_seq):
+    print '\nShort Sequences:\n'
+    for seq in FastqParser(input_file):
         i += 1
-        if len(seq) < minimum_length:
+        if len(seq.Seq) < minimum_length:
+            print '%s:\t%d\n' % (seq.Name,len(seq.Seq))
             num_too_small += 1
             continue
 
         if i % 100000 == 0:
-            print name
+            print seq.Name
             print i
 
-        data = "\n".join(['>%s' % name, seq, ''])
+        data = seq.toFasta() + '\n'
         if not test_run:
             outfile.write(data)
         else:
@@ -31,7 +33,7 @@ def run(input_file, output_file, minimum_length, test_run, verbose):
     if not test_run:
         outfile.close()
 
-    print '\nSuccess!!\n%d Sequences were read' % i
+    print 'Success!!\n%d Sequences were read' % i
     print '%d Sequences were discarded as too small' % num_too_small
 
 if __name__ == "__main__":
@@ -63,7 +65,7 @@ if __name__ == "__main__":
                     help='Dry run without writing any data'
                     +'[default: %default]'),
         make_option('-l', '--minimum_length', type='int',
-                    default=40,
+                    default=35,
                     help='minimum length of sequences to write [default: %default]')
                     ]
 

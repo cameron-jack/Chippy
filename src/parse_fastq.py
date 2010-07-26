@@ -1,6 +1,8 @@
 from cogent import DNA
 from cogent.parse.fasta import Info
 
+from light_seq import LightSeq
+
 def MinimalFastqParser(data):
     """yields name, seq, qual from fastq file
     """
@@ -38,20 +40,16 @@ def _make_seq(seq, name, qual):
     seq.Info = info
     return name, seq
 
-def FastqParser(data, numeric_qual=False, remove_ambig=True,
-    trim_bad_bases=True, make_seq=None):
+def FastqParser(data, remove_ambig=True, trim_bad_bases=True,
+                make_seq=LightSeq):
     """yields name, seq from fastq file
 
     Arguments:
         - data is a data series (e.g. file, list)
-        - numeric_qual: whether base quality score is returned or raw ASCII
         - remove_ambig: excludes any sequence with N
         - trim_bad_bases: trims terminal positions with B quality score
-        - make_seq: a function that takes name, seq, qual and returns data
+        - make_seq: a function that takes seq, name, qual and returns data
     """
-
-    if make_seq is None:
-        make_seq = _make_seq
 
     ambig_count = 0
     parser = MinimalFastqParser(data)
@@ -65,20 +63,18 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
                 ambig_count+=1
                 continue
 
+        seq_object = make_seq(Seq=seq, Name=name, Quality=qual)
+
         if trim_bad_bases:
             # we find B and trim seq and qual
             bad = qual.find('B')
             if bad == 0:
                 continue
             elif bad > 0:
-                seq = seq[: bad]
-                qual = qual[: bad]
+                seq_object = seq_object[:bad]
 
-        if len(seq) == 0:
+        if len(seq_object.Seq) == 0:
             continue
 
-        if numeric_qual:
-            qual = [v-64 for v in map(ord, qual)]
-
-        yield make_seq(seq, name, qual)
+        yield seq_object
 

@@ -45,7 +45,7 @@ class RunningStatsTest(TestCase):
         maxSeqLength = 0
         for seq in seqs:
             qualities(seq.Quality)
-            seqLength = len(seq.Seq)
+            seqLength = len(seq)
             if seqLength > maxSeqLength:
                 maxSeqLength = seqLength
 

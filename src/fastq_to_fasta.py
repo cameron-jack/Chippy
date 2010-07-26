@@ -12,8 +12,8 @@ def run(input_file, output_file, minimum_length, test_run, verbose):
     print '\nShort Sequences:\n'
     for seq in FastqParser(input_file):
         i += 1
-        if len(seq.Seq) < minimum_length:
-            print '%s:\t%d\n' % (seq.Name,len(seq.Seq))
+        if len(seq) < minimum_length:
+            print '%s:\t%d\n' % (seq.Name,len(seq))
             num_too_small += 1
             continue
 

@@ -8,15 +8,17 @@ def get_corrupt_seq_names(psl_name, test_run):
     psl_parser.next()
 
     num = 0
-    to_trim = set()
+    contaminated_info = []
     for record in psl_parser:
-        name = record[9]
+        # get the contaminated sequence name and the index where contamination
+        # starts
+        info = record[9], record[11]
         num += 1
-        to_trim.update([name])
+        contaminated_info.append(info)
         if test_run and num >= 1000:
             break
 
-    return to_trim
+    return contaminated_info
 
 to_fasta = lambda name, seq: '\n'.join(['>%s' % name, seq])
 
@@ -26,23 +28,35 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
         outfile_pristine = open(outfile_root + '_pristine.fastq', 'w')
         outfile_contaminated = open(outfile_root + '_contaminated.fastq', 'w')
 
+    not_pristine_names = [a[0] for a in not_pristine]
 
     for name, seq, qual in MinimalFastqParser(open(fastq_name)):
         num += 1
         seq_object = LightSeq(seq, name, qual)
-        fastq_formatted = seq_object.toFastq()
+
 
         if test_run:
             print fastq_formatted
             if num > 100:
                 break
 
-        # if sequence is contaminated with adapater
-        if name in not_pristine:
+        # if sequence is contaminated with adapater, trim the sequence
+        if name in not_pristine_names:
+            index = not_pristine_names.index(name)
+            start = not_pristine[index][1]
+
+            # since we trim everything after the adapter sequence start,
+            # there is little value in keeping a sequence which is going to be
+            # less than 35 bp long.
+            if start < 35:
+                continue
+
+            seq_object = seq_object[:start]
+            fastq_formatted = seq_object.toFastq()
             outfile_contaminated.write(fastq_formatted + '\n')
-            continue
 
         else:
+            fastq_formatted = seq_object.toFastq()
             outfile_pristine.write(fastq_formatted + '\n')
 
     if not test_run:
@@ -67,7 +81,7 @@ if __name__ == "__main__":
     script_info['script_usage']=[]
     script_info['script_usage'].append(
         ("Example 1","""Test run of write pristine:""",
-        """python get_pristine_seqs.py -p <somefile.psl> -i <seqs> -o <pristine_seqs.fasta> -t"""))
+        """python get_pristine_seqs.py -p <somefile.psl> -i <seqs> -o <outfile_root> -t"""))
 
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [

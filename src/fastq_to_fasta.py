@@ -4,22 +4,22 @@ def make_seq(seq, name, qual):
     """over-ride default, slower, sequence constructor"""
     return name, seq
 
-def run(input_file, output_file, minimum_length, test_run, verbose):
+def run(input_file, output_file, minimum_length, test_run):
     if not test_run:
         outfile = open(output_file, 'w')
     i = 0
     num_too_small = 0
-    print '\nShort Sequences:\n'
+    #print '\nShort Sequences:\n'
     for seq in FastqParser(input_file):
         i += 1
         if len(seq) < minimum_length:
-            print '%s:\t%d\n' % (seq.Name,len(seq))
+            #print '%s:\t%d\n' % (seq.Name,len(seq))
             num_too_small += 1
             continue
 
-        if i % 100000 == 0:
-            print seq.Name
-            print i
+        #if i % 100000 == 0:
+            #print seq.Name
+            #print i
 
         data = seq.toFasta() + '\n'
         if not test_run:
@@ -70,4 +70,4 @@ if __name__ == "__main__":
                     ]
 
     parser, opts, args = parse_command_line_parameters(**script_info)
-    run(opts.input_file, opts.output_file, opts.minimum_length, opts.test_run, opts.verbose)
+    run(opts.input_file, opts.output_file, opts.minimum_length, opts.test_run)

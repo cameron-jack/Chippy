@@ -2,12 +2,6 @@
 Tasks
 *****
 
-TODO instead of:
-- fastq --> fasta --> blat --> fasta from fasta;
-Do
-- fastq --> fasta --> blat --> fastq from fastq;
-
-
 ***************
 Data properties
 ***************

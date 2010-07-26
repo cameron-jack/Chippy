@@ -21,18 +21,18 @@ data = {
 class ParseFastq(TestCase):
     def test_parse(self):
         """sequence and info objects should correctly match"""
-        seqs = [(name, seq) for name, seq in FastqParser('data/test.txt', numeric_qual=False)]
-        for name, seq in seqs:
+        seqs = [seq for seq in FastqParser('data/test.txt')]
+        for seq in seqs:
             self.assertTrue(seq.Name in data)
-            self.assertEqual(str(seq), data[name]["seq"])
-            self.assertEqual(seq.Info.qual, data[name]["qual"])
-            
+            self.assertEqual(seq.Seq, data[seq.Name]["seq"])
+            self.assertEqual(seq.Quality, data[seq.Name]["qual"])
+
     def test_parse_numeric_qual_scores(self):
         """quality scores should be int's"""
-        seqs = [(name, seq) for name, seq in FastqParser('data/test.txt', numeric_qual=True)]
-        for name, seq in seqs:
-            self.assertTrue(0 <= min(seq.Info.qual) <= 255)
+        seqs = [seq for seq in FastqParser('data/test.txt')]
+        for seq in seqs:
+            self.assertTrue(0 <= min(seq.getNumericQuality()) <= 255)
 
 if __name__ == "__main__":
     main()
-    
+

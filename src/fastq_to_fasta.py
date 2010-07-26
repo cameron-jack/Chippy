@@ -1,12 +1,17 @@
+from os.path import basename
 from parse_fastq import FastqParser
 
 def make_seq(seq, name, qual):
     """over-ride default, slower, sequence constructor"""
     return name, seq
 
-def run(input_file, output_file, minimum_length, test_run):
+def run(input_file, output_file, minimum_length, rewrite, test_run):
     if not test_run:
-        outfile = open(output_file, 'w')
+        outfile_fasta = open(output_file, 'w')
+        if rewrite:
+            outfile_fastq_fn = basename(input_file).split('.')[0] + '_trimmed.fastq'
+            outfile_fastq = open(outfile_fastq_fn, 'w')
+
     i = 0
     num_too_small = 0
     #print '\nShort Sequences:\n'
@@ -21,9 +26,13 @@ def run(input_file, output_file, minimum_length, test_run):
             #print seq.Name
             #print i
 
-        data = seq.toFasta() + '\n'
+        data_fasta = seq.toFasta() + '\n'
+        if rewrite:
+            data_fastq = seq.toFastq() + '\n'
         if not test_run:
-            outfile.write(data)
+            outfile_fasta.write(data_fasta)
+            if rewrite:
+                outfile_fastq.write(data_fastq)
         else:
             print data
 
@@ -31,7 +40,9 @@ def run(input_file, output_file, minimum_length, test_run):
             break
 
     if not test_run:
-        outfile.close()
+        outfile_fasta.close()
+        if rewrite:
+            outfile_fastq.close()
 
     print 'Success!!\n%d Sequences were read' % i
     print '%d Sequences were discarded as too small' % num_too_small
@@ -66,8 +77,10 @@ if __name__ == "__main__":
                     +'[default: %default]'),
         make_option('-l', '--minimum_length', type='int',
                     default=35,
-                    help='minimum length of sequences to write [default: %default]')
+                    help='minimum length of sequences to write [default: %default]'),
+        make_option('-q', '--rewrite_fastq', action='store_true',
+                    help='Rewrite input fastq file after removing discarded sequences')
                     ]
 
     parser, opts, args = parse_command_line_parameters(**script_info)
-    run(opts.input_file, opts.output_file, opts.minimum_length, opts.test_run)
+    run(opts.input_file, opts.output_file, opts.minimum_length, opts.rewrite_fastq, opts.test_run)

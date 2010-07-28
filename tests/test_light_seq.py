@@ -8,7 +8,7 @@ test_seq_name = 'GAPC_0015:6:1:1259:10413#0/1'
 test_seq = 'AACACCAAACTTCTCCACCACGTGAGCTACAAAAG'
 test_seq_qual = r'````Y^T]`]c^cabcacc`^Lb^ccYT\T\Y\WF'
 test_seq_fasta = '>GAPC_0015:6:1:1259:10413#0/1\nAACACCAAACTTCTCCACCACGTGAGCTACAAAAG'
-test_seq_fastq = '>GAPC_0015:6:1:1259:10413#0/1\nAACACCAAACTTCTCCACCACGTGAGCTACAAAAG\n>GAPC_0015:6:1:1259:10413#0/1\n````Y^T]`]c^cabcacc`^Lb^ccYT\T\Y\WF'
+test_seq_fastq = '@GAPC_0015:6:1:1259:10413#0/1\nAACACCAAACTTCTCCACCACGTGAGCTACAAAAG\n+GAPC_0015:6:1:1259:10413#0/1\n````Y^T]`]c^cabcacc`^Lb^ccYT\T\Y\WF'
 
 class LightSeqTest(TestCase):
     def test_load(self):

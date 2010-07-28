@@ -25,7 +25,7 @@ class LightSeq(object):
 
     def __len__(self):
         return len(self.Seq)
-    
+
     def __getitem__(self, index):
         """ability to index and slice this sequence object. Returns another
         LightSeq object"""
@@ -75,7 +75,7 @@ class LightSeq(object):
             assert len(quality) == len(self.Seq)
             self.Quality = quality
 
-        return '\n'.join(['>%s' % self.Name, self.Seq, '>%s' % self.Name, self.Quality])
+        return '\n'.join(['@%s' % self.Name, self.Seq, '+%s' % self.Name, self.Quality])
 
 
 

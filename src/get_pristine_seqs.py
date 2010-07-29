@@ -8,19 +8,17 @@ def get_corrupt_seq_names(psl_name, test_run):
     psl_parser.next()
 
     num = 0
-    contaminated_info = []
+    contaminated_info = dict()
     for record in psl_parser:
         # get the contaminated sequence name and the index where contamination
-        # starts
-        info = record[9], record[11]
+        # starts and store it as a key-->value pair
+        contaminated_info.update([(record[9], record[11])])
         num += 1
-        contaminated_info.append(info)
         if test_run and num >= 1000:
             break
 
     return contaminated_info
 
-to_fasta = lambda name, seq: '\n'.join(['>%s' % name, seq])
 
 def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
     num = 0
@@ -28,22 +26,18 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
         outfile_pristine = open(outfile_root + '_pristine.fastq', 'w')
         outfile_contaminated = open(outfile_root + '_contaminated.fastq', 'w')
 
-    not_pristine_names = [a[0] for a in not_pristine]
-
     for name, seq, qual in MinimalFastqParser(open(fastq_name)):
         num += 1
-        seq_object = LightSeq(seq, name, qual)
 
+        seq_object = LightSeq(seq, name, qual)
 
         if test_run:
             print fastq_formatted
             if num > 100:
                 break
 
-        # if sequence is contaminated with adapater, trim the sequence
-        if name in not_pristine_names:
-            index = not_pristine_names.index(name)
-            start = not_pristine[index][1]
+        try:
+            start = not_pristine[name]
 
             # since we trim everything after the adapter sequence start,
             # there is little value in keeping a sequence which is going to be
@@ -55,7 +49,9 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
             fastq_formatted = seq_object.toFastq()
             outfile_contaminated.write(fastq_formatted + '\n')
 
-        else:
+        # if the sequence doesnt exist in output from blat, it must not be
+        # contaminated with the adapter
+        except KeyError:
             fastq_formatted = seq_object.toFastq()
             outfile_pristine.write(fastq_formatted + '\n')
 

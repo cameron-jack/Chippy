@@ -1,3 +1,0 @@
--p ../../tremethick/data/result_s_6.psl -i ../../tremethick/data/s_6.fasta -o ../../tremethick/data//s_6_pristine.fasta
--p ../../tremethick/data/result_s_7.psl -i ../../tremethick/data/s_7.fasta -o ../../tremethick/data//s_7_pristine.fasta
--p ../../tremethick/data/result_s_8.psl -i ../../tremethick/data/s_8.fasta -o ../../tremethick/data//s_8_pristine.fasta

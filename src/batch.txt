@@ -1,3 +1,0 @@
--i ../data/s_6_sequence.txt -o ../data/s_6.fasta
--i ../data/s_7_sequence.txt -o ../data/s_7.fasta
--i ../data/s_8_sequence.txt -o ../data/s_8.fasta

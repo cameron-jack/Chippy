@@ -3,7 +3,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from light_seq import LightSeq
 from inline_stats import RunningStats
 from parse_fastq import FastqParser, MinimalFastqParser
 import time
@@ -15,10 +14,10 @@ def format_long(n):
     r = []
     if rem:
         r = [n[:rem]]
-    
+
     for i in range(rem, len(n), 3):
         r += [n[i: i+3]]
-    
+
     return ','.join(r)
 
 def _num_suffix(num):
@@ -33,7 +32,7 @@ def _num_suffix(num):
 def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq, total):
     """produces a png file"""
     print 'Computing stats'
-    
+
     lower, median, upper = stats.quantiles([0.05, 0.5, 0.95])
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
@@ -43,19 +42,19 @@ def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq
     plt.plot(x, median, x, upper, 'r--', x, lower, 'r--')
     plt.xlabel('Base Number')
     plt.ylabel('Quality Scores')
-    
+
     sampled = ''
     if sample_freq > 1:
         sampled = ' (sampled every %s%s seq)' % (sample_freq,
                                             _num_suffix(sample_freq))
-    
+
     plt.title('Quality Scores Across All Bases%s' % sampled)
-    
+
     plt.legend(('Median', 'Quantiles [%.2f - %.2f]' % (lower_quantile,
                                                        upper_quantile)),
                                                        loc='upper right',
                                                    prop=dict(size=12))
-    
+
     plt.fill_between(x, upper, lower, alpha=0.1, color='c')
     plt.setp(plt.gca(), 'ylim', [0,50])
     num = format_long(total)
@@ -79,12 +78,12 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
 
         if num % 100000 == 0:
             print 'Working on seq %s' % format_long(num)
-        
+
         num += 1
         if num % sample_freq == 0:
             for i in range(len(seq)):
                 data[qual[i]][i] += 1
-            
+
     end = time.time()
     print 'Took %s minutes' % ((end-start)/60)
     stats = RunningStats(data)
@@ -94,7 +93,7 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters
     from optparse import make_option
-    
+
     script_info = {}
     descr = "Get Quality Information from a fastq file and plot the quality "\
             "scores across all bases."
@@ -105,7 +104,7 @@ if __name__ == "__main__":
     script_info['script_usage'].append(
         ("Example 1","""General Usage:""",
         """python plot_quality.py -i <seqs.fastq> -o <qual_plot.png>"""))
-    
+
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [
         make_option('-i','--input_file', help='The input fastq sequence file')]
@@ -129,4 +128,4 @@ if __name__ == "__main__":
         opts.sample_freq,
         opts.output_file,
         opts.limit or None)
-    
+

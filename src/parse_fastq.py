@@ -39,7 +39,6 @@ def MinimalFastqParser(data, strict=True):
         data.close()
     
 
-
 def FastqParser(data, numeric_qual=False, remove_ambig=True,
     trim_bad_bases=True, make_seq=None, strict=True):
     """yields name, seq from fastq file

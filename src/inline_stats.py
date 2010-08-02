@@ -98,6 +98,12 @@ class RunningStats(object):
         
         return numpy.array(results).T
     
+    def _get_total(self):
+        """total number of reads at the 0 position"""
+        return self._counts.sum(axis=0)[0]
+    
+    Total = property(_get_total)
+    
     def storeStats(self, out_file=None):
         """Store stats in pickle file for easy retrieval"""
 

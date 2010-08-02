@@ -28,10 +28,11 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
         outfile_pristine = open(outfile_root + '_pristine.fastq', 'w')
         outfile_contaminated = open(outfile_root + '_contaminated.fastq', 'w')
 
+    seq_object = LightSeq()
     for name, seq, qual in MinimalFastqParser(open(fastq_name)):
         num += 1
 
-        seq_object = LightSeq(seq, name, qual)
+        seq_object(seq, name, qual)
 
         if test_run:
             print fastq_formatted

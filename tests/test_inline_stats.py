@@ -8,7 +8,6 @@ from cogent.util.unit_test import TestCase, main
 from cogent.maths.stats.util import NumberFreqs, Numbers
 from cogent.util.misc import remove_files
 
-from light_seq import LightSeq
 from inline_stats import RunningStats, quantile
 from parse_fastq import FastqParser
 

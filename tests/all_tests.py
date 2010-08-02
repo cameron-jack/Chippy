@@ -5,9 +5,8 @@
 #
 
 import sys, os
-
-sys.path.append(os.path.join(os.path.expanduser('cggroup'),
-                'repos/PyCogent-trunk'))
+os.chdir('tests')
+sys.path.append(os.path.expanduser('~cggroup/repos/PyCogent-trunk'))
 
 import doctest, cogent.util.unit_test as unittest, sys, os
 

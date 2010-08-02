@@ -28,7 +28,7 @@ class ParseFastq(TestCase):
             self.assertTrue(seq.Name in data)
             self.assertEqual(seq.Seq, data[seq.Name]["seq"])
             self.assertEqual(seq.Quality, data[seq.Name]["qual"])
-
+    
     def test_parse_numeric_qual_scores(self):
         """quality scores should be int's"""
         seqs = [seq for seq in FastqParser('data/test.txt')]

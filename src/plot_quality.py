@@ -6,6 +6,19 @@ from inline_stats import RunningStats
 from parse_fastq import FastqParser, MinimalFastqParser
 import time
 
+def format_long(n):
+    """format a long integer"""
+    n = str(int(n))
+    num, rem = divmod(len(n),3)
+    r = []
+    if rem:
+        r = [n[:rem]]
+    
+    for i in range(rem, len(n), 3):
+        r += [n[i: i+3]]
+    
+    return ','.join(r)
+
 def _num_suffix(num):
     """returns suffix for expressing proportions"""
     assert num > 1
@@ -15,13 +28,16 @@ def _num_suffix(num):
         suffix = 'th'
     return suffix
 
-def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq):
+def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq, total):
     """produces a png file"""
     print 'Computing stats'
     
     lower, median, upper = stats.quantiles([0.05, 0.5, 0.95])
     # plot the results
     x = np.arange(stats.length) # length of the longest sequence
+    # hard-coding figure size for the time being so they can be easily
+    # inserted into a google doc
+    fig = plt.figure(figsize=(6,4))
     plt.plot(x, median, x, upper, 'r--', x, lower, 'r--')
     plt.xlabel('Base Number')
     plt.ylabel('Quality Scores')
@@ -32,11 +48,16 @@ def make_display(stats, output_file, upper_quantile, lower_quantile, sample_freq
                                             _num_suffix(sample_freq))
     
     plt.title('Quality Scores Across All Bases%s' % sampled)
+    
     plt.legend(('Median', 'Quantiles [%.2f - %.2f]' % (lower_quantile,
                                                        upper_quantile)),
-                                                       loc='upper right')
+                                                       loc='upper right',
+                                                   prop=dict(size=12))
+    
     plt.fill_between(x, upper, lower, alpha=0.1, color='c')
     plt.setp(plt.gca(), 'ylim', [0,50])
+    num = format_long(total)
+    plt.text(2, 45, '%s reads' % num)
     plt.savefig(output_file)
 
 def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
@@ -66,7 +87,7 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
     print 'Took %s minutes' % ((end-start)/60)
     stats = RunningStats(data)
     make_display(stats, output_file, upper_quantile, lower_quantile,
-                sample_freq)
+                sample_freq, num)
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters

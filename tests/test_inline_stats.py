@@ -96,6 +96,22 @@ class RunningStatsTest(TestCase):
                 got = quantile(numpy.array(values), numpy.array(counts), quant)
                 expect = freqs.quantile(quant)
                 self.assertFloatEqual(got, expect)
+    
+    def test_total(self):
+        """correctly compute the total"""
+        seqs = [a for a in FastqParser('data/test.txt')]
+
+        data = _get_data_dict(35)
+        qualities = RecordQuality(data)
+        maxSeqLength = 0
+        for seq in seqs:
+            qualities(seq.Quality)
+            seqLength = len(seq)
+            if seqLength > maxSeqLength:
+                maxSeqLength = seqLength
+
+        stats = RunningStats(data)
+        self.assertEqual(stats.Total, 10)
 
 
 if __name__ == "__main__":

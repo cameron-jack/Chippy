@@ -17,8 +17,11 @@ Running Bowtie
 **************
 
 #. The batch_bowtie_m.txt is in /Chipseq/src
-#. bowtie command used for analyeses is: gridsub -x ./bowtie -a "-f -t -a -m 1 mouse_genome_index reads/s_6_pristine.fasta s_6_pristine_bowtie_m.map"
-#. The output is stored tremethcik/results/bowtie_results/*bowtie_m.map
+#. bowtie command used for analyses is::
+
+    $ gridsub -x ./bowtie -a "-f -t -a -m 1 mouse_genome_index reads/s_6_pristine.fasta s_6_pristine_bowtie_m.map"
+
+#. The output is stored tremethcki/results/bowtie_results/*bowtie_m.map
 #. -f: query input files are fasta
 #. -t: the amount of wall-clock time taken by each phase
 #. -a: report all valid alignments per read or pair

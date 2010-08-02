@@ -23,8 +23,6 @@ class Test(TestCase):
         version = parser.next()
         header = parser.next()
         self.assertEqual(header, expect)
-        for row in parser:
-            print row
 
     def test_psl_to_table(self):
         table = PslToTable(fname)

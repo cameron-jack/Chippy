@@ -18,15 +18,19 @@ class Test(TestCase):
             'Q gap bases', 'T gap count', 'T gap bases', 'strand', 'Q name',
             'Q size', 'Q start', 'Q end', 'T name', 'T size', 'T start',
             'T end', 'block count', 'blockSizes', 'qStarts', 'tStarts']
-
+        
         parser = MinimalPslParser(fname)
         version = parser.next()
         header = parser.next()
         self.assertEqual(header, expect)
+<<<<<<< local
 
+=======
+    
+>>>>>>> other
     def test_psl_to_table(self):
         table = PslToTable(fname)
-
+    
     def test_getting_seq_coords(self):
         """get correct sequence coordinates to produce a trimmed sequence"""
         table = PslToTable(fname)
@@ -35,7 +39,7 @@ class Test(TestCase):
             query_strand = row["strand"]
             q_start = row["Q start"]
             #print query_name, q_start, query_strand
-
+    
 
 if __name__ == "__main__":
     main()

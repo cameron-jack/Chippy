@@ -76,7 +76,7 @@ def plot_quality(input_file, upper_quantile, lower_quantile, sample_freq,
             data = dict([(chr(i+66), [0]*len(seq)) for i in range(39)])
 
         if num % 100000 == 0:
-            print 'Working on seq %d' % num
+            print 'Working on seq %s' % format_long(num)
         
         num += 1
         if num % sample_freq == 0:

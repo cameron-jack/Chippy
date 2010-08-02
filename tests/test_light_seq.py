@@ -18,6 +18,12 @@ class LightSeqTest(TestCase):
         self.assertEqual(sequence.Seq, test_seq)
         self.assertEqual(sequence.Name, test_seq_name)
         self.assertEqual(sequence.Quality, test_seq_qual)
+        
+        sequence(test_seq, test_seq_name, test_seq_qual)
+        self.assertEqual(sequence.Seq, test_seq)
+        self.assertEqual(sequence.Name, test_seq_name)
+        self.assertEqual(sequence.Quality, test_seq_qual)
+        
 
     def test_numeric_conversion(self):
         """ test the numeric conversion of the quality scores in the sequence
@@ -31,6 +37,13 @@ class LightSeqTest(TestCase):
         qualScores = sequence.getNumericQuality(scheme='illumina')
         for score in qualScores:
             self.assertTrue(2 <= score <= 40)
+        
+        sequence(test_seq, test_seq_name, test_seq_qual)
+        qualScores = sequence.getNumericQuality(scheme='illumina')
+        for score in qualScores:
+            self.assertTrue(2 <= score <= 40)
+        
+        
 
     def test_trim_seqs(self):
         """ test that the trimming of sequences is done atomically i.e. if a
@@ -40,12 +53,22 @@ class LightSeqTest(TestCase):
         new_sequence = sequence[:-10]
         self.assertEqual(new_sequence.Seq, test_seq[:-10])
         self.assertEqual(new_sequence.Quality, test_seq_qual[:-10])
+        
+        sequence(test_seq, test_seq_name, test_seq_qual)
+        new_sequence = sequence[:-10]
+        self.assertEqual(new_sequence.Seq, test_seq[:-10])
+        self.assertEqual(new_sequence.Quality, test_seq_qual[:-10])
+        
 
     def test_toFasta(self):
         """ test fasta conversion"""
 
         sequence = LightSeq(Seq=test_seq, Name=test_seq_name, Quality=test_seq_qual)
         self.assertEqual(sequence.toFasta(), test_seq_fasta)
+        
+        sequence(test_seq, test_seq_name, test_seq_qual)
+        self.assertEqual(sequence.toFasta(), test_seq_fasta)
+        
 
     def test_toFastq(self):
         """ test fastq conversion"""
@@ -53,11 +76,14 @@ class LightSeqTest(TestCase):
         # Quality score specified at creation of object
         sequence = LightSeq(Seq=test_seq, Name=test_seq_name, Quality=test_seq_qual)
         self.assertEqual(sequence.toFastq(), test_seq_fastq)
-
-
+        
         # Quality score specified when creating fastq string
         sequence = LightSeq(Seq=test_seq, Name=test_seq_name)
         self.assertEqual(sequence.toFastq(test_seq_qual), test_seq_fastq)
+        
+        sequence(test_seq, test_seq_name, test_seq_qual)
+        self.assertEqual(sequence.toFastq(test_seq_qual), test_seq_fastq)
+        
 
 if __name__ == "__main__":
     main()

@@ -25,7 +25,13 @@ class LightSeq(object):
     
     def __len__(self):
         return len(self.Seq)
-
+    
+    def __call__(self, Seq, Name, Quality):
+        """allow on the fly over-riding of sequence attributes"""
+        self.Seq = Seq
+        self.Name = Name
+        self.Quality = Quality
+    
     def __getitem__(self, index):
         """ability to index and slice this sequence object. Returns another
         LightSeq object"""

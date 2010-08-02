@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from parse_psl import MinimalPslParser
 from parse_fastq import MinimalFastqParser
 from light_seq import LightSeq

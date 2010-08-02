@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 try:
     import line_profiler

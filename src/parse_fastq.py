@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from cogent import DNA
 from cogent.parse.fasta import Info
 
@@ -5,13 +7,13 @@ from light_seq import LightSeq
 
 def MinimalFastqParser(data, strict=True):
     """yields name, seq, qual from fastq file
-    
+
     Arguments:
         - strict: checks the quality and sequence labels are the same
     """
     if type(data) == str:
         data = open(data)
-    
+
     # fastq format is very simple, defined by blocks of 4 lines
     seq = None
     qual = None
@@ -19,7 +21,7 @@ def MinimalFastqParser(data, strict=True):
     line_num = -1
     for line in data:
         line_num += 1
-        
+
         if line_num == 0:
             if line[0] != '@': # could just be empty line at end-of-file
                 line_num = -1
@@ -34,10 +36,10 @@ def MinimalFastqParser(data, strict=True):
         elif strict: # must be line == 2
             qual_label = line[1:].strip()
             assert qual_label == seq_label, 'Invalid format'
-    
+
     if type(data) == file:
         data.close()
-    
+
 
 def FastqParser(data, numeric_qual=False, remove_ambig=True,
     trim_bad_bases=True, make_seq=None, strict=True):

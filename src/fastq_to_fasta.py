@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from os.path import basename, dirname, join
 from parse_fastq import FastqParser
 

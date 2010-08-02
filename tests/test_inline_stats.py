@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy
 import sys
 sys.path.append('../src')
@@ -96,7 +98,7 @@ class RunningStatsTest(TestCase):
                 got = quantile(numpy.array(values), numpy.array(counts), quant)
                 expect = freqs.quantile(quant)
                 self.assertFloatEqual(got, expect)
-    
+
     def test_total(self):
         """correctly compute the total"""
         seqs = [a for a in FastqParser('data/test.txt')]

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from cogent import LoadTable
 from cogent.parse.table import ConvertFields
 

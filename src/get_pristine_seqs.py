@@ -24,6 +24,9 @@ def get_corrupt_seq_names(psl_name, test_run):
 
 def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
     num = 0
+    num_too_short = 0
+    num_pristine = 0
+    num_contaminated = 0
     if not test_run:
         outfile_pristine = open(outfile_root + '_pristine.fastq', 'w')
         outfile_contaminated = open(outfile_root + '_contaminated.fastq', 'w')
@@ -46,8 +49,10 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
             # there is little value in keeping a sequence which is going to be
             # less than 35 bp long.
             if start < 35:
+                num_too_short += 1
                 continue
 
+            num_contaminated += 1
             seq_object = seq_object[:start]
             fastq_formatted = seq_object.toFastq()
             outfile_contaminated.write(fastq_formatted + '\n')
@@ -55,12 +60,20 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
         # if the sequence doesnt exist in output from blat, it must not be
         # contaminated with the adapter
         except KeyError:
+            num_pristine += 1
             fastq_formatted = seq_object.toFastq()
             outfile_pristine.write(fastq_formatted + '\n')
 
     if not test_run:
         outfile_contaminated.close()
         outfile_pristine.close()
+
+    print 'Success!!\n%d Sequences were processed' % num
+    print '%d Sequences were pristine' % num_pristine
+    print '%d Sequences were contaminated with adapter, but still kept' % num_contaminated
+    print '%d Sequences were discarded as too small' % num_too_short
+
+
 
 def run(input_psl_file, input_file, outfile_root, test_run):
     """identifies reads not to be written, then writes everything else"""

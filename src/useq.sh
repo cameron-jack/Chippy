@@ -70,8 +70,13 @@ if [ -z "$output_dir" ]; then
 fi
 
 if [ "$output_format" = "bar" ]; then
-    java -Xmx2G -jar /usr/local/bin/useq/Apps/ChIPSeq -y sam -v "$genome_ver" -t "$treatment_dir" -c "$control_dir" -s "$output_dir" -r /usr/bin/R64
+    java -Xmx4G -jar /usr/local/bin/useq/Apps/ChIPSeq -y sam -v "$genome_ver" -t "$treatment_dir" -c "$control_dir" -s "$output_dir" -r /usr/bin/R64
 else
-    java -Xmx2G -jar /usr/local/bin/useq/Apps/ChIPSeq -y sam -v "$genome_ver" -t "$treatment_dir" -c "$control_dir" -s "$output_dir" -r /usr/bin/R64 -u
+    java -Xmx4G -jar /usr/local/bin/useq/Apps/ChIPSeq -y sam -v "$genome_ver" -t "$treatment_dir" -c "$control_dir" -s "$output_dir" -r /usr/bin/R64 -u
+    
+    # generate the bed files
+    output_dir=${output_dir/%\//}
+    java -Xmx4G -jar /usr/local/bin/useq/Apps/USeq2Text -f "${output_dir}/ReadCoverageTracks"
+    
 fi
 

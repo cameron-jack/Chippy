@@ -25,8 +25,7 @@ For example, the original data from the latest run can be found in:
 
 	/Volumes/Data/Users/tremethick/data/100721_GAPC_0018_GERALD_26-07-2010_sbsuser
 	
-The data is divided into 'treatment' and 'control' directory depending on the nature of the experiment. This information will need to be 
-provided by the lab, so that the data can be put in the appropriate folders.
+The data is divided into 'treatment' and 'control' directory depending on the nature of the experiment. This information will need to be provided by the lab, so that the data can be put in the appropriate folders.
 
 Any results from the processing of the data can be found in a mirror of the data directory, with 'data' changed to 'results'. So for the 
 data directory above, the results can be found in:
@@ -35,25 +34,40 @@ data directory above, the results can be found in:
 	
 The results directory contains the following directories (in order of processing of data) :
 
- *	trimmed - 		This contains both fasta and fastq formatted data files from the original data set after the sequences have been trimmed for
-					bad base calls (Those with quality score 'B'). If after trimming, the sequence is less than 35 bps long, it is discarded.
-					trim_summary.txt has a summary of the number of sequences that were discarded from the original file.
+ *	trimmed - 		This contains both fasta and fastq formatted data files
+					from the original data set after the sequences have been
+					trimmed for bad base calls (Those with quality score 'B').
+					If after trimming, the sequence is less than 35 bps long,
+					it is discarded.
+					trim_summary.txt has a summary of the number of sequences
+					that were discarded from the original file.
 				
- *	blat_output - 	blat is used to find the sequences that might be contaminated with adapter sequences. blat uses the trimmed fasta files found
-					in the trimmed directory as its input. The output of blat (psl files) can be found in this directory. 
+ *	blat_output - 	blat is used to find the sequences that might be
+					contaminated with adapter sequences. blat uses the trimmed
+					fasta files found in the trimmed directory as its input.
+					The output of blat (psl files) can be found in this
+					directory. 
 					
- *	sorted - 		This directory contains two sets of fastq files per original sequence file - those sequences which had no adapter sequences
- 					contamination are named as 'name_pristine.fastq'. Those that were contaminated by adapter sequences, have their adapter 
-					sequences trimmed, and only kept if the sequence is longer than 35 bps. This process is carried out by the get_pristine_seqs.py
+ *	sorted - 		This directory contains two sets of fastq files per
+					original sequence file - those sequences which had no
+					adapter sequences contamination are named as
+					'name_pristine.fastq'. Those that were contaminated by
+					adapter sequences, have their adapter sequences trimmed,
+					and only kept if the sequence is longer than 35 bps. This
+					process is carried out by the get_pristine_seqs.py
 					script. 
 					
- * bowtie_output -	The bowtie application is used to find alignments of the sequences in the sorted directory with a reference genome. The results
-					of bowtie are saved in this directory. bowtie_summary.txt has information on the alignments that were found, per sequence file.
-					This directory also has a concatenated version of the pristine and contaminated sequence results, as they can be used for useq
-					analyses. 
+ * bowtie_output -	The bowtie application is used to find alignments of the
+					sequences in the sorted directory with a reference genome.
+					The results of bowtie are saved in this directory.
+					bowtie_summary.txt has information on the alignments that
+					were found, per sequence file.This directory also has a
+					concatenated version of the pristine and contaminated
+					sequence results, as they can be used for useq analyses. 
 					
- * useq_output - 	The useq ChIPSeq application is used to find peaks, using the bowtie output as input. The multiple outputs from useq are stored
-					in this directory. 
+ * useq_output - 	The useq ChIPSeq application is used to find peaks, using
+					the bowtie output as input. The multiple outputs from useq
+					are stored in this directory. 
 					
 
 A list of the possible adapters that could be contaminating the data files are stored in fasta format in
@@ -71,20 +85,49 @@ where <species> is the species that you are interested in. For eg. the mouse ref
 	/Volumes/Data/Users/tremethick/index/mouse
 
 
-**************
-Running Bowtie
-**************
+********
+Workflow
+********
 
-#. The batch_bowtie_m.txt is in /Chipseq/src
-#. bowtie command used for analyses is::
+N.B.
+1.	The commands below assume that the ~cggroup/repos/lab/Chipseq/src is
+	part of your path.
+2.	Make sure that the original sequences and the results are put in the
+	appropriate data directories as mentioned above. 
+		 
 
-    $ gridsub -x ./bowtie -a "-f -t -a -m 1 mouse_genome_index reads/s_6_pristine.fasta s_6_pristine_bowtie_m.map"
+1.	Plot quality calls for the data set.
+ 
+	plot_quality.py -i <seqs.fastq> -o <qual_plot.png>
+	
+2.	Trim the bad bases from the sequence file, and create a fasta file which
+	can be used as an input for blat to find the adapter sequences.
+	
+	fastq_to_fasta.py -i <seqs.fastq> -o <seqs.fasta> -q
+	
+3.	Look for the adapters in the sequence using blat
 
-#. The output is stored tremethcki/results/bowtie_results/*bowtie_m.map
-#. -f: query input files are fasta
-#. -t: the amount of wall-clock time taken by each phase
-#. -a: report all valid alignments per read or pair
-#. -m 1: suppress all alignments for a particular read or pair if more than 1 reportable alignments exist for it
+	blat <adapter.fa> <seqs.fasta> <output.psl>
+	
+4. 	Generate the pristine and contaminated fastq files (after removing the
+	adapater sequences from the contaminated sequences)
+	
+	get_pristine_seqs.py -p <somefile.psl> -i <seqs> -o <outfile_root>
+	
+5.	Map the reads to the genome using bowtie Do this for both the pristine and
+	contaminated sequences and store their outputs separately.
+
+	bowtie -q --solexa1.3-quals -t -m 1 --sam <index> <seq.fastq> <output.sam>
+	
+6.	For useq analysis, you will have to concatenate the bowtie output from the 
+	pristine and contaminated sequences prior to invoking useq. Note that this 
+	involves trimming the header of the file being appended. 
+	
+7. 	Run the useq analysis. This can either be done directly or by using the
+	useq.sh script.
+
+	useq -t treatment_dir -c control_dir -o output_dir -g genome_ver -f output_format
+
 
 **********
 References

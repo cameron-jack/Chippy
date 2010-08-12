@@ -126,7 +126,7 @@ N.B.
 7. 	Run the useq analysis. This can either be done directly or by using the
 	useq.sh script.
 
-	useq -t treatment_dir -c control_dir -o output_dir -g genome_ver -f output_format
+	useq.sh -t treatment_dir -c control_dir -o output_dir -g genome_ver -f output_format
 
 
 **********

@@ -1,26 +1,34 @@
 import os
-import sqlalchemy as sql
+from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Species, Genome
-def ensembl_query():
+
+try:
+    username, password = os.environ['ENSEMBL_ACCOUNT'].split()
+except KeyError:
+    print 'Need ENSEMBL_ACCOUNT environment variable, quitting!'
+    exit(-1)
+
+def sample_ensembl(out_dir, release, write_seqs=False):
+    account = HostAccount('cg.anu.edu.au', username, password)
     
-    if 'ENSEMBL_ACCOUNT' in os.environ:
-        username, password = os.environ['ENSEMBL_ACCOUNT'].split()
-        account = HostAccount('cg.anu.edu.au','compgen','compgen')
-    else:
-        account = None
-    Mouse = Genome(Species='Mouse', Release = 58, account=account)
-    chr_MT = Mouse.getRegion(CoordName = 19)
-    out = open('chr_19.fasta','w')
-    out.write(chr_19.Seq.toFasta()+'\n')
-    out.close()
+    mouse = Genome(Species='Mouse', Release = release, account=account)
     
-ensembl_query()
+    chroms = map(str, range(1,20)+['X', 'Y'])
+    chrom_lengths = []
+    for chrom in chroms:
+        region = mouse.getRegion(CoordName = chrom)
+        chrom_lengths += [[chrom, len(region)]]
+        
+        if write_seqs:
+            outfile_name = os.path.join(out_dir, 'chr_%s.fasta' % chrom)
+            outfile = open(outfile_name, 'w')
+            out.write(region.Seq.toFasta()+'\n')
+            out.close()
+    
+    chrom_lengths = LoadTable(header=['Chrom', 'Length'], rows=chrom_lengths)
+    outfile_name = os.path.join(out_dir, 'chrom_lengths_%s.txt' % release)
+    print outfile_name
+    chrom_lengths.writeToFile(outfile_name, sep='\t')
 
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    sample_ensembl('', release=58, write_seqs=False)

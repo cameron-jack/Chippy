@@ -14,7 +14,6 @@ def sample_ensembl(out_dir, release, write_seqs=False):
     mouse = Genome(Species='Mouse', Release = release, account=account)
     
     chroms = map(str, range(1,20)+['X', 'Y'])
-    chrom_lengths = []
     for chrom in chroms:
         region = mouse.getRegion(CoordName = chrom)
         chrom_lengths += [[chrom, len(region)]]
@@ -25,10 +24,6 @@ def sample_ensembl(out_dir, release, write_seqs=False):
             out.write(region.Seq.toFasta()+'\n')
             out.close()
     
-    chrom_lengths = LoadTable(header=['Chrom', 'Length'], rows=chrom_lengths)
-    outfile_name = os.path.join(out_dir, 'chrom_lengths_%s.txt' % release)
-    print outfile_name
-    chrom_lengths.writeToFile(outfile_name, sep='\t')
 
 if __name__ == "__main__":
     sample_ensembl('', release=58, write_seqs=False)

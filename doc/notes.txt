@@ -2,6 +2,15 @@
 Tasks
 *****
 
+- look into using bowtie formatted bowtie output instead of sam for clarity in parsing
+- chromosomes should saved in separate binary npy files
+- only coordinates around annotated genes per chromosome should be sampled, but worry about this only on save and write
+- on writing the counts structure to file, check what maximum precision is required, save as lower precision uint if possible
+
+- remove strand information for time being
+
+- the region counts will need to be removed from being used in producing the plots because now raw counts stored per gene
+
 ***************
 Data properties
 ***************

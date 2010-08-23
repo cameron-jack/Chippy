@@ -37,8 +37,8 @@ def run(ui):
     """docstring for run"""
     win_size = 2000
     gene_TSS = get_gene_coords('../data/mouse_gene_coords.txt', 1, win_size)
-    treatment = GenomeCounts(filename='../data/s_7_pristine-chr1.npy')
-    control = GenomeCounts(filename='../data/s_8_pristine-chr1.npy')
+    treatment = RegionCounts(filename='../data/s_7_pristine-chr1.npy')
+    control = RegionCounts(filename='../data/s_8_pristine-chr1.npy')
     trt_binned = None
     ctl_binned = None
     for i in ui.series(range(len(gene_TSS))):

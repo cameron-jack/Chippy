@@ -5,6 +5,7 @@ Tasks
 - look into using bowtie formatted bowtie output instead of sam for clarity in parsing
 - chromosomes should saved in separate binary npy files
 - only coordinates around annotated genes per chromosome should be sampled, but worry about this only on save and write
+- on save, require strand information to be provided with coords and if a segment has strand == -1 (reverse strand) then flip the counts for that region and then write. (note e.g. of slicing in reverse range(4,1,-1))
 - on writing the counts structure to file, check what maximum precision is required, save as lower precision uint if possible
 
 - remove strand information for time being

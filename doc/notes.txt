@@ -12,6 +12,12 @@ Tasks
 
 - the region counts will need to be removed from being used in producing the plots because now raw counts stored per gene
 
+Looking at densities per repeat sequence
+========================================
+
+- suggest using the BLAT approach against a canonical (or consensus) reference sequence for the different repeat types (centromeric, telomeric, LINE etc ..)
+- question for the centromeric/telomeric, do those repeat sequences occur outside of their prototypical locations? (answer to that probably by blasting using NCBI or Ensembl blast servers)
+
 ***************
 Data properties
 ***************

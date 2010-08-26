@@ -81,8 +81,8 @@ def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
     n = 0
     for record in parser:
         n += 1
-        if n % 100000 == 0:
-            print format_long(n)
+        #if n % 100000 == 0:
+            #print format_long(n)
 
         chrom = record[2]
         if chrom != chrom_name:
@@ -95,10 +95,11 @@ def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
         if span:
             counter.addRead(start, start+span)
 
-    counter.save(infile_name.replace('.map', '-%s' % chrom_name))
+    #counter.save(infile_name.replace('.map', '-%s' % chrom_name))
     print '\n\nTotal %s counts: %s' % (chrom_name,
                             counter.counts.sum())
     print 'Num reads: %d' % n
+    return counter
 
 
 

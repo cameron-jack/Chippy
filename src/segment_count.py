@@ -10,7 +10,6 @@ def get_gene_coords(infile_name, chrom_name, window, just_strand=1):
     """returns 5', TSS, 3', strand"""
     table = LoadTable(infile_name, sep='\t')
     table = table.filtered(lambda x: x == chrom_name, columns='CoordName')
-    table = table.sorted()
     rows = []
     for row in table:
         strand = row['Strand']
@@ -22,9 +21,10 @@ def get_gene_coords(infile_name, chrom_name, window, just_strand=1):
             TSS = row['Start']
             five = TSS - window
             three = TSS + window
-        
-        if strand == just_strand:
+
+        if strand == just_strand or just_strand == 0:
             rows += [(chrom_name, TSS, five, three, strand)]
+
     return rows
 
 def get_binned_counts(a, bin_size=150):
@@ -51,13 +51,13 @@ def run(ui):
         else:
             trt_binned += get_binned_counts(trt_counts)
             ctl_binned += get_binned_counts(ctl_counts)
-    
+
     # averaged by number of genes
     trt_binned /= len(gene_TSS)
     ctl_binned /= len(gene_TSS)
-    
+
     diff = trt_binned - ctl_binned
-    
+
     sd = numpy.sqrt(trt_binned + ctl_binned)
     norm_diff = diff / sd
     norm_diff /= len(gene_TSS)

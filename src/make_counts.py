@@ -1,6 +1,8 @@
 import time
 from cogent import LoadTable
 
+from parse_bowtie import BowtieOutputParser
+from parse_sam import MinimalSamParser
 from region_count import RegionCounts
 
 def format_long(n):
@@ -34,7 +36,6 @@ def bufcount(filename):
 def get_read_counts_sam(infile_name, chrom_name):
     """Generate the read counts using the SAM format infile"""
 
-    from parse_sam import MinimalSamParser
 
     start = time.time()
     num_lines = bufcount(infile_name)
@@ -68,27 +69,22 @@ def get_read_counts_sam(infile_name, chrom_name):
 
 def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
     """Generate the read counts using the bowtie format infile"""
-
-    from parse_bowtie import BowtieOutputParser
-
     start = time.time()
     num_lines = bufcount(infile_name)
     end = time.time()
-    print format_long(num_lines) + ' lines read in ' + ('%fs' % ((end-start)/60.))
+    print format_long(num_lines) + ' lines read in ' + \
+            ('%fs' % ((end-start)/60.))
     parser = BowtieOutputParser(infile_name)
     header = parser.next()
     counter = RegionCounts(chrom_size)
     n = 0
     for record in parser:
         n += 1
-        #if n % 100000 == 0:
-            #print format_long(n)
 
         chrom = record[2]
         if chrom != chrom_name:
             continue
 
-        #flag = [0, 1][record[1] == '-'] # 1 if reverse
         start = record[3]
         span = len(record[4])
 

@@ -2,10 +2,7 @@
 
 from parse_psl import MinimalPslParser
 from parse_fastq import MinimalFastqParser
-<<<<<<< local
-=======
 from light_seq import LightSeq
->>>>>>> other
 
 def get_corrupt_seq_names(psl_name, test_run):
     psl_parser = MinimalPslParser(psl_name)
@@ -21,40 +18,7 @@ def get_corrupt_seq_names(psl_name, test_run):
         num += 1
         if test_run and num >= 1000:
             break
-<<<<<<< local
-    # not_pristine_file = open(output_file,'w')
-    # not_pristine_file.write(str(to_trim))
-=======
-
-<<<<<<< local
->>>>>>> other
-    return to_trim
-=======
     return contaminated_info
->>>>>>> other
-
-<<<<<<< local
-to_fasta = lambda name, seq: '\n'.join(['>%s' % name, seq])
-to_fastq = lambda name, seq, qual: '\n'.join(['@%s'%name, seq,'+%s', qual])
-
-def write_not_pristine(psl_name, output_file, test_run):
-    num = 0
-    if not test_run:
-        outfile = open(output_file, 'w')
-    
-    for name, seq, qual in MinimalFastqParser(open(psl_name)):
-        num += 1
-        if name in not_pristine:
-            fastq_formatted = to_fastq(name, seq, qual)
-            outfile.write(fastq_formatted + '\n')
-        if test_run:
-            print fasta_formatted
-            if num > 100:
-                break
-    if not test_run:
-        outfile.close()
-=======
->>>>>>> other
 
 def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
     num = 0
@@ -107,17 +71,10 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
     print '%d Sequences were contaminated with adapter, but still kept' % num_contaminated
     print '%d Sequences were discarded as too small' % num_too_short
 
-
-
 def run(input_psl_file, input_file, outfile_root, test_run):
     """identifies reads not to be written, then writes everything else"""
     not_pristine = get_corrupt_seq_names(input_psl_file, test_run)
-<<<<<<< local
-    write_not_pristine(psl_name, outputfile, test_run)
-    write_pristine(input_file, output_file, not_pristine, test_run)
-=======
     write_pristine(input_file, outfile_root, not_pristine, test_run)
->>>>>>> other
     print '\n Done!'
 
 if __name__ == "__main__":

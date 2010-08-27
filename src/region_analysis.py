@@ -5,7 +5,7 @@ from make_counts import get_read_counts_bowtie
 
 # read in the chromosome lengths and create a dictionary
 chromLengths = LoadTable('../data/mouse_chrom_lengths_release_58.txt', sep='\t')
-chromLengthsDict = dict(zip(chromLengths.getRawData('chrom'), chromLengths.getRawData('length')))
+chromLengthsDict = dict(chromLengths.getRawData(['chrom', 'length']))
 chroms = chromLengthsDict.keys()
 
 # input files
@@ -22,18 +22,18 @@ for chrom in chroms:
     chrom_str = 'chr' + str(chrom)
     print 'Getting Counts for ' + chrom_str
     counter = get_read_counts_bowtie(controlFile, chrom_str, chromLengthsDict[chrom])
-    mouseGeneCoords = get_gene_coords(geneCoordsFile, chrom, window_size, just_strand = 0)
+    mouseGeneCoords = get_gene_coords(geneCoordsFile, chrom)
     print 'Saving binary for ' + chrom_str
-    counter.save('s_8_counts_%s'%chrom_str, mouseGeneCoords,window_size*2+1)
+    counter.save('s_8_counts_%s'%chrom_str, mouseGeneCoords, window_size)
 
 print 'Treatment Analysis...'
 for chrom in chroms:
     chrom_str = 'chr' + str(chrom)
     print 'Getting Counts for ' + chrom_str
     counter = get_read_counts_bowtie(treatmentFile, chrom_str, chromLengthsDict[chrom])
-    mouseGeneCoords = get_gene_coords(geneCoordsFile, chrom, window_size, just_strand = 0)
+    mouseGeneCoords = get_gene_coords(geneCoordsFile, chrom)
     print 'Saving binary for ' + chrom_str
-    counter.save('s_7_counts_%s'%chrom_str, mouseGeneCoords,window_size*2+1)
+    counter.save('s_7_counts_%s'%chrom_str, mouseGeneCoords, window_size)
 
 
 

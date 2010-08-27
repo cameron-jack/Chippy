@@ -31,6 +31,7 @@ def suite():
         'test_light_seq',
         'test_parse_fastq',
         'test_parse_psl',
+        'test_region_count',
         ]
     
     alltests = unittest.TestSuite()

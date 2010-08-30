@@ -59,15 +59,14 @@ def get_read_counts_sam(infile_name, chrom_name):
         if chrom != chrom_name:
             continue
 
-        #flag = [0, 1][int(record[1]) & 16 == 16] # 1 if reverse
-        start = record[3]-1 #1 based indexing in sam file
+        start = record[3]
         span = record[5]
 
         if span:
             counter.addRead(start, start+span)
 
     counter.save(infile_name.replace('.map', '-%s' % chrom_name))
-    print '\n\nTotal %s counts: %s' % (chrom_name,
+    print '\nTotal %s counts: %s' % (chrom_name,
                             counter.counts.sum())
     print 'Num reads: %d' % n
 

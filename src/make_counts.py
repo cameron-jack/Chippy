@@ -75,7 +75,7 @@ def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
 
     parser = BowtieOutputParser(infile_name)
     header = parser.next()
-    counter = RegionCounts(chrom_size)
+    counter = RegionCounts(chrom_size, one_based=False)
     n = 0
     for record in parser:
         n += 1

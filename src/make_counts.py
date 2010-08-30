@@ -33,15 +33,19 @@ def bufcount(filename):
 
     return lines
 
+def get_file_length(filename):
+    """output number of lines in read file"""
+
+    start = time.time()
+    print 'Reading %s' % filename
+    num_lines = bufcount(filename)
+    end = time.time()
+    print format_long(num_lines) + ' lines read in ' + \
+            ('%fs' % ((end-start)/60.))
+
 def get_read_counts_sam(infile_name, chrom_name):
     """Generate the read counts using the SAM format infile"""
 
-
-    start = time.time()
-    num_lines = bufcount(infile_name)
-    end = time.time()
-    print format_long(num_lines)
-    print (end-start)/60.
     parser = MinimalSamParser(infile_name)
     n = 0
     lengths = parser.next()
@@ -69,18 +73,13 @@ def get_read_counts_sam(infile_name, chrom_name):
 
 def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
     """Generate the read counts using the bowtie format infile"""
-    start = time.time()
-    num_lines = bufcount(infile_name)
-    end = time.time()
-    print format_long(num_lines) + ' lines read in ' + \
-            ('%fs' % ((end-start)/60.))
+
     parser = BowtieOutputParser(infile_name)
     header = parser.next()
     counter = RegionCounts(chrom_size)
     n = 0
     for record in parser:
         n += 1
-
         chrom = record[2]
         if chrom != chrom_name:
             continue
@@ -91,16 +90,16 @@ def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
         if span:
             counter.addRead(start, start+span)
 
-    #counter.save(infile_name.replace('.map', '-%s' % chrom_name))
-    print '\n\nTotal %s counts: %s' % (chrom_name,
+    print '\nTotal %s counts: %s' % (chrom_name,
                             counter.counts.sum())
     print 'Num reads: %d' % n
     return counter
 
-
-
 if __name__ == "__main__":
-    # get_read_counts('../data/s_7_contaminated.map', 'chr1')
-    # get_read_counts('../data/s_8_pristine.map', 'chr1')
+
+    # Example of calling the sam method
+    # get_read_counts_sam('../data/s_8_pristine.map', 'chr1')
+
     # manually supplying the length of the chromosome for testing purposes.
+    get_file_length('../data/bowtie_output.map')
     get_read_counts_bowtie('../data/bowtie_output.map', 'chr1', 197195432)

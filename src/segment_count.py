@@ -10,7 +10,7 @@ def get_gene_coords(infile_name, chrom_name):
     """returns TSS, strand for the nominated chromosome"""
     table = LoadTable(infile_name, sep='\t')
     table = table.filtered(lambda x: x == chrom_name, columns='CoordName')
-    table = table.sorted()
+    table = table.sorted(columns=['CoordName', 'Start'])
     rows = []
     for row in table:
         strand = row['Strand']

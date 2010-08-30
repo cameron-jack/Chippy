@@ -1,7 +1,7 @@
 from cogent import LoadTable
 
 from segment_count import get_gene_coords
-from make_counts import get_read_counts_bowtie
+from make_counts import get_read_counts_bowtie, get_file_length
 
 # read in the chromosome lengths and create a dictionary
 chrom_lengths = LoadTable('../data/mouse_chrom_lengths_release_58.txt',
@@ -17,6 +17,7 @@ gene_coords_file = '../data/mouse_gene_coords.txt'
 window_size = 2000
 
 print 'Control Analysis...'
+get_file_length(control_file)
 for chrom in chrom_lengths:
 
     chrom_str = 'chr' + str(chrom)
@@ -28,6 +29,7 @@ for chrom in chrom_lengths:
     counter.save('s_8_counts_%s'%chrom_str, mouse_gene_coords, window_size)
 
 print 'Treatment Analysis...'
+get_file_length(treatment_file)
 for chrom in chrom_lengths:
     chrom_str = 'chr' + str(chrom)
     print 'Getting Counts for ' + chrom_str

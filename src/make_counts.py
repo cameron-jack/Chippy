@@ -65,10 +65,10 @@ def get_read_counts_sam(infile_name, chrom_name):
         if span:
             counter.addRead(start, start+span)
 
-    counter.save(infile_name.replace('.map', '-%s' % chrom_name))
     print '\nTotal %s counts: %s' % (chrom_name,
                             counter.counts.sum())
     print 'Num reads: %d' % n
+    return counter
 
 def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
     """Generate the read counts using the bowtie format infile"""

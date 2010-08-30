@@ -18,8 +18,9 @@ class RegionCounts(object):
         self.counts[self._adjust + start: end] += 1
     
     def _get_subregion_counts(self, ordered_coords, window_size):
-        annotated_counts = zeros((len(ordered_coords), 2 * window_size), uint16)
-        
+        annotated_counts = zeros((len(ordered_coords), 2 * window_size),
+                                 self.counts.dtype)
+
         for row_index, (tss, strand) in enumerate(ordered_coords):
             stride = strand
             # positive strand

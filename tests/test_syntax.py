@@ -19,6 +19,7 @@ def my_import(name):
 
 _modules_to_import = [
     'ensembl_query',
+    'ensembl_transcript_gene_idmap',
     'fastq_to_fasta',
     'get_pristine_seqs',
     'inline_stats',

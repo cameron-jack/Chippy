@@ -7,29 +7,37 @@ from segment_count import get_gene_coords
 from make_counts import get_read_counts_bowtie, get_read_counts_sam, \
      get_file_length
 
-def run(input_file, outfile_root, window_size, sam_output):
-
+def run(input_file, outdir, chrom_name, window_size, sam_output):
+    
+    try:
+        chrom_name = int(chrom_name)
+    except ValueError:
+        pass
+    
+    fname_prefix = os.path.split(input_file)[1].split('.')[:-1]
+    fname_prefix = '.'.join(fname_prefix)
+    
     # static information files
     chrom_lengths_file = '../data/mouse_chrom_lengths_release_58.txt'
     gene_coords_file = '../data/mouse_gene_coords.txt'
-
+    
     # read in the chromosome lengths and create a dictionary
     chrom_lengths = LoadTable(chrom_lengths_file, sep='\t')
     chrom_lengths = dict(chrom_lengths.getRawData(['chrom', 'length']))
-
-    for chrom in chrom_lengths:
-        chrom_str = 'chr' + str(chrom)
-        mouse_gene_coords = get_gene_coords(gene_coords_file, chrom)
-        print '\n\nGetting Counts for ' + chrom_str
-
-        if sam_output:
-            counter = get_read_counts_sam(input_file, chrom_str)
-        else:
-            counter = get_read_counts_bowtie(input_file, chrom_str,
-                                             chrom_lengths[chrom])
-        print 'Saving binary for ' + chrom_str
-        counter.save(outfile_root + '_%s'%chrom_str, mouse_gene_coords,
-                     window_size)
+    chrom_str = 'chr%s' % chrom_name
+    mouse_gene_coords = get_gene_coords(gene_coords_file, chrom_name)
+    print '\n\nGetting Counts for ' + chrom_str
+    
+    if sam_output:
+        counter = get_read_counts_sam(input_file, chrom_str)
+    else:
+        counter = get_read_counts_bowtie(input_file, chrom_str,
+                                         chrom_lengths[chrom])
+    outfile_name = os.path.join(outdir,
+            '%s-window_%s-%s.npy' % (fname_prefix, window_size, chrom_str))
+    print 'Saving binary for %s to %s' % (chrom_str, outfile_name)
+    counter.save(outfile_name, mouse_gene_coords,
+                 window_size)
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters
@@ -48,22 +56,24 @@ if __name__ == "__main__":
     script_info['script_usage']=[]
     script_info['script_usage'].append(
         ("Example 1","""Bowtie Output with window size 2000 bps:""",
-        """python region_analysis.py -i somefile.map -o outfile_root"""))
+        """python region_analysis.py -i somefile.map -o outdir"""))
     script_info['script_usage'].append(
         ("Example 2","""SAM Output with window size 2000 bps:""",
-        """python region_analysis.py -i somefile.map -o outfile_root -s"""))
+        """python region_analysis.py -i somefile.map -o outdir -s"""))
     script_info['script_usage'].append(
         ("Example 3","""Bowtie Output with window size 4000 bps:""",
-       """python region_analysis.py -i somefile.map -o outfile_root -w 4000"""))
+       """python region_analysis.py -i somefile.map -o outdir -w 4000"""))
 
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [
         make_option('-i','--input_file',
                     help='The input alignment file (output from bowtie)'),
-        make_option('-o','--outfile_root',
-                    help='Location and root of the output numpy arrays. The '\
-                    'file basename will automatically be appended with '\
-                    '_chrN.npy based on the chromosome number in question.'),
+        make_option('-o','--outdir',
+                    help='Location to save the output numpy arrays. The '\
+                    'file basename will automatically be derived from input '\
+                    'filename and appended with _chrN.npy based on the '\
+                    'chromosome number in question.'),
+        make_option('-c', '--chrom_name', help="the chromosome name")
         ]
 
     script_info['optional_options'] = [\
@@ -79,6 +89,7 @@ if __name__ == "__main__":
 
     parser, opts, args = parse_command_line_parameters(**script_info)
 
-    run(opts.input_file, opts.outfile_root, opts.window_size, opts.sam_output)
+    run(opts.input_file, opts.outdir, opts.chrom_name, opts.window_size,
+        opts.sam_output)
 
 

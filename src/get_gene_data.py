@@ -73,10 +73,7 @@ def get_gene_indices(rdump_filename):
 
 
 if __name__ == "__main__":
-    rdump_filename1 = '../g2-vs-g1/paa.G2.gt.G1.sig.sort.2FC.txt'
-    rdump_filename2 = '../g2-vs-g1/paa.G2.lt.G1.sig.sort.2FC.txt'
-    
-    gene_ids = get_gene_ids(rdump_filename2)
+    gene_ids = get_gene_ids('../tests/data/rdump_sample.txt')
     get_gene_index = GetGeneIndexes()
     genes = [get_gene_index(gene_id) for gene_id in gene_ids]
     print genes

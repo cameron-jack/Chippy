@@ -1,4 +1,9 @@
+from os import path as p
+from glob import glob1
+import re
 from numpy import zeros, uint16, save, load
+
+
 
 class RegionCounts(object):
     """records sequence read counts for a genomic region"""
@@ -8,7 +13,7 @@ class RegionCounts(object):
         # be enough.
         self.length = length
         self.counts = zeros(length, uint16)
-        
+
         # if the mapping software counts from one
         self._adjust = [0, -1][one_based]
 
@@ -16,7 +21,7 @@ class RegionCounts(object):
         """add counts for range start, end, adjusting for whether the number
         system starts at 1"""
         self.counts[self._adjust + start: end] += 1
-    
+
     def _get_subregion_counts(self, ordered_coords, window_size):
         annotated_counts = zeros((len(ordered_coords), 2 * window_size),
                                  self.counts.dtype)
@@ -34,10 +39,10 @@ class RegionCounts(object):
                 end = max([tss - window_size, 0])
             annotated_counts[row_index] = self.counts[start: end: stride]
         return annotated_counts
-    
+
     def save(self, filename, ordered_coords, window_size):
         """saves in numpy binary format
-        
+
         Arguments:
             - filename: full path to be saved to, NOTE: numpy adds the .npy
               suffix
@@ -46,8 +51,50 @@ class RegionCounts(object):
             - window_size: counts in a window  of tss +/- window_size
               saved. Reverse strand counts are reversed.
         """
-        
+
         annotated_counts = self._get_subregion_counts(ordered_coords,
                                                       window_size)
         save(filename, annotated_counts)
+
+
+class CacheLaneCounts(object):
+    """Abstracts the handling of stored RegionCounts"""
+
+    def __init__(self, lane, path):
+        super(CacheLaneCounts, self).__init__()
+
+        # The path where the .npy files can be found for this particular lane.
+        # Validate that path exists and contains valid npy files.
+        if p.exists(path):
+            count_filenames = glob1(path, '*s_%s*chr?*.npy'%str(lane))
+            if len(count_filenames) != 0:
+                self.path = path
+                self.count_filenames = count_filenames
+                self.num_files = len(count_filenames)
+            else:
+                raise IOError('Specified path has no valid npy files.')
+        else:
+            raise IOError('Specified path does not exist.')
+
+        # The data from this lane was used to compute the count statistics.
+        self.lane = lane
+
+        # Create a dictionary (chrom: open count file)
+        self.count_dict = {}
+        for fn in self.count_filenames:
+            chrom = re.findall('chr[0-9][0-9]|chr[0-9XY]', fn)[0].strip('chr')
+            self.count_dict[chrom] = load(p.join(self.path,fn))
+
+    def __str__(self):
+        return '%d count files found for lane %s at location: %s' % \
+               (self.num_files, str(self.lane), self.path)
+
+    def get_counts_for_chrom(self, chrom):
+        return self.count_dict[str(chrom)]
+
+
+
+
+
+
 

@@ -89,7 +89,7 @@ class CacheLaneCounts(object):
         return '%d count files found for lane %s at location: %s' % \
                (self.num_files, str(self.lane), self.path)
 
-    def get_counts_for_chrom(self, chrom):
+    def getCountsForChrom(self, chrom):
         return self.count_dict[str(chrom)]
 
 

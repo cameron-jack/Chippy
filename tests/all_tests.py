@@ -33,6 +33,7 @@ def suite():
         'test_parse_psl',
         'test_region_count',
         'test_syntax',
+        'test_cache_lane_counts'
         ]
     
     alltests = unittest.TestSuite()

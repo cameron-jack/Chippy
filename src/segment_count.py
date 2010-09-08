@@ -79,12 +79,6 @@ def run(r_gene_file, count_dir, control_lane, treatment_lane, plot_title, ui):
     print '\n\nDone!'
 
 if __name__ == "__main__":
-    #rdump_filename1 = '../g2-vs-g1/paa.G2.gt.G1.sig.sort.2FC.txt'
-    #title1 = 'G2 > G1'
-    #rdump_filename2 = '../g2-vs-g1/paa.G2.lt.G1.sig.sort.2FC.txt'
-    #title2 = 'G2 < G1'
-
-    #run(rdump_filename1, title1)
 
     from cogent.util.misc import parse_command_line_parameters
     from optparse import make_option

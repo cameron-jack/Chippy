@@ -49,6 +49,7 @@ class CacheLaneCountTests(TestCase):
             counter.addRead(index, index+1)
             self.assertEqual(count_cache.getCountsForChrom(index+1),
                              counter._get_subregion_counts([(5,1)], 5))
+        remove_files(count_cache.count_filenames)
 
 if __name__ == "__main__":
     main()

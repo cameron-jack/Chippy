@@ -12,9 +12,9 @@ import doctest, cogent.util.unit_test as unittest, sys, os
 
 def my_import(name):
     """Imports a module, possibly qualified with periods. Returns the module.
-    
+
     __import__ only imports the top-level module.
-    
+
     Recipe from python documentation at:
     http://www.python.org/doc/2.4/lib/built-in-funcs.html
     """
@@ -33,11 +33,12 @@ def suite():
         'test_parse_psl',
         'test_region_count',
         'test_syntax',
-        'test_cache_lane_counts'
+        'test_cache_lane_counts',
+        'test_jackknife'
         ]
-    
+
     alltests = unittest.TestSuite()
-    
+
     for module in modules_to_test:
         test = unittest.findTestCases(my_import(module))
         alltests.addTest(test)
@@ -46,11 +47,11 @@ def suite():
 class BoobyTrappedStream(object):
     def __init__(self, output):
         self.output = output
-    
+
     def write(self, text):
         self.output.write(text)
         raise RuntimeError, "Output not allowed in tests"
-    
+
 
 if __name__ == '__main__':
     if '--debug' in sys.argv:

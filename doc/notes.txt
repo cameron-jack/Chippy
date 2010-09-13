@@ -2,6 +2,10 @@
 Tasks
 *****
 
+- generate a genomic control in the following manner:
+    - for each gene TSS select a +/- 10kb window and slide along (see slidingWindows method on cogent sequence objects) writing to a single file in fastq format (with maximum quality scores per base, possibly giving any N's a score of 3)
+    - then map these to genome
+    - generate the .npy counts files
 - the region counts needs a class that load chromosome count data from multiple chromosomes
 - the region counts needs a class that holds GeneIndex objects and, when given the treatment and control data, stores the combined counts. This object should also be able to produce the desired statistics (like the normalised difference; and jackknifed estimate on the variance etc ..)
 - the segment_count.py drawing code needs to be modified to adjust for the above changes.

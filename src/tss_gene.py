@@ -1,5 +1,3 @@
-import os
-import sqlalchemy as sql
 from cogent.db.ensembl import HostAccount, Species, Genome
 
 account = HostAccount('cg.anu.edu.au','compgen','compgen')

@@ -29,11 +29,6 @@ def get_gene_coords(infile_name, chrom_name):
 
     return rows
 
-def get_binned_counts(a, bin_size=150):
-    """returns counts in a bin"""
-    result = [a[i: i+bin_size].sum() for i in range(a.shape[0]-bin_size)]
-    return numpy.array(result)
-
 @display_wrap
 def run(stable_id_file, count_dir, control_lane, treatment_lane, plot_title, ui):
     genes = map(get_gene_index,

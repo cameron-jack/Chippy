@@ -7,7 +7,10 @@ from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
 from region_count import RegionCounts, CacheLaneCounts
-from get_gene_data import get_gene_indices
+from gene_data import GetGeneIndexes
+from plot_util import smooth
+
+get_gene_index = GetGeneIndexes()
 
 def get_gene_coords(infile_name, chrom_name):
     """returns TSS, strand for the nominated chromosome"""
@@ -26,14 +29,10 @@ def get_gene_coords(infile_name, chrom_name):
 
     return rows
 
-def get_binned_counts(a, bin_size=150):
-    """returns counts in a bin"""
-    result = [a[i: i+bin_size].sum() for i in range(a.shape[0]-bin_size)]
-    return numpy.array(result)
-
 @display_wrap
-def run(r_gene_file, count_dir, control_lane, treatment_lane, plot_title, ui):
-    genes = get_gene_indices(r_gene_file)
+def run(stable_id_file, count_dir, control_lane, treatment_lane, plot_title, ui):
+    genes = map(get_gene_index,
+            [l.strip() for l in open(stable_id_file).readlines()])
     num_genes = len(genes)
     treatment_cache = CacheLaneCounts(treatment_lane, count_dir)
     control_cache = CacheLaneCounts(control_lane, count_dir)
@@ -64,8 +63,8 @@ def run(r_gene_file, count_dir, control_lane, treatment_lane, plot_title, ui):
     sd = numpy.sqrt(trt_binned + ctl_binned)
     norm_diff = diff / sd
     norm_diff /= num_genes
-    norm_diff = get_binned_counts(norm_diff)
-    x = numpy.arange(-(control.shape[1]/2)+75, (control.shape[1]/2)-75)
+    norm_diff = smooth(norm_diff, 75, 'flat')
+    x = numpy.arange(-(control.shape[1]/2), (control.shape[1]/2))
     fig = pyplot.figure(figsize=(10,5))
     minor_locator = MultipleLocator(100)
     pyplot.plot(x, norm_diff)
@@ -73,9 +72,9 @@ def run(r_gene_file, count_dir, control_lane, treatment_lane, plot_title, ui):
     pyplot.ylabel('Normalised difference (averaged by gene)')
     pyplot.title("%s: N=%s" % (plot_title, len(genes)))
     pyplot.gca().xaxis.set_minor_locator(minor_locator)
-    pyplot.setp(pyplot.gca(), ylim=(-0.5,2.5))
+    pyplot.setp(pyplot.gca(), ylim=(-0.005,0.02))
     pyplot.grid(True)
-    pyplot.savefig('%s.pdf' % r_gene_file)
+    pyplot.savefig('%s.pdf' % stable_id_file)
     print '\n\nDone!'
 
 if __name__ == "__main__":
@@ -96,12 +95,12 @@ if __name__ == "__main__":
     script_info['script_usage']=[]
     script_info['script_usage'].append(
         ("Example 1","""Control lane 7; Treatment Lane 8""",
-        """python segment_count.py -r r_gene_file -i count_dir -c 7 -t 8 """\
+        """python segment_count.py -s stable_id_file -i count_dir -c 7 -t 8 """\
         """-p 'G2 > G1'"""))
 
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [
-        make_option('-r','--r_gene_file',
+        make_option('-s','--stable_id_file',
                     help='The R generated output file containing gene info.'),
         make_option('-i','--count_dir',
                     help='Directory where the count files are stored for '\
@@ -115,5 +114,5 @@ if __name__ == "__main__":
 
     parser, opts, args = parse_command_line_parameters(**script_info)
 
-    run(opts.r_gene_file, opts.count_dir, opts.control_lane,
+    run(opts.stable_id_file, opts.count_dir, opts.control_lane,
         opts.treatment_lane, opts.plot_title)

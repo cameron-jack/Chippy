@@ -32,7 +32,7 @@ def run(input_file, outdir, chrom_name, window_size, sam_output):
         counter = get_read_counts_sam(input_file, chrom_str)
     else:
         counter = get_read_counts_bowtie(input_file, chrom_str,
-                                         chrom_lengths[chrom])
+                                         chrom_lengths[chrom_name])
     outfile_name = os.path.join(outdir,
             '%s-window_%s-%s.npy' % (fname_prefix, window_size, chrom_str))
     print 'Saving binary for %s to %s' % (chrom_str, outfile_name)

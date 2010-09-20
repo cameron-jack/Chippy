@@ -38,8 +38,7 @@ class JackknifeStats(object):
 
 
     def jackknife(self):
-        """Performs the grunt of the statistical work and returns the
-        jackknifed statistic"""
+        """returns the jackknifed statistic"""
 
         # compute the statistic in question on the whole data set
         sample_statistic = self.statistic(self.data)
@@ -57,8 +56,8 @@ class JackknifeStats(object):
 
         self.jackknifed_stat = self.pseudovalues.mean()
 
-        """Compute the approximate standard error of the jackknifed estimate
-        of the statistic"""
+        # Compute the approximate standard error of the jackknifed estimate
+        # of the statistic
         variance = np.sum(np.square(self.pseudovalues - self.jackknifed_stat))
         variance_norm = np.divide(variance, self.n*self.n_minus_1)
         self.standard_error = np.sqrt(variance_norm)

@@ -37,7 +37,14 @@ class RegionCounts(object):
                 # start which actually be > end
                 start = min([tss + window_size, self.length])
                 end = max([tss - window_size, 0])
-            annotated_counts[row_index] = self.counts[start: end: stride]
+
+            try:
+                annotated_counts[row_index] = self.counts[start: end: stride]
+            except ValueError:
+                temp = self.counts[start: end: stride].copy()
+                temp.resize(2*window_size)
+                annotated_counts[row_index] = temp
+
         return annotated_counts
 
     def save(self, filename, ordered_coords, window_size):

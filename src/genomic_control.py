@@ -4,6 +4,36 @@ from cogent.db.ensembl import HostAccount, Species, Genome
 
 from light_seq import LightSeq
 
+def resolve_overlap(data, seq_length):
+    """Once coordinates for the genes have been determined, we need to make
+    sure that there are no overlapping coordinates, and adjust the coordinates
+    accordingly."""
+
+    checkAgain = False
+    for index, row in enumerate(data):
+        next_entry = index+1
+        if next_entry == len(data): # End of Data
+            break
+        if row[1] == data[next_entry][1]: # Coordinates from the same chromosome?
+            end_of_current = row[3]
+            start_of_next = data[next_entry][2]
+            if end_of_current > start_of_next:
+                end_of_next = data[next_entry][3]
+                if end_of_current >= end_of_next:
+                    data.pop(next_entry) # No point keeping next entry
+                    checkAgain = True
+                    continue
+                # if whatever is left of the next entry is shorter than
+                # required sequence length, absorb that length into current
+                elif end_of_next-end_of_current < seq_length:
+                    data[index][3] = end_of_next
+                    data.pop(next_entry)
+                    checkAgain=True
+                    continue
+                data[next_entry][2] = end_of_current
+
+    return data, checkAgain
+
 def get_gene_coords(infile_name, window_size, seq_length, chrom_name=None):
     """Given a file with stableIDs, start and end coordinates for a set of genes
     and a window size of interest, and the length of each read, get appropriate
@@ -26,7 +56,18 @@ def get_gene_coords(infile_name, window_size, seq_length, chrom_name=None):
         end_coord = TSS + (window_size + (seq_length-1))
         rows += [[row['StableId'], row['CoordName'], start_coord, end_coord]]
 
-    return rows
+    # create a temporary table to sort the data according to start coordinates
+    header = ['StableID', 'CoordName', 'StartCoord', 'EndCoord']
+    tempTable = LoadTable(header=header, rows=rows)
+    tempTable = tempTable.sorted(columns=['StartCoord'])
+    rows = tempTable.getRawData()
+
+    # merge overlapping coordinates
+    overlap = True
+    while overlap is True:
+        data, overlap = resolve_overlap(rows, seq_length)
+
+    return data
 
 def find_all_instances(findThis, inThis):
     """Provide indices of where findThis occurs in inThis"""
@@ -87,8 +128,6 @@ def generate_control_seqs(infile_name, window_size=10000, seq_length=75,
             seq_object = LightSeq(seq_str, stable_id+'_%d'%num, seq_qual)
             outfile.write(seq_object.toFastq() + '\n')
     outfile.close()
-
-#generate_control_seqs_2('../data/mouse_gene_coords.txt', 10000, 75)
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters

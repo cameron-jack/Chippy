@@ -22,11 +22,13 @@ class RegionCounts(object):
         system starts at 1"""
         self.counts[self._adjust + start: end] += 1
 
-    def _get_subregion_counts(self, ordered_coords, window_size):
+    def _get_subregion_counts(self, ordered_coords, window_size, control=False):
         annotated_counts = zeros((len(ordered_coords), 2 * window_size),
                                  self.counts.dtype)
 
         for row_index, (tss, strand) in enumerate(ordered_coords):
+            if control:
+                strand = 1
             stride = strand
             # positive strand
             if strand == 1:
@@ -47,7 +49,7 @@ class RegionCounts(object):
 
         return annotated_counts
 
-    def save(self, filename, ordered_coords, window_size):
+    def save(self, filename, ordered_coords, window_size, control=False):
         """saves in numpy binary format
 
         Arguments:
@@ -57,10 +59,13 @@ class RegionCounts(object):
               tss stands for transcription start site
             - window_size: counts in a window  of tss +/- window_size
               saved. Reverse strand counts are reversed.
+            - control:When control is true we are always
+              going to assume that the control sequences are on the positive
+              strand.
         """
 
         annotated_counts = self._get_subregion_counts(ordered_coords,
-                                                      window_size)
+                                                      window_size, control)
         save(filename, annotated_counts)
 
 

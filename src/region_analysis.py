@@ -6,6 +6,7 @@ from cogent import LoadTable
 from segment_count import get_gene_coords
 from make_counts import get_read_counts_bowtie, get_read_counts_sam, \
      get_file_length
+from subregion_map import SubregionMap
 
 def run(input_file, outdir, chrom_name, window_size, sam_output, control):
 
@@ -35,9 +36,21 @@ def run(input_file, outdir, chrom_name, window_size, sam_output, control):
                                          chrom_lengths[chrom_name])
     outfile_name = os.path.join(outdir,
             '%s-window_%s-%s.npy' % (fname_prefix, window_size, chrom_str))
-    print 'Saving binary for %s to %s' % (chrom_str, outfile_name)
+    print 'Saving counts binary for %s to %s' % (chrom_str, outfile_name)
     counter.save(outfile_name, mouse_gene_coords,
                  window_size, control)
+
+    # when dealing with control data, produce mappability scores for each
+    # nucleotide position in the specified position
+    if control:
+        sites = [tss for (tss, strand) in mouse_gene_coords]
+        score = SubregionMap(outfile_name, chrom_name,
+                             chrom_lengths[chrom_name],sites,75)
+        print 'Saving mappability scores for %s' % chrom_str
+        mapfn = os.path.join(outdir, '%s-%s-mapscore-%s.npy'%
+                             (fname_prefix, window_size, chrom_str))
+        score.saveMappabilityScore(mapfn)
+
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters

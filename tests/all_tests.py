@@ -34,7 +34,8 @@ def suite():
         'test_region_count',
         'test_syntax',
         'test_cache_lane_counts',
-        'test_jackknife'
+        'test_jackknife',
+        'test_subregion_map'
         ]
 
     alltests = unittest.TestSuite()

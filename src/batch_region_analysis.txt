@@ -1,42 +1,42 @@
--c 1 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 2 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 3 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 4 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 5 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 6 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 7 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 8 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 9 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 10 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 11 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 12 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 13 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 14 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 15 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 16 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 17 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 18 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 19 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c X -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c Y -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 1 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 2 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 3 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 4 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 5 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 6 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 7 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 8 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 9 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 10 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 11 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 12 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 13 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 14 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 15 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 16 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 17 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 18 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c 19 -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c X -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
--c Y -si ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/Outbox/RegionAnalysis/ -w 5000
+-c 1 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 2 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 3 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 4 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 5 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 6 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 7 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 8 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 9 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 10 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 11 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 12 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 13 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 14 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 15 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 16 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 17 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 18 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 19 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c X -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c Y -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/control/s_8.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/control/ -w 10000 -s
+-c 1 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 2 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 3 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 4 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 5 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 6 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 7 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 8 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 9 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 10 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 11 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 12 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 13 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 14 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 15 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 16 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 17 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 18 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c 19 -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c X -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s
+-c Y -i ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/bowtie_output/treatment/s_7.map -o ~/../tremethick/results/100721_GAPC_0018_GERALD_26-07-2010_sbsuser/counts/treatment/ -w 10000 -s

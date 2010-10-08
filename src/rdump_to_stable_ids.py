@@ -1,7 +1,10 @@
 """given an rdump, find the within chromosome gene indexes for the listed
 genes"""
 from __future__ import division
+import os
 from cogent import LoadTable
+
+from util import data_dir
 from parse_r_dump import RDumpToTable
 
 # we first get the rdumped genes and the ensembl transcript to gene id table
@@ -10,7 +13,7 @@ def get_gene_ids(rdump_filename):
     rdump = RDumpToTable(rdump_filename)
     rdump = rdump.filtered(lambda x: '---' not in x, columns='ENSEMBL')
     transcript_ids = rdump.getRawData('ENSEMBL')
-    transcript_to_gene = LoadTable('../data/ensembl_transcript_gene_ids.txt',sep='\t')
+    transcript_to_gene = LoadTable(os.path.join(data_dir, 'ensembl_transcript_gene_ids.txt'),sep='\t')
     transcript_to_gene = transcript_to_gene.getRawData(['TranscriptId', 'GeneId'])
     transcript_to_gene = dict(transcript_to_gene)
     rows = []
@@ -30,6 +33,7 @@ def get_gene_ids(rdump_filename):
             continue
         rows += [list(gene_ids)[0]]
     print 'There were %d problem transcripts:' % (problem)
+    print 'Total valid IDS: %s' % len(rows)
     return rows
 
 def dump_gene_ids(rdump_filename, outfile_name):
@@ -65,5 +69,4 @@ if __name__ == "__main__":
     parser, opts, args = parse_command_line_parameters(**script_info)
 
     dump_gene_ids(opts.r_gene_file, opts.outfile_name)
-    
     

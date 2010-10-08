@@ -1,6 +1,10 @@
 """basic class to store gene coordinates plus a factory function to return
 these instances for a collection of Ensembl stable id's"""
+import os
+
 from cogent import LoadTable
+
+from util import data_dir
 
 class GeneIndex(object):
     """basic object to store a chromosome and an index"""
@@ -18,8 +22,7 @@ class GeneIndex(object):
 
 def GetGeneIndexes():
     """returns func to get indexes for groups of genes"""
-    gene_indices = LoadTable('../data/mouse_gene_coords.txt', sep='\t')
-    
+    gene_indices = LoadTable(os.path.join(data_dir, 'mouse_gene_coords.txt'), sep='\t')
     names_indices = []
     for chrom_name in range(1,20)+['X', 'Y']:
         chrom = gene_indices.filtered(lambda x: x == chrom_name, columns='CoordName')

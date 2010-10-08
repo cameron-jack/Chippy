@@ -93,16 +93,23 @@ class CacheLaneCounts(object):
 
         # Create a dictionary (chrom: open count file)
         self.count_dict = {}
+        self._chrom_path = {}
         for fn in self.count_filenames:
             chrom = re.findall('chr[0-9][0-9]|chr[0-9XY]', fn)[0].strip('chr')
-            self.count_dict[chrom] = load(p.join(self.path,fn))
+            self._chrom_path[chrom] = p.join(self.path,fn)
 
     def __str__(self):
         return '%d count files found for lane %s at location: %s' % \
                (self.num_files, str(self.lane), self.path)
 
     def getCountsForChrom(self, chrom):
-        return self.count_dict[str(chrom)]
+        chrom = str(chrom)
+        try:
+            counts = self.count_dict[chrom]
+        except KeyError:
+            self.count_dict[chrom] = load(self._chrom_path[chrom])
+            counts = self.count_dict[chrom]
+        return counts
 
 
 

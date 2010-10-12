@@ -22,14 +22,13 @@ class GeneIndex(object):
 
 def GetGeneIndexes():
     """returns func to get indexes for groups of genes"""
-    gene_indices = LoadTable(os.path.join(data_dir, 'mouse_gene_coords.txt'), sep='\t')
+    gene_indices = LoadTable(os.path.join(data_dir,
+                    'mouse_gene_coords.txt'), sep='\t')
     names_indices = []
-    for chrom_name in range(1,20)+['X', 'Y']:
-        chrom = gene_indices.filtered(lambda x: x == chrom_name, columns='CoordName')
-        names = chrom.getRawData('StableId')
-        for i in range(len(names)):
-            gene = GeneIndex(names[i], chrom_name, i)
-            names_indices += [(names[i], gene)]
+    for stable_id, chrom_name, index in gene_indices.getRawData(['StableId',
+                        'CoordName', 'Index']):
+        gene = GeneIndex(stable_id, chrom_name, index)
+        names_indices += [(stable_id, gene)]
     
     names_indices = dict(names_indices)
     def call(gene_id):

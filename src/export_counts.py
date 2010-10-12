@@ -14,7 +14,7 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane):
     trt_cache = CacheLaneCounts(trt_lane, trt_path)
     ctl_cache = CacheLaneCounts(ctl_lane, ctl_path)
     rows = []
-    chrom = None
+    chrom = genes[0].chrom
     header = None
     for gene in genes:
         if gene.chrom != chrom:

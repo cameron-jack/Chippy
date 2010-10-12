@@ -45,8 +45,8 @@ def run(stable_id_file, count_dir, control_lane, treatment_lane, plot_title, ui)
             treatment = treatments[gene.chrom]
             control = controls[gene.chrom]
         else:
-            treatment = treatment_cache.getCountsForChrom(gene.chrom)
-            control = control_cache.getCountsForChrom(gene.chrom)
+            treatment = treatment_cache[gene.chrom]
+            control = control_cache[gene.chrom]
             treatments[gene.chrom] = treatment
             controls[gene.chrom] = control
             if trt_binned is None:

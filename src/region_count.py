@@ -100,7 +100,7 @@ class CacheLaneCounts(object):
         return '%d count files found for lane %s at location: %s' % \
                (self.num_files, str(self.lane), self.path)
 
-    def getCountsForChrom(self, chrom):
+    def __getitem__(self, chrom):
         chrom = str(chrom)
         try:
             counts = self.count_dict[chrom]
@@ -108,6 +108,13 @@ class CacheLaneCounts(object):
             self.count_dict[chrom] = load(self._chrom_path[chrom])
             counts = self.count_dict[chrom]
         return counts
+    
+    def __delitem__(self, chrom):
+        chrom = str(chrom)
+        try:
+            del(self.count_dict[chrom])
+        except KeyError:
+            pass
 
 
 

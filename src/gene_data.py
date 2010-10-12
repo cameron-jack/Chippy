@@ -19,6 +19,9 @@ class GeneIndex(object):
     
     def __repr__(self):
         return '%s(%s, %s)' % (self.stable_id, self.chrom, self.index)
+    
+    def __cmp__(self, other):
+        return cmp((self.chrom, self.index), (other.chrom, other.index))
 
 def GetGeneIndexes():
     """returns func to get indexes for groups of genes"""
@@ -35,3 +38,5 @@ def GetGeneIndexes():
         return names_indices[gene_id]
     
     return call
+
+GeneIndexes = GetGeneIndexes()

@@ -3,14 +3,12 @@ from glob import glob1
 import re
 from numpy import zeros, uint16, save, load
 
-
-
 class RegionCounts(object):
     """records sequence read counts for a genomic region"""
     def __init__(self, length, one_based=True):
         super(RegionCounts, self).__init__()
-        # using uint16 allows for a maximum count value of 65535 which *should*
-        # be enough.
+        # using uint16 allows for a maximum count value of 65535 which
+        # *should* be enough.
         self.length = length
         self.counts = zeros(length, uint16)
 

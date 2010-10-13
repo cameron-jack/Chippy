@@ -1,3 +1,5 @@
+from __future__ import division
+
 import util
 
 from cogent import LoadTable
@@ -5,9 +7,11 @@ from cogent import LoadTable
 from region_count import CacheLaneCounts
 from gene_data import GeneIndexes
 
-def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane):
+def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane, window_size=None):
     """returns a Table instance with column headers the stable IDs and rows
-    the tag counts"""
+    the tag counts
+    
+    If window_size provided, will return data +/- that size from middle of counts"""
     # get the genes, sorted by chromosome
     stable_ids = [i.strip() for i in open(stable_id_file).readlines()]
     genes = []
@@ -34,12 +38,20 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane):
         if header is None:
             # start with the range of values
             length = len(gene_trt_counts)
-            header = map(str, range(-(length/2), (length/2)))
-            header = ['stable_id', 'c/t'] + header
+            if window_size is not None:
+                start = (length//2)- window_size
+                end = start + 2 * window_size
+            else:
+                start = 0
+                end = length
+            # 
+            header = map(str, range(-(length//2), (length//2)))
+            header = ['StableId', 'Type'] + header[start: end]
+            
         
         # insert critical identifying info into each list
-        gene_trt_counts = [gene.stable_id, 't'] + gene_trt_counts
-        gene_ctl_counts = [gene.stable_id, 'c'] + gene_ctl_counts
+        gene_trt_counts = [gene.stable_id, 't'] + gene_trt_counts[start: end]
+        gene_ctl_counts = [gene.stable_id, 'c'] + gene_ctl_counts[start: end]
         rows.append(gene_trt_counts)
         rows.append(gene_ctl_counts)
     table = LoadTable(header=header, rows=rows)

@@ -5,13 +5,16 @@ import util
 from cogent import LoadTable
 
 from region_count import CacheLaneCounts
+from subregion_map import MapScores
 from gene_data import GeneIndexes
 
-def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane, window_size=None):
+def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane,
+               score_path, window_size=None):
     """returns a Table instance with column headers the stable IDs and rows
     the tag counts
     
     If window_size provided, will return data +/- that size from middle of counts"""
+
     # get the genes, sorted by chromosome
     stable_ids = [i.strip() for i in open(stable_id_file).readlines()]
     genes = []
@@ -22,6 +25,7 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane, window_si
             pass
     trt_cache = CacheLaneCounts(trt_lane, trt_path)
     ctl_cache = CacheLaneCounts(ctl_lane, ctl_path)
+    mapscores = MapScores(score_path)
     rows = []
     chrom = genes[0].chrom
     header = None
@@ -29,12 +33,14 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane, window_si
         if gene.chrom != chrom:
             del(trt_cache[chrom])
             del(ctl_cache[chrom])
+            del(mapscores[chrom])
             chrom = gene.chrom
-        
-        # get the saved counts for this gene and convert to list
+
+        # get the saved counts and mappability for this gene and convert to list
         gene_trt_counts = trt_cache[chrom][gene.index].tolist()
         gene_ctl_counts = ctl_cache[chrom][gene.index].tolist()
-        
+        gene_mapscores = mapscores[chrom][gene.index].tolist()
+
         if header is None:
             # start with the range of values
             length = len(gene_trt_counts)
@@ -44,7 +50,7 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane, window_si
             else:
                 start = 0
                 end = length
-            # 
+
             header = map(str, range(-(length//2), (length//2)))
             header = ['StableId', 'Type'] + header[start: end]
             

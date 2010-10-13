@@ -10,7 +10,12 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane):
     the tag counts"""
     # get the genes, sorted by chromosome
     stable_ids = [i.strip() for i in open(stable_id_file).readlines()]
-    genes = sorted(map(GeneIndexes, stable_ids))
+    genes = []
+    for stable_id in stable_ids:
+        try:
+            genes += [GeneIndexes(stable_id)]
+        except KeyError:
+            pass
     trt_cache = CacheLaneCounts(trt_lane, trt_path)
     ctl_cache = CacheLaneCounts(ctl_lane, ctl_path)
     rows = []

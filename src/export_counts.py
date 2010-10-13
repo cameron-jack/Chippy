@@ -58,8 +58,10 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane,
         # insert critical identifying info into each list
         gene_trt_counts = [gene.stable_id, 't'] + gene_trt_counts[start: end]
         gene_ctl_counts = [gene.stable_id, 'c'] + gene_ctl_counts[start: end]
+        gene_mapscores = [gene.stable_id, 'm'] + gene_mapscores[start: end]
         rows.append(gene_trt_counts)
         rows.append(gene_ctl_counts)
+        rows.append(gene_mapscores)
     table = LoadTable(header=header, rows=rows)
     return table
 

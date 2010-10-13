@@ -1,5 +1,8 @@
 from __future__ import division
+import re
+from glob import glob1
 import numpy as np
+from os import path as p
 
 class SubregionMap(object):
     """A class that handles the mappability score of a set of coordinates
@@ -38,20 +41,46 @@ class SubregionMap(object):
         np.save(filename,self.map_scores)
 
 
-#from segment_count import get_gene_coords
-#from cogent import LoadTable
+class MapScores(object):
+    """Once the mappability scores have been created, this class allows you to
+    load the data to make it useable"""
 
-#gene_coords_file = '../data/mouse_gene_coords.txt'
-#gene_coords = get_gene_coords(gene_coords_file, 'Y')
-#start_sites = [tss for (tss, strand) in gene_coords]
-#chrom_lengths_file = '../data/mouse_chrom_lengths_release_58.txt'
-#chrom_lengths = LoadTable(chrom_lengths_file, sep='\t')
-#chrom_lengths = dict(chrom_lengths.getRawData(['chrom', 'length']))
+    def __init__(self, path):
+        if p.exists(path):
+            mapscores_fns = glob1(path, '*chr?*mapscore*.npy')
+            if len(mapscores_fns) != 0:
+                self.path = path
+                self.mapscores_fns = mapscores_fns
+                self.num_files = len(mapscores_fns)
+            else:
+                raise IOError('Specified path has no valid npy files.')
+        else:
+            raise IOError('Specified path does not exist.')
 
-#print chrom_lengths['Y']
-#print start_sites
-#exit()
-#test = SubregionMap('../data/mouse_aln_chrY-window_10000-chrY.npy', 'Y', chrom_lengths['Y'], start_sites, 75)
-#mapScore = test.getMapabilityScore()
-#test.saveMapabilityScore('../data/mapscores_Y')
+        # Create dictionaries (chrom: filename, chrom: map data)
+        self.mapscore_dict = {}
+        self._chrom_path = {}
+        for fn in self.mapscores_fns:
+            chrom = re.findall('chr[0-9][0-9]|chr[0-9XY]', fn)[0].strip('chr')
+            self._chrom_path[chrom] = p.join(self.path,fn)
+
+    def __str__(self):
+        return '%d map-score files found at location: %s' % \
+               (self.num_files, self.path)
+
+    def __getitem__(self, chrom):
+        chrom = str(chrom)
+        try:
+            mapscores = self.mapscore_dict[chrom]
+        except KeyError:
+            self.mapscore_dict[chrom] = np.load(self._chrom_path[chrom])
+            mapscores = self.mapscore_dict[chrom]
+        return mapscores
+
+    def __delitem__(self, chrom):
+        chrom = str(chrom)
+        try:
+            del(self.mapscore_dict[chrom])
+        except KeyError:
+            pass
 

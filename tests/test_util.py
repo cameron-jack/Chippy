@@ -29,6 +29,16 @@ class GroupingTests(TestCase):
             self.assertEqual(len(group), 5)
         full = sorted(flatten(grouped))
         self.assertEqual(full, data[:-1])
+    
+    def test_one_group(self):
+        """only one group"""
+        data = range(20)
+        grouped = util.make_even_groups(data, 20)
+        self.assertEqual(len(grouped), 1)
+        for group in grouped:
+            self.assertEqual(len(group), 20)
+        full = sorted(flatten(grouped))
+        self.assertEqual(full, data)
 
 if __name__ == "__main__":
     main()

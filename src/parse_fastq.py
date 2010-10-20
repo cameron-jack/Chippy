@@ -15,28 +15,29 @@ def MinimalFastqParser(data, strict=True):
         data = open(data)
 
     # fastq format is very simple, defined by blocks of 4 lines
-    seq = None
-    qual = None
-    seq_label = None
     line_num = -1
+    record = []
     for line in data:
         line_num += 1
-
-        if line_num == 0:
-            if line[0] != '@': # could just be empty line at end-of-file
-                line_num = -1
-                continue
-            seq_label = line[1:].rstrip()
-        elif line_num == 1:
-            seq = line.strip()
-        elif line_num == 3:
-            line_num = -1
-            qual = line.strip()
-            yield seq_label, seq, qual
-        elif strict: # must be line == 2
-            qual_label = line[1:].strip()
-            assert qual_label == seq_label, 'Invalid format'
-
+        if line_num == 4:
+            if strict: # make sure the seq and qual labels match
+                assert record[0][1:] == record[2][1:], \
+                  'Invalid format: %s -- %s' % (record[0][1:], record[2][1:])
+            yield record[0][1:], record[1], record[3]
+            
+            line_num = 0
+            record = []
+        
+        record.append(line.strip())
+    
+    if record:
+        if strict and record[0]: # make sure the seq and qual labels match
+            assert record[0][1:] == record[2][1:], 'Invalid format'
+        
+        if record[0]: # could be just an empty line at eof
+            yield record[0][1:], record[1], record[3]
+        
+    
     if type(data) == file:
         data.close()
 

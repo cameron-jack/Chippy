@@ -30,18 +30,41 @@ def chrom_num(val):
     val = sans_quotes(val)
     return val.replace('chr', '')
 
+def get_reader(infile):
+    """generates a reader for the infile"""
+    for num, line in enumerate(infile):
+        if num == 0:
+            line = map(sans_quotes, line.split('\t'))
+            strand_index = line.index('strand')
+            id_index = line.index('ENSEMBL')
+        else:
+            break
+    
+    conversions = []
+    for index, field in enumerate(line.strip().split('\t')):
+        if index == strand_index:
+            conversions += [(index, standardised_strand)]
+        elif index == id_index:
+            conversions += [(index, split_ensembl_ids)]
+        else:
+            field = eval(field)
+            type_ = type(field)
+            if type_ == str:
+                type_ = sans_quotes
+        
+            conversions += [(index, type_)]
+    
+    infile.seek(0)
+    converter = ConvertFields(conversions)
+    reader = SeparatorFormatParser(with_title=True, converter=converter,
+            sep='\t')
+    return reader(infile)
+
 def RDumpParser(data):
     """docstring for RDumpParser"""
     if type(data) == str:
         data = open(data)
-    
-    converter = ConvertFields([(0,long),(1, chrom_num),
-                    (2, standardised_strand),
-                    (3, long), (4, long), (5, sans_quotes),
-                    (6, split_ensembl_ids)])
-    parser = SeparatorFormatParser(with_title=True, converter=converter,
-            sep='\t')
-    reader = parser(data)
+    reader = get_reader(data)
     header = map(sans_quotes, reader.next())
     yield header
     for line in reader:

@@ -42,6 +42,7 @@ class CacheLaneCountTests(TestCase):
         remove_files(count_cache.count_filenames)
 
     def test_return_counts(self):
+        """correctly return cached counts"""
         generate_test_files()
         count_cache = CacheLaneCounts(7, '.')
         for index in range(10):
@@ -50,6 +51,22 @@ class CacheLaneCountTests(TestCase):
             self.assertEqual(count_cache[index+1],
                              counter._get_subregion_counts([(5,1)], 5))
         remove_files(count_cache.count_filenames)
+    
+    def test_return_centred_counts(self):
+        """correctly return cached counts centred"""
+        length = 10
+        counter = RegionCounts(length, one_based=False)
+        for i in range(length):
+            counter.addRead(i, length)
+        
+        counter.save('s_7_chr7', [(5, 1)], 5)
+        
+        window_size = 3
+        count_cache = CacheLaneCounts(7, '.', window_size=window_size)
+        self.assertEqual(count_cache[7].shape[1], 2*window_size)
+        self.assertEqual(count_cache[7][0], range(window_size, 3*window_size))
+        remove_files(count_cache.count_filenames)
+    
 
 if __name__ == "__main__":
     main()

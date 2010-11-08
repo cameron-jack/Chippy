@@ -45,8 +45,7 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane,
             # start with the range of values
             length = len(gene_trt_counts)
             if window_size is not None:
-                start = (length//2)- window_size
-                end = start + 2 * window_size
+                start, end = util.get_centred_coords(length, window_size)
             else:
                 start = 0
                 end = length

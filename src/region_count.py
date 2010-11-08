@@ -3,6 +3,8 @@ from glob import glob1
 import re
 from numpy import zeros, uint16, save, load
 
+import util
+
 class RegionCounts(object):
     """records sequence read counts for a genomic region"""
     def __init__(self, length, one_based=True):
@@ -70,7 +72,7 @@ class RegionCounts(object):
 class CacheLaneCounts(object):
     """Abstracts the handling of stored RegionCounts"""
 
-    def __init__(self, lane, path):
+    def __init__(self, lane, path, window_size=None):
         super(CacheLaneCounts, self).__init__()
 
         # The path where the .npy files can be found for this particular lane.
@@ -95,7 +97,9 @@ class CacheLaneCounts(object):
         for fn in self.count_filenames:
             chrom = re.findall('chr[0-9][0-9]|chr[0-9XY]', fn)[0].strip('chr')
             self._chrom_path[chrom] = p.join(self.path,fn)
-
+        
+        self.window_size = window_size
+    
     def __str__(self):
         return '%d count files found for lane %s at location: %s' % \
                (self.num_files, str(self.lane), self.path)
@@ -105,8 +109,13 @@ class CacheLaneCounts(object):
         try:
             counts = self.count_dict[chrom]
         except KeyError:
-            self.count_dict[chrom] = load(self._chrom_path[chrom])
-            counts = self.count_dict[chrom]
+            counts = load(self._chrom_path[chrom])
+            if self.window_size is not None:
+                start, end = util.get_centred_coords(counts.shape[1],
+                    self.window_size)
+                counts = counts[:, start:end]
+            
+            self.count_dict[chrom] = counts
         return counts
     
     def __delitem__(self, chrom):
@@ -115,10 +124,4 @@ class CacheLaneCounts(object):
             del(self.count_dict[chrom])
         except KeyError:
             pass
-
-
-
-
-
-
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import warnings
+warnings.filterwarnings('ignore', "Not using MPI as mpi4py not found")
+
 import numpy
 from matplotlib import pyplot
 from matplotlib.ticker import MultipleLocator

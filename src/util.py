@@ -1,3 +1,5 @@
+from __future__ import division
+
 import os
 
 project_dir = os.path.dirname(os.path.dirname(__file__))
@@ -20,3 +22,9 @@ def make_even_groups(data, num_per_group):
     
     return grouped
 
+def get_centred_coords(length, window_size):
+    """returns start, end for a window centred on a fragment with length"""
+    assert 2 * window_size <= length, 'Invalid window size'
+    start = (length//2)- window_size
+    end = start + 2 * window_size
+    return start, end

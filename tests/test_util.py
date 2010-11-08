@@ -39,6 +39,14 @@ class GroupingTests(TestCase):
             self.assertEqual(len(group), 20)
         full = sorted(flatten(grouped))
         self.assertEqual(full, data)
+    
+    def test_centred_coords(self):
+        """should correctly return the central fragment"""
+        start, end = util.get_centred_coords(100, 10)
+        self.assertEqual(start, 40)
+        self.assertEqual(end, 60)
+        self.assertEqual(util.get_centred_coords(100, 50), (0, 100))
+        self.assertRaises(AssertionError, util.get_centred_coords, 100, 60)
 
 if __name__ == "__main__":
     main()

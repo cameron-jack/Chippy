@@ -47,6 +47,15 @@ class GroupingTests(TestCase):
         self.assertEqual(end, 60)
         self.assertEqual(util.get_centred_coords(100, 50), (0, 100))
         self.assertRaises(AssertionError, util.get_centred_coords, 100, 60)
+    
+    def test_unique_records(self):
+        """unique_records returns correctly ordered unique data """
+        data = range(20)
+        for i in (11, 15, 18):
+            data.insert(i, 10) # inserts redundant elements
+        got = util.unique_records(data)
+        self.assertEqual(got, range(20))
+        
 
 if __name__ == "__main__":
     main()

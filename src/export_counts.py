@@ -16,7 +16,13 @@ def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane,
     If window_size provided, will return data +/- that size from middle of counts"""
 
     # get the genes, sorted by chromosome
-    stable_ids = [i.strip() for i in open(stable_id_file).readlines()]
+    try:
+        stable_ids = LoadTable(stable_id_file, sep='\t').getRawData('StableId')
+    except:
+        stable_ids = [i.strip() for i in open(stable_id_file).readlines()]
+    
+    stable_ids = util.unique_records(stable_ids, 'StableId')
+    
     genes = []
     for stable_id in stable_ids:
         try:

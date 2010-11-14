@@ -69,7 +69,32 @@ class RegionCounts(object):
         save(filename, annotated_counts)
 
 
-class CacheLaneCounts(object):
+class _CacheCounts(object):
+    """docstring for _CacheCounts"""
+    
+    def __getitem__(self, chrom):
+        chrom = str(chrom)
+        try:
+            counts = self.count_dict[chrom]
+        except KeyError:
+            counts = load(self._chrom_path[chrom])
+            if self.window_size is not None:
+                start, end = util.get_centred_coords(counts.shape[1],
+                    self.window_size)
+                counts = counts[:, start:end]
+            
+            self.count_dict[chrom] = counts
+        return counts
+    
+    def __delitem__(self, chrom):
+        chrom = str(chrom)
+        try:
+            del(self.count_dict[chrom])
+        except KeyError:
+            pass
+        
+
+class CacheLaneCounts(_CacheCounts):
     """Abstracts the handling of stored RegionCounts"""
 
     def __init__(self, lane, path, window_size=None):
@@ -104,24 +129,4 @@ class CacheLaneCounts(object):
         return '%d count files found for lane %s at location: %s' % \
                (self.num_files, str(self.lane), self.path)
 
-    def __getitem__(self, chrom):
-        chrom = str(chrom)
-        try:
-            counts = self.count_dict[chrom]
-        except KeyError:
-            counts = load(self._chrom_path[chrom])
-            if self.window_size is not None:
-                start, end = util.get_centred_coords(counts.shape[1],
-                    self.window_size)
-                counts = counts[:, start:end]
-            
-            self.count_dict[chrom] = counts
-        return counts
     
-    def __delitem__(self, chrom):
-        chrom = str(chrom)
-        try:
-            del(self.count_dict[chrom])
-        except KeyError:
-            pass
-

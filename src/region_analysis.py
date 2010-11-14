@@ -4,8 +4,7 @@ import os
 from cogent import LoadTable
 
 from segment_count import get_gene_coords
-from make_counts import get_read_counts_bowtie, get_read_counts_sam, \
-     get_file_length
+from make_counts import get_read_counts_bowtie, get_read_counts_sam
 from subregion_map import SubregionMap
 
 def run(input_file, outdir, chrom_name, window_size, sam_output, control):

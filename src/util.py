@@ -49,3 +49,19 @@ def unique_records(data, column=None):
     
     return result
 
+# following needs to be moved to client code
+def get_num_lines(filename):
+    # from http://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
+    f = open(filename)
+    lines = 0
+    buf_size = 1024 * 1024
+    read_f = f.read # loop optimization
+
+    buf = read_f(buf_size)
+    while buf:
+        lines += buf.count('\n')
+        buf = read_f(buf_size)
+    
+    f.close()
+    return lines
+

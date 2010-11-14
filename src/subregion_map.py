@@ -4,6 +4,8 @@ from glob import glob1
 import numpy as np
 from os import path as p
 
+from region_count import _CacheCounts
+
 class SubregionMap(object):
     """A class that handles the mappability score of a set of coordinates
     based on counts produced by genomic control data"""
@@ -41,11 +43,11 @@ class SubregionMap(object):
         np.save(filename,self.map_scores)
 
 
-class MapScores(object):
+class MapScores(_CacheCounts):
     """Once the mappability scores have been created, this class allows you to
     load the data to make it useable"""
 
-    def __init__(self, path):
+    def __init__(self, path, window_size=None):
         if p.exists(path):
             mapscores_fns = glob1(path, '*chr?*mapscore*.npy')
             if len(mapscores_fns) != 0:
@@ -58,29 +60,15 @@ class MapScores(object):
             raise IOError('Specified path does not exist.')
 
         # Create dictionaries (chrom: filename, chrom: map data)
-        self.mapscore_dict = {}
+        self.count_dict = {}
         self._chrom_path = {}
         for fn in self.mapscores_fns:
             chrom = re.findall('chr[0-9][0-9]|chr[0-9XY]', fn)[0].strip('chr')
             self._chrom_path[chrom] = p.join(self.path,fn)
+        
+        self.window_size = window_size
 
     def __str__(self):
         return '%d map-score files found at location: %s' % \
                (self.num_files, self.path)
-
-    def __getitem__(self, chrom):
-        chrom = str(chrom)
-        try:
-            mapscores = self.mapscore_dict[chrom]
-        except KeyError:
-            self.mapscore_dict[chrom] = np.load(self._chrom_path[chrom])
-            mapscores = self.mapscore_dict[chrom]
-        return mapscores
-
-    def __delitem__(self, chrom):
-        chrom = str(chrom)
-        try:
-            del(self.mapscore_dict[chrom])
-        except KeyError:
-            pass
 

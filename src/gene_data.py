@@ -12,6 +12,7 @@ class GeneIndex(object):
         super(GeneIndex, self).__init__()
         self.chrom = chrom
         self.index = index
+        self.order = None
         self.stable_id = stable_id
     
     def __str__(self):

@@ -52,7 +52,7 @@ def unique_records(data, column=None):
 # following needs to be moved to client code
 def get_num_lines(filename):
     # from http://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
-    f = open(filename)
+    f = open(filename, 'U')
     lines = 0
     buf_size = 1024 * 1024
     read_f = f.read # loop optimization

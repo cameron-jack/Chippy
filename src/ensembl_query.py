@@ -19,9 +19,9 @@ def sample_ensembl(out_dir, write_seqs=False):
         if write_seqs:
             outfile_name = os.path.join(out_dir, 'chr_%s.fasta' % chrom)
             outfile = open(outfile_name, 'w')
-            out.write(region.Seq.toFasta()+'\n')
-            out.close()
-    
+            outfile.write(region.Seq.toFasta()+'\n')
+            outfile.close()
+
 
 def get_chrom_lengths(out_dir):
     """writes a table of chromosome lengths"""

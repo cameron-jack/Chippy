@@ -41,3 +41,54 @@ def GetGeneIndexes():
     return call
 
 GeneIndexes = GetGeneIndexes()
+
+def get_upstream_coords(infile_name, window_size):
+    """Given a file with gene information (EnsembleID, start, end, strand),
+    return a data structure with EnsembleID, chromosome, TSS, coordinate for
+    window_size upstream from TSS, and the strand that the gene is found on."""
+
+    table = LoadTable(infile_name, sep='\t')
+    table = table.sorted(columns=['CoordName', 'Start'])
+    rows = []
+    for row in table:
+        strand = row['Strand']
+        if strand == -1:
+            TSS = row['End']
+            start_coord = TSS
+            end_coord = TSS + window_size
+        else:
+            TSS = row['Start']
+            start_coord = TSS - window_size
+            end_coord = TSS
+
+        rows += [[row['StableId'], row['CoordName'], start_coord, end_coord,
+                  row['Strand']]]
+    return rows
+
+if __name__ == "__main__":
+
+    from light_seq import LightSeq
+    from cogent.db.ensembl import HostAccount, Species, Genome
+
+    # get the coordinates of interest
+    coords = get_upstream_coords('../data/mouse_gene_coords.txt', 500)
+
+    # Ensembl connect information
+    account = HostAccount('cg.anu.edu.au','compgen','compgen')
+    specie = Genome(Species='Mouse', Release = 58, account=account)
+
+    outfile_name = '../data/mouse_TATA.fasta'
+    outfile = open(outfile_name, 'w')
+
+    for [stable_id, chrom, start, end, strand] in coords:
+        print 'Processing %s on Chromosome %s'%(stable_id, str(chrom))
+        gene = specie.getRegion(CoordName=str(chrom), Start=start, End=end)
+        if strand == -1:
+            seq_str = str(gene.Seq.rc())
+        else:
+            seq_str = str(gene.Seq)
+
+        seq = LightSeq(Seq=seq_str, Name=stable_id)
+        outfile.write(seq.toFasta() + '\n')
+
+    outfile.close()

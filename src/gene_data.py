@@ -24,21 +24,30 @@ class GeneIndex(object):
     def __cmp__(self, other):
         return cmp((self.chrom, self.index), (other.chrom, other.index))
 
-def GetGeneIndexes():
-    """returns func to get indexes for groups of genes"""
-    gene_indices = LoadTable(os.path.join(data_dir,
-                    'mouse_gene_coords.txt'), sep='\t')
-    names_indices = []
-    for stable_id, chrom_name, index in gene_indices.getRawData(['StableId',
-                        'CoordName', 'Index']):
-        gene = GeneIndex(stable_id, chrom_name, index)
-        names_indices += [(stable_id, gene)]
+class GetGeneIndexes(object):
+    """class to store  / return gene indices"""
+    def __init__(self):
+        super(GetGeneIndexes, self).__init__()
+        gene_indices = LoadTable(os.path.join(data_dir,
+                        'mouse_gene_coords.txt'), sep='\t')
+        names_indices = []
+        for stable_id, chrom_name, index in gene_indices.getRawData(['StableId',
+                            'CoordName', 'Index']):
+            gene = GeneIndex(stable_id, chrom_name, index)
+            names_indices += [(stable_id, gene)]
+        
+        self._gene_table = gene_indices
+        self.names_indices = dict(names_indices)
     
-    names_indices = dict(names_indices)
-    def call(gene_id):
-        return names_indices[gene_id]
+    def _call(self, gene_id):
+        return self.names_indices[gene_id]
     
-    return call
+    __call__ = _call
+    
+    @property
+    def GeneTable(self):
+        return self._gene_table
+    
 
 GeneIndexes = GetGeneIndexes()
 

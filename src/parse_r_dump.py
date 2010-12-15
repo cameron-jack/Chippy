@@ -30,6 +30,14 @@ def chrom_num(val):
     val = sans_quotes(val)
     return val.replace('chr', '')
 
+def cast_num(val):
+    """int or float"""
+    try:
+        val = int(val)
+    except ValueError:
+        val = float(val)
+    return val
+
 def get_reader(infile):
     """generates a reader for the infile"""
     for num, line in enumerate(infile):
@@ -51,6 +59,8 @@ def get_reader(infile):
             type_ = type(field)
             if type_ == str:
                 type_ = sans_quotes
+            elif type_ in (int, float):
+                type_ = cast_num
         
             conversions += [(index, type_)]
     

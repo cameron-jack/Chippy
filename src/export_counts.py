@@ -1,5 +1,5 @@
 from __future__ import division
-
+import os
 import util
 
 from cogent import LoadTable
@@ -7,6 +7,53 @@ from cogent import LoadTable
 from region_count import CacheLaneCounts
 from subregion_map import MapScores
 from gene_data import GeneIndexes
+
+def simple_get_counts(stable_ids, lane, data_path, type_, window_size=None):
+    stable_ids = util.unique_records(stable_ids, 'StableId')
+    data_path = os.path.abspath(data_path)
+    genes = []
+    for index, stable_id in enumerate(stable_ids):
+        try:
+            gene = GeneIndexes(stable_id)
+            gene.order = index
+            genes += [gene]
+        except KeyError:
+            pass
+    
+    # we sort the genes
+    genes = sorted(genes)
+    print lane, data_path, os.getcwd()
+    cache = CacheLaneCounts(lane, data_path, window_size=window_size)
+    rows = []
+    chrom = genes[0].chrom
+    header = None
+    for gene in genes:
+        if gene.chrom != chrom:
+            del(cache[chrom])
+            chrom = gene.chrom
+        
+        # get the saved counts and mappability for this gene and convert to list
+        gene_counts = cache[chrom][gene.index].tolist()
+        
+        if header is None:
+            # start with the range of values
+            length = len(gene_counts)
+            if window_size is not None:
+                start, end = util.get_centred_coords(length, window_size)
+            else:
+                start = 0
+                end = length
+            
+            header = map(str, range(-(length//2), (length//2)))
+            header = ['Order', 'StableId', 'Type'] + header[start: end]
+            
+        
+        # insert critical identifying info into each list
+        gene_counts = [gene.order, gene.stable_id, type_] + gene_counts[start: end]
+        rows.append(gene_counts)
+    table = LoadTable(header=header, rows=rows)
+    table = table.sorted('Order').getColumns(table.Header[1:])
+    return table
 
 def get_counts(stable_id_file, ctl_path, ctl_lane, trt_path, trt_lane,
                score_path, window_size=None):

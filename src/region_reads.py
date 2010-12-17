@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 from numpy import save
 from cogent import LoadTable
@@ -28,12 +30,15 @@ def get_matching_coords(mapfile, chrom_str, ref_coords):
     header = parser.next()
 
     store_coords = []
+    count_records = 0
+    count_matches = 0
     for record in parser:
 
         chrom_name = record[2]
         if chrom_str != chrom_name:
             continue
 
+        count_records += 1
         # save strand information as 0,1
         strand = record[1]
         if strand is '+':
@@ -47,9 +52,12 @@ def get_matching_coords(mapfile, chrom_str, ref_coords):
 
         for (ref_start, ref_end) in ref_coords:
             if ref_start <= start <= ref_end and ref_start <= end <= ref_end:
+                count_matches += 1
                 store_coords.append([start, end, strand])
                 break
 
+    print 'Total records for %s: %d' % (chrom_str, count_records)
+    print 'Total matches for %s: %d' % (chrom_str, count_matches)
     return store_coords
 
 def run (input_file, outdir, chrom_name, window_size):

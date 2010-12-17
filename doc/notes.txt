@@ -138,10 +138,26 @@ N.B.
 	involves trimming the header of the file being appended. 
 	
 7. 	Run the useq analysis. This can either be done directly or by using the
-	useq.sh script.
+	useq.sh script (This step is currently not performed).
 
 	useq.sh -t treatment_dir -c control_dir -o output_dir -g genome_ver -f output_format
 
+7.	Concatenate the the pristine and contaminated mapped data for the next two
+	steps. Note that this only works for default bowtie output. For sam output
+	the header of the contaminated file has to be stripped prior to
+	concatenation. 
+	
+	cat pristine.map contaminated.map > joined.map
+
+8.	Generate the counts array for each chromosome based on the concatenated
+	bowtie map data.
+	
+	region_analysis.py -i <input_bowtie_file> -o <output_directory> -c chrom -w window_size
+
+9.	Generate the coordinates of the matched regions for each chromosome based
+	on the concatenated bowtie map data.
+	
+	region_reads.py -i <input_bowtie_file> -o <output_directory> -c chrom -w window_size
 
 **********
 References

@@ -2,7 +2,7 @@ from __future__ import division
 
 import os
 
-project_dir = os.path.dirname(os.path.dirname(__file__))
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 data_dir = os.path.join(project_dir, 'data')
 src_dir = os.path.join(project_dir, 'src')
 

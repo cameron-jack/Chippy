@@ -6,6 +6,10 @@ from cogent import LoadTable
 from segment_count import get_gene_coords
 from parse_bowtie import BowtieOutputParser
 
+from cogent.util.misc import parse_command_line_parameters
+from optparse import make_option
+
+
 def generate_coord_range(coords_file, window_size, chrom, chrom_length):
     """Create a list of coordinates around the TSS of the form
     [(x1, y1), (x2, y2),...]
@@ -60,7 +64,7 @@ def get_matching_coords(mapfile, chrom_str, ref_coords):
     print 'Total matches for %s: %d' % (chrom_str, count_matches)
     return store_coords
 
-def run (input_file, outdir, chrom_name, window_size):
+def run(input_file, outdir, chrom_name, window_size):
     """Given a bowtie output file in the default bowtie format obtain the
     actual reads that bowtie was able to successfully map within the coordinates
     TSS-window_size, TSS+window_size"""
@@ -87,50 +91,52 @@ def run (input_file, outdir, chrom_name, window_size):
     fn_prefix = os.path.join(outdir, '%s_%s'%(fn_prefix, chrom_str))
     save(fn_prefix, match_coords)
 
-if __name__ == "__main__":
-    from cogent.util.misc import parse_command_line_parameters
-    from optparse import make_option
+# 
+script_info = {}
+descr = "Create a coordinates binary numpy file for a specified chromosome"\
+        " where the coordinates are found in a specified window around the"\
+        " TSS for genes found on that chromosome. The binary file contains"\
+        " the start and stop coordinates of the match, and the strand "\
+        "associated with the match"
 
-    script_info = {}
-    descr = "Create a coordinates binary numpy file for a specified chromosome"\
-            " where the coordinates are found in a specified window around the"\
-            " TSS for genes found on that chromosome. The binary file contains"\
-            " the start and stop coordinates of the match, and the strand "\
-            "associated with the match"
+script_info['brief_description']= descr
+script_info['script_description'] = descr
+script_info['version'] = '0.1.alpha'
+script_info['script_usage']=[]
+script_info['script_usage'].append(
+    ("Example 1","""Chromosome 1 with window size 2000 bps:""",
+    """python region_reads.py -i somefile.map -o outdir -c 1"""))
+script_info['script_usage'].append(
+    ("Example 2","""Chromosome X with window size 5000 bps:""",
+    """python region_reads.py -i somefile.map -o outdir -c X -w 5000"""))
 
-    script_info['brief_description']= descr
-    script_info['script_description'] = descr
-    script_info['version'] = '0.1.alpha'
-    script_info['script_usage']=[]
-    script_info['script_usage'].append(
-        ("Example 1","""Chromosome 1 with window size 2000 bps:""",
-        """python region_reads.py -i somefile.map -o outdir -c 1"""))
-    script_info['script_usage'].append(
-        ("Example 2","""Chromosome X with window size 5000 bps:""",
-        """python region_reads.py -i somefile.map -o outdir -c X -w 5000"""))
+script_info['help_on_no_arguments'] = True
+script_info['required_options'] = [
+    make_option('-i','--input_file',
+                help='The input map file (output from bowtie)'),
+    make_option('-o','--outdir',
+                help='Location to save the output numpy arrays. The '\
+                'file basename will automatically be derived from input '\
+                'filename and appended with _chrN.npy based on the '\
+                'chromosome number specified.'),
+    make_option('-c', '--chrom_name', help="the chromosome name")
+    ]
 
-    script_info['help_on_no_arguments'] = True
-    script_info['required_options'] = [
-        make_option('-i','--input_file',
-                    help='The input map file (output from bowtie)'),
-        make_option('-o','--outdir',
-                    help='Location to save the output numpy arrays. The '\
-                    'file basename will automatically be derived from input '\
-                    'filename and appended with _chrN.npy based on the '\
-                    'chromosome number specified.'),
-        make_option('-c', '--chrom_name', help="the chromosome name")
-        ]
+script_info['optional_options'] = [\
+    make_option('-w','--window_size', type='int',
+                dest='window_size', default = 2000,
+                help='Number of bases on either site of TSS that you are '\
+                'interested in ' +'[default: %default]')
+                ]
 
-    script_info['optional_options'] = [\
-        make_option('-w','--window_size', type='int',
-                    dest='window_size', default = 2000,
-                    help='Number of bases on either site of TSS that you are '\
-                    'interested in ' +'[default: %default]')
-                    ]
-
+def main():
+    """executes the script"""
     parser, opts, args = parse_command_line_parameters(**script_info)
-
     run(opts.input_file, opts.outdir, opts.chrom_name, opts.window_size)
+
+if __name__ == "__main__":
+    main()
+
 
 
 

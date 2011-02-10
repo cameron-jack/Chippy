@@ -3,14 +3,14 @@ from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Species, Genome
 
 try:
-    username, password = os.environ['ENSEMBL_ACCOUNT'].split()
+    host, username, password = os.environ['ENSEMBL_ACCOUNT'].split()
 except KeyError:
     print 'Need ENSEMBL_ACCOUNT environment variable, quitting!'
     exit(-1)
 
 release = 58
 chroms = map(str, range(1,20)+['X', 'Y'])
-account = HostAccount('cg.anu.edu.au', username, password)
+account = HostAccount(host, username, password)
 mouse = Genome(Species='Mouse', Release = release, account=account)
 
 def sample_ensembl(out_dir, write_seqs=False):

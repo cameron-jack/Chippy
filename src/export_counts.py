@@ -8,7 +8,7 @@ from region_count import CacheLaneCounts
 from subregion_map import MapScores
 from gene_data import GeneIndexes
 
-def simple_get_counts(stable_ids, lane, data_path, type_, window_size=None):
+def simple_get_tss_counts(stable_ids, lane, data_path, type_, window_size=None):
     stable_ids = util.unique_records(stable_ids, 'StableId')
     data_path = os.path.abspath(data_path)
     genes = []
@@ -22,7 +22,6 @@ def simple_get_counts(stable_ids, lane, data_path, type_, window_size=None):
     
     # we sort the genes
     genes = sorted(genes)
-    print lane, data_path, os.getcwd()
     cache = CacheLaneCounts(lane, data_path, window_size=window_size)
     rows = []
     chrom = genes[0].chrom

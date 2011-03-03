@@ -55,7 +55,7 @@ def get_upstream_coords(infile_name, window_size):
     """Given a file with gene information (EnsembleID, start, end, strand),
     return a data structure with EnsembleID, chromosome, TSS, coordinate for
     window_size upstream from TSS, and the strand that the gene is found on."""
-
+    
     table = LoadTable(infile_name, sep='\t')
     table = table.sorted(columns=['CoordName', 'Start'])
     rows = []

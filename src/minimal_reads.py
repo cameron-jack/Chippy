@@ -15,14 +15,6 @@ from cogent.parse.bowtie import BowtieOutputParser
 from util import create_path
 from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
-
-def standardised_start(start, length, strand):
-    """converts all starts to being + strand reference based"""
-    if strand == MINUS_STRAND:
-        start = start + 1 - length
-    
-    return start
-
 def mapped_coords(mapfile, chrom_name, limit, dry_run):
     """From a bowtie output file and a chromosome name, generate
     a list of coordinates [(start, end, strand)]."""
@@ -48,7 +40,6 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
         # coordinates for the match
         start = record[3]
         length = len(record[4])
-        start = standardised_start(start, length, strand)
         try:
             all_coords[(start, length, strand)] += 1
         except KeyError:
@@ -57,8 +48,8 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
         if count_records >= limit:
             break
         
-    
-    print 'Total mapped reads for %s: %d' % (chrom_name, count_records)
+    if dry_run:
+        print 'Total mapped reads for %s: %d' % (chrom_name, count_records)
     all_coords = array([key + (val,) for key, val in all_coords.items()])
     all_coords = all_coords.astype(int32)
     table = LoadTable(header=['start', 'length', 'strand', 'freq'],
@@ -81,10 +72,7 @@ script_info['required_options'] = [
     make_option('-i','--input_file',
                 help='The input map file (output from bowtie)'),
     make_option('-o','--outdir',
-                help='Location to save the output numpy arrays. The '\
-                'file basename will automatically be derived from input '\
-                'filename and appended with _chrN.npy based on the '\
-                'chromosome number specified.'),
+                help='Location to save the output counts.'),
     make_option('-c', '--chrom_name', 
         type='choice', default=chroms[0],
         choices= chroms,

@@ -6,23 +6,29 @@ from cogent import LoadTable
 
 from util import data_dir
 
-class GeneIndex(object):
+class GenomeCoord(object):
     """basic object to store a chromosome and an index"""
-    def __init__(self, stable_id, chrom, index):
-        super(GeneIndex, self).__init__()
+    def __init__(self, chrom, index, stable_id=None, start=None, end=None, strand=None):
+        super(GenomeCoord, self).__init__()
         self.chrom = chrom
         self.index = index
         self.order = None
         self.stable_id = stable_id
     
     def __str__(self):
-        return '%s(chrom=%s, index=%s)' % (self.stable_id, self.chrom, self.index)
+        if self.stable_id is not None:
+            val = '%s(chrom=%s, index=%s)' % (self.stable_id, self.chrom,
+                    self.index)
+        else:
+            val = 'Coord(chrom=%s, index=%s)' % (self.chrom, self.index)
+        return val
     
     def __repr__(self):
         return '%s(%s, %s)' % (self.stable_id, self.chrom, self.index)
     
     def __cmp__(self, other):
         return cmp((self.chrom, self.index), (other.chrom, other.index))
+    
 
 class GetGeneIndexes(object):
     """class to store  / return gene indices"""
@@ -33,7 +39,7 @@ class GetGeneIndexes(object):
         names_indices = []
         for stable_id, chrom_name, index in gene_indices.getRawData(['StableId',
                             'CoordName', 'Index']):
-            gene = GeneIndex(stable_id, chrom_name, index)
+            gene = GenomeCoord(chrom_name, index, stable_id=stable_id)
             names_indices += [(stable_id, gene)]
         
         self._gene_table = gene_indices

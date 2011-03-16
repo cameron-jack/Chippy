@@ -2,12 +2,17 @@
 
 from optparse import make_option
 import numpy as np
-import matplotlib.pyplot as plt
 from cogent.util.misc import parse_command_line_parameters
 
 from inline_stats import RunningStats
 from parse_fastq import FastqParser, MinimalFastqParser
 import time
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    # case arising on a server without graphics library
+    pass
 
 def format_long(n):
     """format a long integer"""

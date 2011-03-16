@@ -3,10 +3,16 @@ from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Species, Genome
 
 try:
-    host, username, password = os.environ['ENSEMBL_ACCOUNT'].split()
+    ensembl_account = os.environ['ENSEMBL_ACCOUNT'].split()
 except KeyError:
     print 'Need ENSEMBL_ACCOUNT environment variable, quitting!'
     exit(-1)
+
+try:
+    host, username, password = ensembl_account
+except ValueError:
+    username, password = ensembl_account
+    host = 'cg.anu.edu.au'
 
 release = 58
 chroms = map(str, range(1,20)+['X', 'Y'])

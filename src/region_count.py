@@ -26,22 +26,35 @@ class WholeChrom(object):
         self.data = data.array.astype(int32)
         self.last_start_index = 0
         self.strand = strand
-        self.total_count = zeros(self.data[-1][0] + max_read_length, int32)
+        
+        total_length = self.data[-1][0] + self.data[-1][1]
+        self.total_count = zeros(total_length, int32)
     
     def __setitem__(self, slice, value):
         start, end = min([slice.start, slice.stop]), max([slice.start, slice.stop])
         if slice.step is not None:
             if self.strand != slice.step:
                 return
+        try:
+            value.shape[0]
+            return # numpy modifies arrays in place
+        except IndexError:
+            pass
         
         self.total_count[start:end] += value
     
     def __getitem__(self, slice):
         start, end = min([slice.start, slice.stop]), max([slice.start, slice.stop])
-        return self.total_count[start:end]
+        try:
+            result = self.total_count[start:end]
+        except IndexError:
+            print "WARNING: you've sliced beyond the limits of the contig"
+            result = None
+        return result
     
     @display_wrap
     def update(self, ui=None):
+        """applies referenced read count data to produce a single numpy array"""
         total = self.data.shape[0]
         for i in range(total):
             if i % 10 == 0:
@@ -51,10 +64,10 @@ class WholeChrom(object):
             if self.strand != NULL_STRAND and self.strand != strand:
                 continue
             
-            if strand == MINUS_STRAND:
-                start = start + 1 - length
             end = start + length
-            self[start:end] = freq
+            self[start:end] += freq
+        
+    
 
 class RegionCounts(object):
     """records sequence read counts for a genomic region"""

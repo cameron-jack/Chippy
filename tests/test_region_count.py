@@ -101,7 +101,7 @@ class MinimalRegionCountTests(TestCase):
         header = ['start', 'length', 'strand', 'freq']
         mapped = [[2, 10, 1, 2],
                   [3, 9, 1, 1],
-                  [12, 10, -1, 2],
+                  [3, 10, -1, 2],
                   [15, 10, 1, 10]]
         read_table = LoadTable(header=header, rows=mapped)
         read_table.writeToFile('sample.txt.gz', sep='\t')
@@ -112,7 +112,7 @@ class MinimalRegionCountTests(TestCase):
         coords_expect = [(10, 15, numpy.array([5,5,2,0,0], numpy.uint32)),
                          (0, 5, numpy.array([0,0,2,5,5], numpy.uint32)),
                          (12, 16, numpy.array([2,0,0,10], numpy.uint32)),
-                 (21, 30, numpy.array([10,10,10,10,0,0,0,0,0], numpy.uint32))]
+                 (21, 25, numpy.array([10,10,10,10], numpy.uint32))]
         
         read_counter.update()
         for start, end, expect in coords_expect:
@@ -126,8 +126,7 @@ class MinimalRegionCountTests(TestCase):
         read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
         read_counter.update()
         chrom = numpy.array([0, 0, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 0, 0,
-                10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], numpy.int32)
+                10, 10, 10, 10, 10, 10, 10, 10, 10, 10], numpy.int32)
         self.assertEqual(read_counter.total_count, chrom)
     
     def test_count_reads_plus_strand(self):
@@ -136,7 +135,7 @@ class MinimalRegionCountTests(TestCase):
         coords_expect = [(10, 15, numpy.array([3,3,0,0,0], numpy.uint32)),
                          (0, 5, numpy.array([0,0,2,3,3], numpy.uint32)),
                          (12, 16, numpy.array([0,0,0,10], numpy.uint32)),
-                         (21, 30, numpy.array([10,10,10,10,0,0,0,0,0], numpy.uint32))]
+                         (21, 25, numpy.array([10,10,10,10], numpy.uint32))]
         read_counter.update()
         for start, end, expect in coords_expect:
             got = read_counter[start:end:1]
@@ -144,13 +143,21 @@ class MinimalRegionCountTests(TestCase):
         
         remove_files(['sample.txt.gz'])
     
+    def test_add(self):
+        """should correctly handle the += idiom"""
+        read_counter = WholeChrom('sample.txt.gz', strand=-1, max_read_length=30)
+        read_counter[0:10] += 4
+        expect = numpy.zeros(read_counter.total_count.shape[0], int)
+        expect[:10] += 4
+        self.assertEqual(read_counter.total_count, expect)
+    
     def test_count_reads_minus_strand(self):
         """correctly count reads from minus strand"""
         read_counter = WholeChrom('sample.txt.gz', strand=-1, max_read_length=30)
         coords_expect = [(10, 15, numpy.array([2,2,2,0,0], numpy.uint32)),
                          (0, 5, numpy.array([0,0,0,2,2], numpy.uint32)),
                          (12, 16, numpy.array([2,0,0,0], numpy.uint32)),
-                         (21, 30, numpy.array([0,0,0,0,0,0,0,0,0], numpy.uint32))]
+                         (21, 25, numpy.array([0,0,0,0], numpy.uint32))]
         
         read_counter.update()
         for start, end, expect in coords_expect:
@@ -163,7 +170,7 @@ class MinimalRegionCountTests(TestCase):
         """RegularRegionCounts and WholeChrom should give same answer"""
         read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
         read_counter.update()
-        counter = RegularRegionCounts(45, one_based=False)
+        counter = RegularRegionCounts(25, one_based=False)
         
         for i in range(2):
             counter.addRead(2, 12)

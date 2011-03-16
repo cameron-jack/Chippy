@@ -9,6 +9,7 @@ from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
 import util
+from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 # def _get_start_index(data, last_start_index, region_start, region_end, max_read_length):
 #     """returns the start / stop index"""
@@ -115,10 +116,10 @@ class WholeChrom(object):
                 ui.display('Adding reads [%d / %d]' % (i, total), i / total)
             
             start, length, strand, freq = self.data[i]
-            if self.strand != 0 and self.strand != strand:
+            if self.strand != NULL_STRAND and self.strand != strand:
                 continue
             
-            if strand == -1:
+            if strand == MINUS_STRAND:
                 start = start + 1 - length
             end = start + length
             self[start:end] = freq

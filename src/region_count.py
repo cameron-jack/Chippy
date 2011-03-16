@@ -11,74 +11,6 @@ from cogent.util.progress_display import display_wrap
 import util
 from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
-# def _get_start_index(data, last_start_index, region_start, region_end, max_read_length):
-#     """returns the start / stop index"""
-#     start_index = -1
-#     end_index = data.shape[0]
-#     
-#     begin = max(region_start - max_read_length, 0)
-#     limit = region_end + max_read_length
-#     
-#     for i in range(last_start_index, end_index):
-#         s = data[i]
-#         if begin < s < limit and start_index < 0:
-#             start_index = max(i-1, 0)
-#             break
-#     
-#     return start_index
-# 
-# def _count_reads(data, counts, start_index, region_start, region_end, region_strand, max_read_length):
-#     """data and counts are numpy arrays"""
-#     # find the region containing the data, assumes it's sorted
-#     for i in range(start_index, data.shape[0]):
-#         read_start, read_length, read_strand, read_freq = data[i]
-#         if region_strand != 0 and region_strand != read_strand:
-#             continue
-#         
-#         if read_strand == 1:
-#             read_end = read_start + read_length
-#         else:
-#             read_end = read_start + 1
-#             read_start = read_end - read_length
-#         
-#         if region_end <= read_start or read_end < region_start:
-#             continue
-#         
-#         read_start = max(region_start, read_start) - region_start
-#         if read_start > region_end:
-#             break
-#         
-#         read_end = min(region_end, read_end) - region_start
-#         counts[read_start: read_end] += read_freq
-# 
-# 
-# try:
-#     # raise ImportError
-#     from _region_count import count_reads, get_start_index
-# except ImportError:
-#     count_reads = _count_reads
-#     get_start_index = _get_start_index
-# 
-# def CountsForRegion(counts, start, end):
-#     """factory function returning a numpy array of counts"""
-#     def call((read_start, length, strand, freq)):
-#         """returns a numpy array"""
-#         if strand == 1:
-#             read_end = read_start + length
-#         else:
-#             read_end = read_start + 1
-#             read_start = read_end - length
-#         
-#         if end <= read_start or read_end < start:
-#             return
-#         
-#         read_start = max(start, read_start) - start
-#         read_end = min(end, read_end) - start
-#         counts[read_start: read_end] += freq
-#         return
-#     
-#     return call
-
 class WholeChrom(object):
     def __init__(self, mapped_reads, max_read_length, strand=0, sep='\t', is_sorted=True):
         super(WholeChrom, self).__init__()
@@ -123,47 +55,6 @@ class WholeChrom(object):
                 start = start + 1 - length
             end = start + length
             self[start:end] = freq
-    
-# 
-# class MinimalRegionCount(object):
-#     """returns read counts for provided coordinates from a delimited file"""
-#     def __init__(self, mapped_reads, max_read_length, sep='\t', is_sorted=True):
-#         super(MinimalRegionCount, self).__init__()
-#         self.max_read_length = max_read_length
-#         
-#         data = LoadTable(mapped_reads, sep=sep)
-#         assert list(data.Header) == ['start', 'length', 'strand', 'freq'],\
-#             "mapped read Table header doesn't match expected"
-#         
-#         if not is_sorted:
-#             data = data.sorted(columns='start')
-#         
-#         self.data = data.array.astype(int32)
-#         self.last_start_index = 0
-#     
-#     def __getitem__(self, slice):
-#         """returns counts for region"""
-#         start, end = min([slice.start, slice.stop]), max([slice.start, slice.stop])
-#         if slice.step is None:
-#             strand = 0
-#         else:
-#             strand = slice.step
-#         
-#         counts = zeros(end-start, int32)
-#         
-#         start_index = get_start_index(self.data[:, 0], self.last_start_index,
-#                 start, end, self.max_read_length)
-#         
-#         if start_index < 0:
-#             return counts
-#         
-#         self.last_start_index = start_index
-#         
-#         count_reads(self.data, counts, start_index, start, end, strand,
-#                     self.max_read_length)
-#         
-#         return counts
-#     
 
 class RegionCounts(object):
     """records sequence read counts for a genomic region"""

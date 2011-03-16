@@ -40,6 +40,17 @@ class BowtieOutputTest(TestCase):
             self.assertEqual(strand_direction, data[index][1])
             self.assertEqual(query_offset, data[index][3])
             index += 1
+    
+    def test_brca2_strands_correct(self):
+        """bowtie should have correctly mapped the strand for BRCA2 test"""
+        parser = BowtieOutputParser('data/brca2-11.map')
+        header = parser.next()
+        for row in parser:
+            name = row[0]
+            strand = row[1]
+            key  = ['minus', 'plus'][strand == '+']
+            self.assertTrue(key in name)
+    
 
 if __name__ == "__main__":
     main()

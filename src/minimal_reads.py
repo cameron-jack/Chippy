@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
 import time
+import warnings
+warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
 from numpy import savez, int32, int8, uint8, array, Inf
 

@@ -3,6 +3,9 @@ from __future__ import division
 from os import path as p
 from glob import glob1
 import re
+import warnings
+warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
+
 from numpy import zeros, uint16, uint32, int32, savez, load, array
 
 from cogent import LoadTable

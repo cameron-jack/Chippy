@@ -8,6 +8,24 @@ from region_count import CacheLaneCounts
 from subregion_map import MapScores
 from gene_data import GeneIndexes
 
+def region_counts(lane, data_path, coordinates):
+    """returns counts for each region in coordinates"""
+    data_path = os.path.abspath(data_path)
+    cache = CacheLaneCounts(lane, data_path)
+    
+    # sort coords, improves data loading performance
+    coordinates = sorted(coordinates)
+    chrom = coordinates[0].chrom
+    rows = []
+    for coord in coordinates:
+        if coord.chrom != chrom:
+            del(cache[chrom])
+            chrom = coord.chrom
+        counts = cache[chrom][coord.index]
+        rows.append(counts)
+    
+    return rows
+
 def simple_get_tss_counts(stable_ids, lane, data_path, type_, window_size=None):
     stable_ids = util.unique_records(stable_ids, 'StableId')
     data_path = os.path.abspath(data_path)

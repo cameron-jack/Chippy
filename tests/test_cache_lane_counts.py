@@ -5,11 +5,11 @@ import numpy
 
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
-from region_count import CacheLaneCounts,RegionCounts
+from region_count import CacheLaneCounts,RegularRegionCounts
 
 def generate_test_files():
     for index in range(10):
-        counter = RegionCounts(10, one_based=False)
+        counter = RegularRegionCounts(10, one_based=False)
         counter.addRead(index, index+1)
         counter.save('s_7_chr%d'%(index+1), [(5,1)], 5)
 
@@ -46,7 +46,7 @@ class CacheLaneCountTests(TestCase):
         generate_test_files()
         count_cache = CacheLaneCounts(7, '.')
         for index in range(10):
-            counter = RegionCounts(10, one_based=False)
+            counter = RegularRegionCounts(10, one_based=False)
             counter.addRead(index, index+1)
             self.assertEqual(count_cache[index+1],
                              counter._get_subregion_counts([(5,1)], 5))
@@ -55,7 +55,7 @@ class CacheLaneCountTests(TestCase):
     def test_return_centred_counts(self):
         """correctly return cached counts centred"""
         length = 10
-        counter = RegionCounts(length, one_based=False)
+        counter = RegularRegionCounts(length, one_based=False)
         for i in range(length):
             counter.addRead(i, length)
         

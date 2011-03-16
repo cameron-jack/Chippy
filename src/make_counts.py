@@ -3,7 +3,7 @@ from cogent import LoadTable
 
 from parse_bowtie import BowtieOutputParser
 from parse_sam import MinimalSamParser
-from region_count import RegionCounts
+from region_count import RegularRegionCounts
 
 def format_long(n):
     """format a long integer"""
@@ -24,7 +24,7 @@ def get_read_counts_sam(infile_name, chrom_name):
     parser = MinimalSamParser(infile_name)
     n = 0
     lengths = parser.next()
-    counter = RegionCounts(lengths[chrom_name])
+    counter = RegularRegionCounts(lengths[chrom_name])
     print 'Parsing: %s' % infile_name
     for record in parser:
         if n % 100000 == 0:
@@ -50,7 +50,7 @@ def get_read_counts_bowtie(infile_name, chrom_name, chrom_size):
 
     parser = BowtieOutputParser(infile_name)
     header = parser.next()
-    counter = RegionCounts(chrom_size, one_based=False)
+    counter = RegularRegionCounts(chrom_size, one_based=False)
     n = 0
     for record in parser:
         n += 1

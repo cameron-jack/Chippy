@@ -67,3 +67,9 @@ def get_num_lines(filename):
     f.close()
     return lines
 
+def create_path(path):
+    """creates dir path"""
+    try:
+        os.makedirs(path)
+    except OSError, e:
+        pass

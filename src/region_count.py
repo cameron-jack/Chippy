@@ -57,26 +57,26 @@ import util
 # except ImportError:
 #     count_reads = _count_reads
 #     get_start_index = _get_start_index
-
-def CountsForRegion(counts, start, end):
-    """factory function returning a numpy array of counts"""
-    def call((read_start, length, strand, freq)):
-        """returns a numpy array"""
-        if strand == 1:
-            read_end = read_start + length
-        else:
-            read_end = read_start + 1
-            read_start = read_end - length
-        
-        if end <= read_start or read_end < start:
-            return
-        
-        read_start = max(start, read_start) - start
-        read_end = min(end, read_end) - start
-        counts[read_start: read_end] += freq
-        return
-    
-    return call
+# 
+# def CountsForRegion(counts, start, end):
+#     """factory function returning a numpy array of counts"""
+#     def call((read_start, length, strand, freq)):
+#         """returns a numpy array"""
+#         if strand == 1:
+#             read_end = read_start + length
+#         else:
+#             read_end = read_start + 1
+#             read_start = read_end - length
+#         
+#         if end <= read_start or read_end < start:
+#             return
+#         
+#         read_start = max(start, read_start) - start
+#         read_end = min(end, read_end) - start
+#         counts[read_start: read_end] += freq
+#         return
+#     
+#     return call
 
 class WholeChrom(object):
     def __init__(self, mapped_reads, max_read_length, strand=0, sep='\t', is_sorted=True):

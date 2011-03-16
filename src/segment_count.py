@@ -4,14 +4,19 @@ import warnings
 warnings.filterwarnings('ignore', "Not using MPI as mpi4py not found")
 
 import numpy
-from matplotlib import pyplot
-from matplotlib.ticker import MultipleLocator
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
 from region_count import CacheLaneCounts
 from gene_data import GetGeneIndexes
 from plot_util import smooth
+
+try:
+    from matplotlib import pyplot
+    from matplotlib.ticker import MultipleLocator
+except ImportError:
+    # case arising on a server without graphics library
+    pass
 
 get_gene_index = GetGeneIndexes()
 

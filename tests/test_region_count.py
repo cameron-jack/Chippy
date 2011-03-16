@@ -150,6 +150,7 @@ class MinimalRegionCountTests(TestCase):
         expect = numpy.zeros(read_counter.total_count.shape[0], int)
         expect[:10] += 4
         self.assertEqual(read_counter.total_count, expect)
+        remove_files(['sample.txt.gz'])
     
     def test_count_reads_minus_strand(self):
         """correctly count reads from minus strand"""

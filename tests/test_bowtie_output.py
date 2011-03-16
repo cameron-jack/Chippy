@@ -3,8 +3,7 @@ sys.path.append('../src')
 
 from cogent.util.unit_test import TestCase, main
 from cogent import LoadTable
-
-from parse_bowtie import BowtieOutputParser, BowtieToTable
+from cogent.parse.bowtie import BowtieOutputParser, BowtieToTable
 
 fname = 'data/bowtie_output.txt'
 data = [['GAPC_0015:6:1:1283:11957#0/1', '-', 'Mus', 66047927, 'TGTATATATAAACATATATGGAAACTGAATATATATACATTATGTATGTATATATGTATATGTTATATATACATA', 'IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII', 0, ['55:A>G', '64:C>A']],

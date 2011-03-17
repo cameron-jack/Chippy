@@ -2,6 +2,7 @@
 
 from os.path import basename, dirname, join
 from cogent.parse.fastq import MinimalFastqParser
+from util import create_path
 
 def make_seq(seq, name, qual):
     """over-ride default, slower, sequence constructor"""
@@ -10,11 +11,12 @@ def make_seq(seq, name, qual):
 def run(input_file, output_file, minimum_length, rewrite, test_run):
     if not test_run:
         outfile_fasta = open(output_file, 'w')
+        outfile_directory = dirname(output_file)
+        create_path(outfile_directory)
         if rewrite:
-            outfile_directory = dirname(output_file)
             outfile_fastq_fn = basename(output_file).split('.')[0] + '_trimmed.fastq'
             outfile_fastq = open(join(outfile_directory,outfile_fastq_fn), 'w')
-
+    
     i = 0
     num_too_small = 0
     #print '\nShort Sequences:\n'

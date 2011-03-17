@@ -20,7 +20,7 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
     """
 
     if make_seq is None:
-        make_seq = LightSeq
+        light_seq = LightSeq()
 
     ambig_count = 0
     parser = MinimalFastqParser(data, strict=strict)
@@ -49,7 +49,8 @@ def FastqParser(data, numeric_qual=False, remove_ambig=True,
         if numeric_qual:
             qual = [v-64 for v in map(ord, qual)]
 
-        yield make_seq(seq, name, qual)
+        light_seq(seq, name, qual)
+        yield light_seq
 
 if __name__ == "__main__":
     parser = MinimalFastqParser('../data/s_6_sequence.txt')

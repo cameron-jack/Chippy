@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from parse_psl import MinimalPslParser
-from parse_fastq import MinimalFastqParser
+from cogent.parse.psl import MinimalPslParser
+from cogent.parse.fastq import MinimalFastqParser
 from light_seq import LightSeq
 
 def get_corrupt_seq_names(psl_name, test_run):

@@ -20,7 +20,7 @@ def run(input_file, output_file, minimum_length, rewrite, test_run):
     i = 0
     num_too_small = 0
     #print '\nShort Sequences:\n'
-    for seq in MinimalFastqParser(input_file):
+    for name, seq, qual in MinimalFastqParser(input_file):
         i += 1
         if len(seq) < minimum_length:
             #print '%s:\t%d\n' % (seq.Name,len(seq))

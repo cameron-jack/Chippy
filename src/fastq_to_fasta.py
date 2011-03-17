@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from os.path import basename, dirname, join
-from parse_fastq import FastqParser
+from cogent.parse.fastq import MinimalFastqParser
 
 def make_seq(seq, name, qual):
     """over-ride default, slower, sequence constructor"""
@@ -18,7 +18,7 @@ def run(input_file, output_file, minimum_length, rewrite, test_run):
     i = 0
     num_too_small = 0
     #print '\nShort Sequences:\n'
-    for seq in FastqParser(input_file):
+    for seq in MinimalFastqParser(input_file):
         i += 1
         if len(seq) < minimum_length:
             #print '%s:\t%d\n' % (seq.Name,len(seq))

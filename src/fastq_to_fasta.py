@@ -3,7 +3,7 @@
 from os.path import basename, dirname, join
 from cogent.parse.fastq import MinimalFastqParser
 from util import create_path
-from light_seq import LightSeq
+from parse_fastq import FastqParser
 
 def run(input_file, output_file, minimum_length, rewrite, test_run):
     if not test_run:
@@ -16,17 +16,16 @@ def run(input_file, output_file, minimum_length, rewrite, test_run):
     
     i = 0
     num_too_small = 0
-    light_seq = LightSeq()
-    for name, seq, qual in MinimalFastqParser(input_file):
+    for seq in FastqParser(input_file):
         i += 1
         if len(seq) < minimum_length:
             num_too_small += 1
             continue
 
-        light_seq(seq, name, qual)
-        data_fasta = light_seq.toFasta() + '\n'
+        data_fasta = seq.toFasta() + '\n'
         if rewrite:
-            data_fastq = light_seq.toFastq() + '\n'
+            data_fastq = seq.toFastq() + '\n'
+        
         if not test_run:
             outfile_fasta.write(data_fasta)
             if rewrite:

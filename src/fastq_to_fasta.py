@@ -3,10 +3,7 @@
 from os.path import basename, dirname, join
 from cogent.parse.fastq import MinimalFastqParser
 from util import create_path
-
-def make_seq(seq, name, qual):
-    """over-ride default, slower, sequence constructor"""
-    return name, seq
+from light_seq import LightSeq
 
 def run(input_file, output_file, minimum_length, rewrite, test_run):
     if not test_run:
@@ -15,31 +12,27 @@ def run(input_file, output_file, minimum_length, rewrite, test_run):
         create_path(outfile_directory)
         if rewrite:
             outfile_fastq_fn = basename(output_file).split('.')[0] + '_trimmed.fastq'
-            outfile_fastq = open(join(outfile_directory,outfile_fastq_fn), 'w')
+            outfile_fastq = open(join(outfile_directory, outfile_fastq_fn), 'w')
     
     i = 0
     num_too_small = 0
-    #print '\nShort Sequences:\n'
+    light_seq = LightSeq()
     for name, seq, qual in MinimalFastqParser(input_file):
         i += 1
         if len(seq) < minimum_length:
-            #print '%s:\t%d\n' % (seq.Name,len(seq))
             num_too_small += 1
             continue
 
-        #if i % 100000 == 0:
-            #print seq.Name
-            #print i
-
-        data_fasta = seq.toFasta() + '\n'
+        light_seq(seq, name, qual)
+        data_fasta = light_seq.toFasta() + '\n'
         if rewrite:
-            data_fastq = seq.toFastq() + '\n'
+            data_fastq = light_seq.toFastq() + '\n'
         if not test_run:
             outfile_fasta.write(data_fasta)
             if rewrite:
                 outfile_fastq.write(data_fastq)
         else:
-            print data
+            print data_fasta
 
         if test_run and i > 10000:
             break

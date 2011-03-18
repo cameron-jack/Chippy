@@ -28,8 +28,8 @@ def write_pristine(fastq_name, not_pristine, test_run):
     dir = os.path.dirname(fastq_name)
     filename = os.path.basename(fastq_name)
     tmp = filename.split('.')
-    pristine_name = '%s_pristine.fastq' % '.'.join(tmp[-1])
-    contaminated_name = '%s_contaminated.fastq' % '.'.join(tmp[-1])
+    pristine_name = '%s_pristine.fastq' % '.'.join(tmp[:-1])
+    contaminated_name = '%s_contaminated.fastq' % '.'.join(tmp[:-1])
     
     if test_run:
         print pristine_name

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
 from light_seq import LightSeq
@@ -8,27 +8,36 @@ def get_corrupt_seq_names(psl_name, test_run):
     psl_parser = MinimalPslParser(psl_name)
     psl_parser.next()
     psl_parser.next()
-
+    
     num = 0
-    contaminated_info = dict()
+    contaminated_info = {}
     for record in psl_parser:
         # get the contaminated sequence name and the index where contamination
         # starts and store it as a key-->value pair
-        contaminated_info.update([(record[9], record[11])])
+        contaminated_info[record[9]] = record[11]
         num += 1
         if test_run and num >= 1000:
             break
     return contaminated_info
 
-def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
+def write_pristine(fastq_name, not_pristine, test_run):
     num = 0
     num_too_short = 0
     num_pristine = 0
     num_contaminated = 0
-    if not test_run:
-        outfile_pristine = open(outfile_root + '_pristine.fastq', 'w')
-        outfile_contaminated = open(outfile_root + '_contaminated.fastq', 'w')
-
+    dir = os.path.dirname(fastq_name)
+    filename = os.path.basename(fastq_name)
+    tmp = filename.split('.')
+    pristine_name = '%s_pristine.fastq' % '.'.join(tmp[-1])
+    contaminated_name = '%s_contaminated.fastq' % '.'.join(tmp[-1])
+    
+    if test_run:
+        print pristine_name
+        print contaminated_name
+    else:
+        outfile_pristine = open(pristine_name, 'w')
+        outfile_contaminated = open(contaminated_name, 'w')
+    
     seq_object = LightSeq()
     for name, seq, qual in MinimalFastqParser(open(fastq_name)):
         num += 1
@@ -71,10 +80,10 @@ def write_pristine(fastq_name, outfile_root, not_pristine, test_run):
     print '%d Sequences were contaminated with adapter, but still kept' % num_contaminated
     print '%d Sequences were discarded as too small' % num_too_short
 
-def run(input_psl_file, input_file, outfile_root, test_run):
+def main(input_psl_file, input_file, test_run):
     """identifies reads not to be written, then writes everything else"""
     not_pristine = get_corrupt_seq_names(input_psl_file, test_run)
-    write_pristine(input_file, outfile_root, not_pristine, test_run)
+    write_pristine(input_file, not_pristine, test_run)
     print '\n Done!'
 
 if __name__ == "__main__":
@@ -90,26 +99,22 @@ if __name__ == "__main__":
     script_info['script_usage'].append(
         ("Example 1","""Test run of write pristine:""",
         """python get_pristine_seqs.py -p <somefile.psl> -i <seqs> -o <outfile_root> -t"""))
-
+    
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [
         make_option('-p','--input_psl_file',
                     help='The input psl file from blat'),
         make_option('-i','--input_file',
-                    help='The input fasta sequence file'),
-        make_option('-o','--outfile_root',
-                    help='The pristine and contaminated files will be written '\
-                    'to two different files, with this as this + _pristine or '\
-                    '_contaminated as the name of the file'),
+                    help='The input fastq sequence file'),
         ]
-
+    
     script_info['optional_options'] = [\
         make_option('-t','--test_run', action='store_true',
                     dest='test_run', default = False,
                     help='Dry run without writing any data'
                     +'[default: %default]'),
                     ]
-
+    
     parser, opts, args = parse_command_line_parameters(**script_info)
-
-    run(opts.input_psl_file, opts.input_file, opts.outfile_root, opts.test_run)
+    
+    main(opts.input_psl_file, opts.input_file, opts.test_run)

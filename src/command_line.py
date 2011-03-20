@@ -35,8 +35,6 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
 
 def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record, test):
     """run bowtie"""
-    fastq_filename = os.path.join(save_dir, fastq_filename)
-    map_filename = os.path.join(save_dir, map_filename)
     command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 8 %s %s %s' % \
         (bowtie_index, fastq_filename, map_filename)
     stdout, stderr = run_command(command, test)
@@ -51,25 +49,3 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
                         error_type=pipe, message=line[0], value=line[1])
     
     return run_record
-
-
-class RunRecord(object):
-    """object for recording program messages"""
-    def __init__(self):
-        super(RunRecord, self).__init__()
-        self.records = []
-        
-    def addMessage(self, program_name, error_type, message, value):
-        """add a message about an execution"""
-        self.records.append([program_name, error_type, message, value])
-    
-    def getMessageTable(self):
-        """docstring for display"""
-        header = ['program_name', 'error_type', 'message', 'value']
-        table = LoadTable(header=header, rows=self.records)
-        return table
-    
-    def display(self):
-        table = self.getMessageTable()
-        print table
-    

@@ -31,7 +31,6 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
         limit = 100
     
     for record in parser:
-        
         chrom = record[2]
         if chrom != chrom_name:
             continue
@@ -57,6 +56,29 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
     table = LoadTable(header=['start', 'length', 'strand', 'freq'],
                         rows=all_coords)
     return table
+
+@display_wrap
+def run(input_file, outdir, chroms, limit, dry_run, ui=None):
+    print 'Starting'
+    for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
+        chrom = 'chr%s' % chrom
+        table = mapped_coords(input_file, chrom, limit, dry_run)
+        file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
+        print 'Here goes -- sorting table of size %s!' % table.Shape[0]
+        start = time.time()
+        table = table.sorted()
+        print 'Finished sort!'
+        end = time.time()
+        print 'Took %s' % (end-start)
+        
+        if not dry_run:
+            create_path(outdir)
+            table.writeToFile(file_name, sep='\t')
+        else:
+            print 'will create outdir=%s' % outdir
+            print 'will create outfile=%s' % file_name
+        
+        del(table)
 
 script_info = {}
 descr = "Create a coordinates tabe delimited text file for a specified"\
@@ -91,8 +113,8 @@ script_info['optional_options'] = [
     help='number of records to read in (defaults to all)')
 ]
 
-@display_wrap
-def main(chroms=chroms, ui=None):
+
+def main(chroms=chroms):
     chroms = list(chroms[:])
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
@@ -105,29 +127,7 @@ def main(chroms=chroms, ui=None):
     if opts.limit == '' or opts.limit is None:
         opts.limit = Inf
     
-    print 'Starting'
-    
-    for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
-        chrom = 'chr%s' % chrom
-        table = mapped_coords(opts.input_file, chrom, opts.limit,
-                            opts.dry_run)
-        file_name = os.path.join(opts.outdir, '%s.txt.gz' % chrom)
-        print 'Here goes -- sorting table of size %s!' % table.Shape[0]
-        start = time.time()
-        table = table.sorted()
-        print 'Finished sort!'
-        end = time.time()
-        print 'Took %s' % (end-start)
-        
-        if not opts.dry_run:
-            create_path(opts.outdir)
-            table.writeToFile(file_name, sep='\t')
-        else:
-            print 'will create outdir=%s' % opts.outdir
-            print 'will create outfile=%s' % file_name
-        
-        del(table)
-    
+    run(opts.input_file, opts.outdir, chroms, opts.limit, opts.dry_run)
 
 if __name__ == "__main__":
     main()

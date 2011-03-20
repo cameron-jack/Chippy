@@ -88,8 +88,8 @@ script_info['optional_options'] = [\
 def main():
     run_record = []
     parser, opts, args = parse_command_line_parameters(**script_info)
-    run_record = run(opts.input_file, opts.output_file, opts.minimum_length,
-            opts.rewrite_fastq, run_record, opts.test_run)
+    run_record = run(opts.input_file, opts.save_dir, opts.output_file,
+        opts.minimum_length, opts.rewrite_fastq, run_record, opts.test_run)
     return run_record
 
 if __name__ == "__main__":

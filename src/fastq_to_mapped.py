@@ -55,11 +55,10 @@ def main():
     fasta_file = make_name(opts.output_file)
     psl_out = fasta_file.replace('.fasta', '.psl')
     trimmed_fastq = fasta_file.replace('.fasta', '_trimmed.fastq')
-    pristine_fastq = fasta_file.replace('.fasta',
-                                    '_trimmed_pristine.fastq')
+    pristine_fastq = trimmed_fastq.replace('_trimmed',
+                                    '_trimmed_pristine')
     pristine_map = pristine_fastq.replace('.fastq', '.map')
-    contaminated_fastq = fasta_file.replace('.fasta',
-                                    '_trimmed_contaminated.fastq')
+    contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
     run_record_file_name = make_name('run_record.txt')
     

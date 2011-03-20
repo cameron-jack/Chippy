@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-import os
+import os, re
 from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
 from light_seq import LightSeq
+
+file_end = re.compile(r'\.fastq$')
 
 def get_corrupt_seq_names(psl_name, test_run):
     psl_parser = MinimalPslParser(psl_name)
@@ -25,11 +27,8 @@ def write_pristine(fastq_name, not_pristine, run_record, test_run):
     num_too_short = 0
     num_pristine = 0
     num_contaminated = 0
-    dir = os.path.dirname(fastq_name)
-    filename = os.path.basename(fastq_name)
-    tmp = filename.split('.')
-    pristine_name = '%s_pristine.fastq' % '.'.join(tmp[:-1])
-    contaminated_name = '%s_contaminated.fastq' % '.'.join(tmp[:-1])
+    pristine_name = file_end.sub('_pristine.fastq', not_pristine)
+    contaminated_name = file_end.sub('_contaminated.fastq', not_pristine)
     
     if test_run:
         print pristine_name

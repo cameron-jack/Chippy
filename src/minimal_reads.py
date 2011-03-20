@@ -76,6 +76,7 @@ def what_chromosomes(chrom_name, chroms=chroms):
 def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     print 'Starting'
     chroms = what_chromosomes(chroms)
+    start = time.time()
     for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
         chrom = 'chr%s' % chrom
         table = mapped_coords(input_file, chrom, limit, dry_run)
@@ -94,6 +95,13 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
             print 'will create outfile=%s' % file_name
         
         del(table)
+    
+    end = time.time()
+    if run_record:
+        run_record.addMessage(program_name='minimal_reads',
+                error_type='stdout', message='Time taken (mins)',
+                value= ((end-start)/60.))
+    
     return run_record
 
 script_info = {}

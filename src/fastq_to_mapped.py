@@ -90,6 +90,9 @@ def main():
         pristine_fastq, pristine_map, run_record, opts.test_run)
     
     # concatenate the pristine and contaminated files
+    print 'Concatenating contaminated and pristine map files'
+    run_record = command_line.concatenate(pristine_map, contaminated_map,
+                combined_map, run_record, opts.test_run)
     
     # minimal_read map the concatenated file
     

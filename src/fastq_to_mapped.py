@@ -72,18 +72,18 @@ def main():
         run_record, opts.test_run)
     
     print 'Running blat'
-    run_record = command_line.run_blat(opt.blat_adapters, opts.output_file,
+    run_record = command_line.run_blat(opts.blat_adapters, opts.output_file,
             psl_out, run_record)
     
     print 'Producing pristine seqs'
     run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,
-            opt.test_run)
+            opts.test_run)
     
     print 'Mapping contaminated seqs'
-    run_record = command_line.run_bowtie(opt.bowtie_index, opt.save_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
         contaminated_fastq, contaminated_map, run_record)
     print 'Mapping pristine seqs'
-    run_record = command_line.run_bowtie(opt.bowtie_index, opt.save_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
         pristine_fastq, pristine_map, run_record)
     
     # display/write synopsis of run

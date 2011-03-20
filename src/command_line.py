@@ -61,3 +61,29 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
                         error_type=pipe, message=line[0], value=line[1])
     
     return run_record
+
+def concatenate(pristine_path, contaminated_path, combined_path, run_record, test):
+    """concatenates pristine to the end of contaminated producing a new file"""
+    def write(infile, outfile):
+        n = 0
+        for line in infile:
+            outfile.write(line)
+            n += 1
+        return n
+    
+    total_lines = 0
+    concatenated = open(combined_path, 'w')
+    
+    contaminated = open(contaminated_path, 'r')
+    total_lines += write(contaminated, concatenated)
+    contaminated.close()
+    
+    pristine = open(pristine_path, 'r')
+    total_lines += write(pristine, concatenated)
+    pristine.close()
+    
+    concatenated.close()
+    
+    run_record.addMessage(program_name='concatenate',
+                error_type='stdout', message='Total lines', value=total_lines)
+    return run_record

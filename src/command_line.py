@@ -65,9 +65,3 @@ class RunRecord(object):
         table = self.getMessageTable()
         print table
     
-from cogent import LoadTable
-run_record = RunRecord()
-
-mouse_index = os.environ['MOUSE_INDEX']
-run_record = run_bowtie(mouse_index, 'Check', 'brca2-11.fastq', 'brca2-11.map', run_record, False)
-print run_record.display()

@@ -16,7 +16,7 @@ def run_command(command, test):
     
     return stdout, stderr
 
-def run_blat(blat_adapters, query_file, psl_out, test):
+def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     """run blat"""
     command = "blat %s %s %s" % (blat_adapters, query_file, psl_out)
     if test:
@@ -24,6 +24,14 @@ def run_blat(blat_adapters, query_file, psl_out, test):
         print command
         return
     stdout, stderr = run_command(command, test)
+    if stdout:
+        print
+        print ''.join(stdout)
+    
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
 
 def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record, test):
     """run bowtie"""

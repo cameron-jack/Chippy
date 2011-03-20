@@ -20,7 +20,7 @@ def get_corrupt_seq_names(psl_name, test_run):
             break
     return contaminated_info
 
-def write_pristine(fastq_name, not_pristine, test_run):
+def write_pristine(fastq_name, not_pristine, run_record, test_run):
     num = 0
     num_too_short = 0
     num_pristine = 0
@@ -74,17 +74,25 @@ def write_pristine(fastq_name, not_pristine, test_run):
     if not test_run:
         outfile_contaminated.close()
         outfile_pristine.close()
+    
+    run_record.addMessage(program_name='get_pristine_seqs',
+                error_type='stdout', message='Pristine Seqs',
+                value=num)
+    run_record.addMessage(program_name='get_pristine_seqs',
+                error_type='stdout',
+                message='Sequences were contaminated with adapter, but still kept',
+                value=num_contaminated)
+    run_record.addMessage(program_name='get_pristine_seqs',
+                error_type='stdout',
+                message='Sequences were discarded as too small',
+                value=num_too_short)
+    return run_record
 
-    print 'Success!!\n%d Sequences were processed' % num
-    print '%d Sequences were pristine' % num_pristine
-    print '%d Sequences were contaminated with adapter, but still kept' % num_contaminated
-    print '%d Sequences were discarded as too small' % num_too_short
-
-def main(input_psl_file, input_file, test_run):
+def main(input_psl_file, input_file, run_record, test_run):
     """identifies reads not to be written, then writes everything else"""
     not_pristine = get_corrupt_seq_names(input_psl_file, test_run)
-    write_pristine(input_file, not_pristine, test_run)
-    print '\n Done!'
+    run_record = write_pristine(input_file, not_pristine, run_record, test_run)
+    return run_record
 
 if __name__ == "__main__":
     from cogent.util.misc import parse_command_line_parameters

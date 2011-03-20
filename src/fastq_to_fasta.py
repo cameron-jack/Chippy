@@ -105,5 +105,5 @@ def main():
 if __name__ == "__main__":
     from cogent import LoadTable
     run_record = main()
-    print run_record.display()
+    run_record.display()
 

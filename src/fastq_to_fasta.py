@@ -15,7 +15,7 @@ def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, 
                 'Do not put directory path in output_file'
         
         create_path(save_dir)
-        outfile_fasta = open(os.path.join(save_dir, output_file), 'w')
+        outfile_fasta = open(join(save_dir, output_file), 'w')
         if rewrite:
             outfile_fastq_fn = basename(output_file).split('.')[0] + '_trimmed.fastq'
             outfile_fastq = open(join(save_dir, outfile_fastq_fn), 'w')

@@ -27,8 +27,8 @@ def write_pristine(fastq_name, not_pristine, run_record, test_run):
     num_too_short = 0
     num_pristine = 0
     num_contaminated = 0
-    pristine_name = file_end.sub('_pristine.fastq', not_pristine)
-    contaminated_name = file_end.sub('_contaminated.fastq', not_pristine)
+    pristine_name = file_end.sub('_pristine.fastq', fastq_name)
+    contaminated_name = file_end.sub('_contaminated.fastq', fastq_name)
     
     if test_run:
         print pristine_name

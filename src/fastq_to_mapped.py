@@ -50,15 +50,18 @@ def main():
        parse_command_line_parameters(**script_info)
     
     # make the assorted filenames
-    psl_out = opts.output_file.replace('.fasta', '.psl')
-    trimmed_fastq = opts.output_file.replace('.fasta', '_trimmed.fastq')
-    pristine_fastq = opts.output_file.replace('.fasta',
+    make_name = lambda x: os.path.join(opts.save_dir, x)
+    
+    fasta_file = make_name(opts.output_file)
+    psl_out = fasta_file.replace('.fasta', '.psl')
+    trimmed_fastq = fasta_file.replace('.fasta', '_trimmed.fastq')
+    pristine_fastq = fasta_file.replace('.fasta',
                                     '_trimmed_pristine.fastq')
     pristine_map = pristine_fastq.replace('.fastq', '.map')
-    contaminated_fastq = opts.output_file.replace('.fasta',
+    contaminated_fastq = fasta_file.replace('.fasta',
                                     '_trimmed_contaminated.fastq')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
-    run_record_file_name = os.path.join(opts.save_dir, 'run_record.txt')
+    run_record_file_name = make_name('run_record.txt')
     
     # run_records tracks metrics from each step that are printed & saved at
     # completion of the entire workflow. Expected format is: program_name
@@ -73,8 +76,7 @@ def main():
     
     print 'Running blat'
     run_record = command_line.run_blat(opts.blat_adapters,
-            os.path.join(opts.save_dir, opts.output_file),
-            os.path.join(opts.save_dir, psl_out), run_record, opts.test_run)
+            fasta_file, psl_out, run_record, opts.test_run)
     
     print 'Producing pristine seqs'
     run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,

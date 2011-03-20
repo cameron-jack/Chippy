@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import time
 from os.path import basename, dirname, join
 
 from cogent.parse.fastq import MinimalFastqParser
@@ -47,8 +47,12 @@ def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, 
         if rewrite:
             outfile_fastq.close()
     
-    run_record.append(['fastq_to_fasta', 'stdout', 'Sequences read', i])
-    run_record.append(['fastq_to_fasta', 'stdout', 'Sequences discarded as too small', num_too_small])
+    run_record.addMessage(program_name='fastq_to_fasta',
+                error_type='stdout', message='Sequences read', value=i)
+    run_record.addMessage(program_name='fastq_to_fasta',
+            error_type='stdout', message='Sequences discarded as too small',
+            value=num_too_small)
+    
     return run_record
 
 # 
@@ -86,17 +90,20 @@ script_info['optional_options'] = [\
                 ]
 
 def main():
-    run_record = []
+    from fastq_to_mapped import RunRecord
+    run_record = RunRecord()
+    start = time.time()
     parser, opts, args = parse_command_line_parameters(**script_info)
     run_record = run(opts.input_file, opts.save_dir, opts.output_file,
         opts.minimum_length, opts.rewrite_fastq, run_record, opts.test_run)
+    end = time.time()
+    run_record.addMessage(program_name='fastq_to_fasta',
+            error_type='stdout', message='Time taken (mins)',
+            value= ((end-start)/60.))
     return run_record
 
 if __name__ == "__main__":
     from cogent import LoadTable
-    run_record = main()
-    table = LoadTable(header=['command', 'pipe', 'message', 'value'],
-        rows=run_record)
-    print table
+    run_record = main(run_record)
+    print table.display()
 
-    

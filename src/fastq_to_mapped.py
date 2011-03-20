@@ -8,6 +8,7 @@
 
 import os
 import time
+import numpy
 
 from cogent import LoadTable
 from cogent.util.misc import parse_command_line_parameters
@@ -16,6 +17,7 @@ from optparse import make_option
 import fastq_to_fasta
 import command_line
 import get_pristine_seqs
+import minimal_reads
 
 class RunRecord(object):
     """object for recording program messages"""
@@ -61,6 +63,8 @@ def main():
     contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
     combined_map = fasta_file.replace('.fasta', '.map')
+    freq_table_dir = '%s-user' % (os.path.basename(opts.save_dir))
+    freq_table_dir = os.path.join(opts.save_dir, freq_table_dir)
     run_record_file_name = make_name('run_record.txt')
     
     # run_records tracks metrics from each step that are printed & saved at
@@ -95,9 +99,11 @@ def main():
                 combined_map, run_record, opts.test_run)
     
     # minimal_read map the concatenated file
-    
+    run_record = minimal_reads.run(input_file=combined_map, outdir=freq_table_dir,
+        chroms='Do All', limit=numpy.inf, run_record=run_record,
+        dry_run=opts.test_run)
     # display/write synopsis of run
-    print run_record.display()
+    run_record.display()
     table = run_record.getMessageTable()
     table.writeToFile(run_record_file_name, sep='\t')
 

@@ -76,7 +76,7 @@ def main():
             psl_out, run_record)
     
     print 'Producing pristine seqs'
-    run_record = get_pristine_seqs.run(psl_out, trimmed_fastq, run_record,
+    run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,
             opt.test_run)
     
     print 'Mapping contaminated seqs'

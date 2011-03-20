@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, re
+import os, sys, re, time
 import subprocess
 from optparse import OptionParser
 
@@ -23,7 +23,12 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
         print "=== The command ==="
         print command
         return
+    start = time.time()
     stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name='blat',
+            error_type='stdout', message='Time taken (mins)',
+            value= ((end-start)/60.))
     if stdout:
         print
         print ''.join(stdout)
@@ -37,7 +42,14 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
     """run bowtie"""
     command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 8 %s %s %s' % \
         (bowtie_index, fastq_filename, map_filename)
+    start = time.time()
     stdout, stderr = run_command(command, test)
+    end = time.time()
+    
+    run_record.addMessage(program_name='bowtie',
+            error_type='stdout', message='Time taken (mins)',
+            value= ((end-start)/60.))
+    
     pipes = {'stderr': stderr, 'stdout': stdout}
     for pipe in pipes:
         for line in pipes[pipe]:

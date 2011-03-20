@@ -71,7 +71,7 @@ def main():
     # exist
     print 'Converting fastq --> fasta'
     run_record = fastq_to_fasta.run(opts.input_file, opts.save_dir,
-        opts.output_file, opts.minimum_length, opts.rewrite_fastq,
+        opts.output_file, opts.minimum_length, True,
         run_record, opts.test_run)
     
     print 'Running blat'

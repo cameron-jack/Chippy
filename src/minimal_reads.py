@@ -26,7 +26,7 @@ def mapped_coords(mapfile, limit, dry_run):
     parser = BowtieOutputParser(mapfile, row_converter=None)
     header = parser.next()
     
-    all_coords = {}
+    all_coords = dict(('chr%s' % chr, {}) for chr in chroms)
     count_records = 0
     
     if dry_run:
@@ -41,20 +41,26 @@ def mapped_coords(mapfile, limit, dry_run):
         start = record[3]
         length = len(record[4])
         try:
-            all_coords[(chrom, start, length, strand)] += 1
+            all_coords[chrom][(start, length, strand)] += 1
         except KeyError:
-            all_coords[(chrom, start, length, strand)] = 1
+            all_coords[chrom][(start, length, strand)] = 1
         
         if count_records >= limit:
             break
         
     if dry_run:
         print 'Total mapped reads: %d' % (count_records)
-    all_coords = array([key + (val,) for key, val in all_coords.items()])
-    all_coords = all_coords.astype(int32)
-    table = LoadTable(header=['chrom', 'start', 'length', 'strand', 'freq'],
-                        rows=all_coords)
-    return table
+    return all_coords
+
+def make_chrom_coord_table(all_coords, chrom):
+    """returns a Table of sorted coordinates for just the indicated chromosome"""
+    header = ['start', 'length', 'strand', 'freq']
+    coords = all_coords[chrom]
+    coords = array([key + (val,) for key, val in coords.items()])
+    coords = coords.astype(int32)
+    chrom_table = LoadTable(header=header, rows=coords)
+    chrom_table = chrom_table.sorted()
+    return chrom_table
 
 def what_chromosomes(chrom_name, chroms=chroms):
     """returns list of chromosomes to be done"""
@@ -74,15 +80,11 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     print 'Starting'
     chroms = what_chromosomes(chroms)
     start = time.time()
-    table = mapped_coords(input_file, limit, dry_run)
+    all_coords = mapped_coords(input_file, limit, dry_run)
     for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
         chrom = 'chr%s' % chrom
         file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
-        chrom_table = table.filtered(lambda x: x == chrom, columns='chrom')
-        chrom_table = chrom_table.getColumns(['start', 'length', 'strand',
-                                            'freq'])
-        chrom_table = chrom_table.sorted()
-        end = time.time()
+        chrom_table = make_chrom_coord_table(all_coords, chrom)
         if run_record:
             run_record.addMessage('minimal_reads', 'stdout',
                 'Unique reads on %s' % chrom, chrom_table.Shape[0])

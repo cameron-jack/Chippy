@@ -84,10 +84,10 @@ def main():
     
     print 'Mapping contaminated seqs'
     run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
-        contaminated_fastq, contaminated_map, run_record)
+        contaminated_fastq, contaminated_map, run_record, opts.test_run)
     print 'Mapping pristine seqs'
     run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
-        pristine_fastq, pristine_map, run_record)
+        pristine_fastq, pristine_map, run_record, opts.test_run)
     
     # display/write synopsis of run
     print run_record.display()

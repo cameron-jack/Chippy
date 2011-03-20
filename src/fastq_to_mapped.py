@@ -29,7 +29,7 @@ class RunRecord(object):
     
     def getMessageTable(self):
         """docstring for display"""
-        header = ['program_name', 'error_type', 'message', 'value']
+        header = ['program_name', 'message type', 'message', 'value']
         table = LoadTable(header=header, rows=self.records)
         return table
     
@@ -60,7 +60,7 @@ def main():
     pristine_map = pristine_fastq.replace('.fastq', '.map')
     contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
-    combined_map = fasta_file.replace('.fastq', '.map')
+    combined_map = fasta_file.replace('.fasta', '.map')
     run_record_file_name = make_name('run_record.txt')
     
     # run_records tracks metrics from each step that are printed & saved at
@@ -69,7 +69,7 @@ def main():
     # convert fastq to fasta so we can use blat to map the adapters
     # this function call creates the save_dir path, if it doesn't already
     # exist
-    print 'Converting fastq --> fasta'
+    print 'Prepping for blat (fastq to fasta)'
     run_record = fastq_to_fasta.run(opts.input_file, opts.save_dir,
         opts.output_file, opts.minimum_length, True,
         run_record, opts.test_run)
@@ -78,7 +78,7 @@ def main():
     run_record = command_line.run_blat(opts.blat_adapters,
             fasta_file, psl_out, run_record, opts.test_run)
     
-    print 'Producing pristine seqs'
+    print 'Writing seqs without adapters'
     run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,
             opts.test_run)
     

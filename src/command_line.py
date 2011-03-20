@@ -87,3 +87,4 @@ def concatenate(pristine_path, contaminated_path, combined_path, run_record, tes
     run_record.addMessage(program_name='concatenate',
                 error_type='stdout', message='Total lines', value=total_lines)
     return run_record
+

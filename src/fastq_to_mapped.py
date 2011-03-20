@@ -72,8 +72,9 @@ def main():
         run_record, opts.test_run)
     
     print 'Running blat'
-    run_record = command_line.run_blat(opts.blat_adapters, opts.output_file,
-            psl_out, run_record, opts.test_run)
+    run_record = command_line.run_blat(opts.blat_adapters,
+            os.path.join(opts.save_dir, opts.output_file),
+            os.path.join(opts.save_dir, psl_out), run_record, opts.test_run)
     
     print 'Producing pristine seqs'
     run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,

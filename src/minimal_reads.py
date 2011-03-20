@@ -57,19 +57,32 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
                         rows=all_coords)
     return table
 
+def what_chromosomes(chrom_name, chroms=chroms):
+    """returns list of chromosomes to be done"""
+    chroms = list(chroms[:])
+    if chrom_name == chroms[0]:
+        chroms = chroms[1:]
+    elif chrom_name in chrom_names:
+        chroms = [strchrom_name]
+    else:
+        raise RuntimeError('Unknown chrom_name: %s' % str(chrom_name))
+    
+    return chroms
+
+
 @display_wrap
-def run(input_file, outdir, chroms, limit, dry_run, ui=None):
+def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     print 'Starting'
+    chroms = what_chromosomes(chroms)
     for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
         chrom = 'chr%s' % chrom
         table = mapped_coords(input_file, chrom, limit, dry_run)
         file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
-        print 'Here goes -- sorting table of size %s!' % table.Shape[0]
-        start = time.time()
         table = table.sorted()
-        print 'Finished sort!'
         end = time.time()
-        print 'Took %s' % (end-start)
+        if run_record:
+            run_record.addMessage('minimal_reads', 'stdout',
+                'Unique reads on %s' % chrom, table.Shape[0])
         
         if not dry_run:
             create_path(outdir)
@@ -79,6 +92,7 @@ def run(input_file, outdir, chroms, limit, dry_run, ui=None):
             print 'will create outfile=%s' % file_name
         
         del(table)
+    return run_record
 
 script_info = {}
 descr = "Create a coordinates tabe delimited text file for a specified"\
@@ -114,20 +128,15 @@ script_info['optional_options'] = [
 ]
 
 
-def main(chroms=chroms):
-    chroms = list(chroms[:])
+def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
-    
-    if opts.chrom_name == chroms[0]:
-        chroms = chroms[1:]
-    else:
-        chroms = [opts.chrom_name]
     
     if opts.limit == '' or opts.limit is None:
         opts.limit = Inf
     
-    run(opts.input_file, opts.outdir, chroms, opts.limit, opts.dry_run)
+    run(opts.input_file, opts.outdir, opts.chrom_name, opts.limit, None,
+        opts.dry_run)
 
 if __name__ == "__main__":
     main()

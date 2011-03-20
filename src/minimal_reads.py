@@ -17,6 +17,8 @@ from cogent.parse.bowtie import BowtieOutputParser
 from util import create_path
 from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
+chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
+
 def mapped_coords(mapfile, chrom_name, limit, dry_run):
     """From a bowtie output file and a chromosome name, generate
     a list of coordinates [(start, end, strand)]."""
@@ -103,8 +105,6 @@ descr = "Create a coordinates tabe delimited text file for a specified"\
 script_info['brief_description']= descr
 script_info['script_description'] = descr
 script_info['version'] = '0.1.alpha'
-
-chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
 
 script_info['required_options'] = [
     make_option('-i','--input_file',

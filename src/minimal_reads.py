@@ -19,7 +19,7 @@ from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
 
-def mapped_coords(mapfile, chrom_name, limit, dry_run):
+def mapped_coords(mapfile, limit, dry_run):
     """From a bowtie output file and a chromosome name, generate
     a list of coordinates [(start, end, strand)]."""
     
@@ -34,9 +34,6 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
     
     for record in parser:
         chrom = record[2]
-        if chrom != chrom_name:
-            continue
-        
         count_records += 1
         
         strand = [MINUS_STRAND, PLUS_STRAND][record[1] == '+']
@@ -44,18 +41,18 @@ def mapped_coords(mapfile, chrom_name, limit, dry_run):
         start = record[3]
         length = len(record[4])
         try:
-            all_coords[(start, length, strand)] += 1
+            all_coords[(chrom, start, length, strand)] += 1
         except KeyError:
-            all_coords[(start, length, strand)] = 1
+            all_coords[(chrom, start, length, strand)] = 1
         
         if count_records >= limit:
             break
         
     if dry_run:
-        print 'Total mapped reads for %s: %d' % (chrom_name, count_records)
+        print 'Total mapped reads: %d' % (count_records)
     all_coords = array([key + (val,) for key, val in all_coords.items()])
     all_coords = all_coords.astype(int32)
-    table = LoadTable(header=['start', 'length', 'strand', 'freq'],
+    table = LoadTable(header=['chrom', 'start', 'length', 'strand', 'freq'],
                         rows=all_coords)
     return table
 
@@ -77,24 +74,27 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     print 'Starting'
     chroms = what_chromosomes(chroms)
     start = time.time()
+    table = mapped_coords(input_file, limit, dry_run)
     for chrom in ui.series(chroms, noun='Reading bowtie map data for chrom'):
         chrom = 'chr%s' % chrom
-        table = mapped_coords(input_file, chrom, limit, dry_run)
         file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
-        table = table.sorted()
+        chrom_table = table.filtered(lambda x: x == chrom, columns='chrom')
+        chrom_table = chrom_table.getColumns(['start', 'length', 'strand',
+                                            'freq'])
+        chrom_table = chrom_table.sorted()
         end = time.time()
         if run_record:
             run_record.addMessage('minimal_reads', 'stdout',
-                'Unique reads on %s' % chrom, table.Shape[0])
+                'Unique reads on %s' % chrom, chrom_table.Shape[0])
         
         if not dry_run:
             create_path(outdir)
-            table.writeToFile(file_name, sep='\t')
+            chrom_table.writeToFile(file_name, sep='\t')
         else:
             print 'will create outdir=%s' % outdir
             print 'will create outfile=%s' % file_name
         
-        del(table)
+        del(chrom_table)
     
     end = time.time()
     if run_record:

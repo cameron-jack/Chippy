@@ -5,7 +5,7 @@ from cogent.parse.bowtie import BowtieOutputParser, BowtieToTable
 from cogent import LoadSeqs, DNA
 
 from cogent.util.unit_test import TestCase, main
-from minimal_reads import mapped_coords
+from minimal_reads import mapped_coords, make_chrom_coord_table
 
 class ReadingBowtieOutput(TestCase):
     def test_mapped_seqs_match_known(self):
@@ -40,7 +40,8 @@ class ReadingBowtieOutput(TestCase):
         seq = LoadSeqs('data/brca2-11.fasta', moltype=DNA, aligned=False)
         seq = seq.Seqs[0]
         gene_start = 151341223
-        table = mapped_coords('data/brca2-11.map', 'chr5', 1000, False)
+        coords = mapped_coords('data/brca2-11.map', 1000, False)
+        table = make_chrom_coord_table(coords, 'chr5')
         self.assertEqual(table.getDistinctValues('length'), set([75]))
         self.assertEqual(table.getDistinctValues('freq'), set([1]))
         plus = sorted(table.filtered('strand == 1').getRawData('start'))

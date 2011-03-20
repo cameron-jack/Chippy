@@ -9,6 +9,7 @@
 import os
 import time
 
+from cogent import LoadTable
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 

@@ -60,6 +60,7 @@ def main():
     pristine_map = pristine_fastq.replace('.fastq', '.map')
     contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
+    combined_map = fasta_file.replace('.fastq', '.map')
     run_record_file_name = make_name('run_record.txt')
     
     # run_records tracks metrics from each step that are printed & saved at
@@ -87,6 +88,10 @@ def main():
     print 'Mapping pristine seqs'
     run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
         pristine_fastq, pristine_map, run_record, opts.test_run)
+    
+    # concatenate the pristine and contaminated files
+    
+    # minimal_read map the concatenated file
     
     # display/write synopsis of run
     print run_record.display()

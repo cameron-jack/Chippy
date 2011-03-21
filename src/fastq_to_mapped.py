@@ -52,9 +52,8 @@ def main():
        parse_command_line_parameters(**script_info)
     
     # make the assorted filenames
-    make_name = lambda x: os.path.join(opts.save_dir, x)
-    
-    fasta_file = make_name(opts.output_file)
+    working_dir = '%s-working' % (opts.save_dir)
+    fasta_file = os.path.join(working_dir, opts.output_file)
     psl_out = fasta_file.replace('.fasta', '.psl')
     trimmed_fastq = fasta_file.replace('.fasta', '_trimmed.fastq')
     pristine_fastq = trimmed_fastq.replace('_trimmed',
@@ -63,9 +62,7 @@ def main():
     contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
     combined_map = fasta_file.replace('.fasta', '.map')
-    freq_table_dir = '%s-user' % (os.path.basename(opts.save_dir))
-    freq_table_dir = os.path.join(opts.save_dir, freq_table_dir)
-    run_record_file_name = make_name('run_record.txt')
+    run_record_file_name = os.path.join(opts.save_dir, 'run_record.txt')
     
     # run_records tracks metrics from each step that are printed & saved at
     # completion of the entire workflow. Expected format is: program_name
@@ -99,9 +96,9 @@ def main():
                 combined_map, run_record, opts.test_run)
     
     # minimal_read map the concatenated file
-    run_record = minimal_reads.run(input_file=combined_map, outdir=freq_table_dir,
-        chroms='Do All', limit=numpy.inf, run_record=run_record,
-        dry_run=opts.test_run)
+    run_record = minimal_reads.run(input_file=combined_map,
+        outdir=opts.save_dir, chroms='Do All', limit=numpy.inf,
+        run_record=run_record, dry_run=opts.test_run)
     # display/write synopsis of run
     run_record.display()
     table = run_record.getMessageTable()

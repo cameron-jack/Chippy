@@ -71,7 +71,7 @@ def main():
     # this function call creates the save_dir path, if it doesn't already
     # exist
     print 'Prepping for blat (fastq to fasta)'
-    run_record = fastq_to_fasta.run(opts.input_file, opts.save_dir,
+    run_record = fastq_to_fasta.run(opts.input_file, working_dir,
         opts.output_file, opts.minimum_length, True,
         run_record, opts.test_run)
     
@@ -84,10 +84,10 @@ def main():
             opts.test_run)
     
     print 'Mapping contaminated seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index, working_dir,
         contaminated_fastq, contaminated_map, run_record, opts.test_run)
     print 'Mapping pristine seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index, opts.save_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index, working_dir,
         pristine_fastq, pristine_map, run_record, opts.test_run)
     
     # concatenate the pristine and contaminated files

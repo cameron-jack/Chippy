@@ -4,7 +4,7 @@ from optparse import make_option
 import numpy as np
 from cogent.util.misc import parse_command_line_parameters
 
-from inline_stats import RunningStats
+from chippy.util.inline_stats import RunningStats
 from chippy.parse.fastq import FastqParser, MinimalFastqParser
 import time
 

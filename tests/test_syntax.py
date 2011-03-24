@@ -18,19 +18,19 @@ def my_import(name):
 
 
 _modules_to_import = [
-    'ensembl_query',
-    'ensembl_transcript_gene_idmap',
-    'fastq_to_fasta',
-    'get_pristine_seqs',
-    'inline_stats',
-    'chippy.parse.light_seq',
-    'plot_quality',
-    'make_counts',
+    'chippy.draw.quality',
     'chippy.parse.fastq',
+    'chippy.parse.light_seq',
     'chippy.parse.sam',
+    'chippy.prep.fastq_to_fasta',
+    'chippy.prep.get_pristine_seqs',
+    'chippy.util.inline_stats',
+    'make_counts',
     'region_analysis',
     'region_count',
     'segment_count',
+    'ensembl_query',
+    'ensembl_transcript_gene_idmap',
     ]
 
 for mod in _modules_to_import:

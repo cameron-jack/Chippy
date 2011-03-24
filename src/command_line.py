@@ -6,15 +6,12 @@ from optparse import OptionParser
 def run_command(command, test):
     """executes a command"""
     pipe = subprocess.PIPE
-    r = subprocess.Popen(command, shell=True, stdout=pipe, stderr=pipe, bufsize=-1)
-    stdout = []
-    if r.stdout:
-        stdout = r.stdout.readlines()
-    stderr = []
-    if r.stderr:
-        stderr = r.stderr.readlines()
+    r = subprocess.Popen(command, shell=True, universal_newlines=True,
+            stdout=PIPE, stderr=PIPE, bufsize=-1)
     
-    return stdout, stderr
+    stdout, stderr = r.communicate()
+    return_value = r.returncode
+    return returncode, stdout, stderr
 
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     """run blat"""
@@ -24,7 +21,7 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
         print command
         return
     start = time.time()
-    stdout, stderr = run_command(command, test)
+    returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     run_record.addMessage(program_name='blat',
             error_type='stdout', message='Time taken (mins)',
@@ -43,7 +40,7 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
     command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 8 %s %s %s' % \
         (bowtie_index, fastq_filename, map_filename)
     start = time.time()
-    stdout, stderr = run_command(command, test)
+    returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     
     run_record.addMessage(program_name='bowtie',
@@ -52,7 +49,7 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
     
     pipes = {'stderr': stderr, 'stdout': stdout}
     for pipe in pipes:
-        for line in pipes[pipe]:
+        for line in pipes[pipe].splitlines():
             print line
             if not line.startswith('#'):
                 continue

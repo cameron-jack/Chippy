@@ -14,7 +14,7 @@ from cogent import LoadTable
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-from chippy.prep import reduce, get_pristine_seqs, command_line, fastq_to_fasta
+from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
 
 class RunRecord(object):
     """object for recording program messages"""
@@ -77,7 +77,7 @@ def main():
             fasta_file, psl_out, run_record, opts.test_run)
     
     print 'Writing seqs without adapters'
-    run_record = get_pristine_seqs.main(psl_out, trimmed_fastq, run_record,
+    run_record = pristine_seqs.main(psl_out, trimmed_fastq, run_record,
             opts.test_run)
     
     print 'Mapping contaminated seqs'

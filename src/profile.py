@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import sys
+sys.append('..')
+
 try:
     import line_profiler
 except ImportError:
@@ -12,18 +14,12 @@ except ImportError:
 #from inline_stats import RunningStats
 #from light_seq import LightSeq
 
-import get_pristine_seqs
+from chippy.prep import pristine_seqs
 
 psl_file = '../../../tremethick/blat_output/s_6_blat.psl'
 fastq_file = '../../../tremethick/trimmed/s_6_sequence_trimmed.fastq'
 output = 'test_profile'
 
-profiler = line_profiler.LineProfiler(get_pristine_seqs.run, get_pristine_seqs.get_corrupt_seq_names, get_pristine_seqs.write_pristine)
-profiler.run("get_pristine_seqs.run('%s', '%s', '%s', %s)"%(psl_file, fastq_file, output, 'False'))
+profiler = line_profiler.LineProfiler(pristine_seqs.run, pristine_seqs.get_corrupt_seq_names, pristine_seqs.write_pristine)
+profiler.run("pristine_seqs.run('%s', '%s', '%s', %s)"%(psl_file, fastq_file, output, 'False'))
 profiler.print_stats()
-
-#stats = RunningStats(in_file='stats.pkl')
-#profiler = line_profiler.LineProfiler(stats.quantiles)
-
-#profiler.run("stats.quantiles([0.05, 0.5, 0.95])")
-#profiler.print_stats()

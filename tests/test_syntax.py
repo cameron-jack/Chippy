@@ -26,13 +26,11 @@ _modules_to_import = [
     'light_seq',
     'plot_quality',
     'make_counts',
-    'parse_bowtie',
     'parse_fastq',
     'parse_sam',
     'parse_psl',
     'region_analysis',
     'region_count',
-    'parse_bowtie',
     'segment_count',
     
         ]

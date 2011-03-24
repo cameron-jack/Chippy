@@ -1,7 +1,7 @@
 import time
 from cogent import LoadTable
+from cogent.parse.bowtie import BowtieOutputParser
 
-from parse_bowtie import BowtieOutputParser
 from parse_sam import MinimalSamParser
 from region_count import RegularRegionCounts
 

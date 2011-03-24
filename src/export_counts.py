@@ -4,7 +4,7 @@ from chippy.util import util
 
 from cogent import LoadTable
 
-from region_count import CacheLaneCounts
+from chippy.core.read_count import CacheLaneCounts
 from subregion_map import MapScores
 from gene_data import GeneIndexes
 

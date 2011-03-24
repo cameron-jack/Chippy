@@ -17,7 +17,7 @@ from optparse import make_option
 import fastq_to_fasta
 import command_line
 import get_pristine_seqs
-import minimal_reads
+from chippy.prep import reduce
 
 class RunRecord(object):
     """object for recording program messages"""
@@ -96,7 +96,7 @@ def main():
                 combined_map, run_record, opts.test_run)
     
     # minimal_read map the concatenated file
-    run_record = minimal_reads.run(input_file=combined_map,
+    run_record = reduce.run(input_file=combined_map,
         outdir=opts.save_dir, chroms='Do All', limit=numpy.inf,
         run_record=run_record, dry_run=opts.test_run)
     # display/write synopsis of run

@@ -33,7 +33,7 @@ def suite():
         'test_export_counts',
         'test_inline_stats',
         'test_light_seq',
-        'test_minimal_reads',
+        'test_reduce',
         'test_parse_fastq',
         'test_region_count',
         'test_syntax',

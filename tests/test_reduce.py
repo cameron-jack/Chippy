@@ -1,11 +1,11 @@
 import sys
-sys.path.append('../src')
+sys.path.extend(['..', '../src'])
 
 from cogent.parse.bowtie import BowtieOutputParser, BowtieToTable
 from cogent import LoadSeqs, DNA
 
 from cogent.util.unit_test import TestCase, main
-from minimal_reads import mapped_coords, make_chrom_coord_table
+from chippy.prep.reduce import mapped_coords, make_chrom_coord_table
 
 class ReadingBowtieOutput(TestCase):
     def test_mapped_seqs_match_known(self):

@@ -3,8 +3,9 @@
 import os
 from numpy import save
 from cogent import LoadTable
+from cogent.parse.bowtie import BowtieOutputParser
+
 from segment_count import get_gene_coords
-from parse_bowtie import BowtieOutputParser
 
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option

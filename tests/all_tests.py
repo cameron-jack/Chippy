@@ -26,7 +26,6 @@ def my_import(name):
 
 def suite():
     modules_to_test = [
-        'test_bowtie_output',
         'test_export_counts',
         'test_inline_stats',
         'test_light_seq',

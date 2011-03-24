@@ -25,8 +25,6 @@ _modules_to_import = [
     'chippy.prep.fastq_to_fasta',
     'chippy.prep.get_pristine_seqs',
     'chippy.util.inline_stats',
-    'make_counts',
-    'region_analysis',
     'region_count',
     'segment_count',
     'ensembl_query',

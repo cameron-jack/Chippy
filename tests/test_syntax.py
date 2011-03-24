@@ -24,11 +24,11 @@ _modules_to_import = [
     'chippy.parse.sam',
     'chippy.prep.fastq_to_fasta',
     'chippy.prep.get_pristine_seqs',
+    'chippy.ref.get_gene_transcript_map',
+    'chippy.ref.get_genome',
     'chippy.util.inline_stats',
     'region_count',
     'segment_count',
-    'ensembl_query',
-    'ensembl_transcript_gene_idmap',
     ]
 
 for mod in _modules_to_import:

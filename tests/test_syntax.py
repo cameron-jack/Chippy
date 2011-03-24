@@ -26,14 +26,12 @@ _modules_to_import = [
     'light_seq',
     'plot_quality',
     'make_counts',
-    'parse_fastq',
-    'parse_sam',
-    'parse_psl',
+    'chippy.parse.fastq',
+    'chippy.parse.sam',
     'region_analysis',
     'region_count',
     'segment_count',
-    
-        ]
+    ]
 
 for mod in _modules_to_import:
     my_import(mod)

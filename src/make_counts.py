@@ -2,7 +2,7 @@ import time
 from cogent import LoadTable
 from cogent.parse.bowtie import BowtieOutputParser
 
-from parse_sam import MinimalSamParser
+from chippy.parse.sam import MinimalSamParser
 from region_count import RegularRegionCounts
 
 def format_long(n):

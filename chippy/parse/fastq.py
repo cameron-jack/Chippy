@@ -4,7 +4,7 @@ from cogent import DNA
 from cogent.parse.fasta import Info
 from cogent.parse.fastq import MinimalFastqParser
 
-from light_seq import LightSeq
+from chippy.parse.light_seq import LightSeq
 
 def FastqParser(data, numeric_qual=False, remove_ambig=True,
     trim_bad_bases=True, make_seq=None, strict=True):

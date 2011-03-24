@@ -15,7 +15,8 @@ from optparse import make_option
 
 from cogent.parse.bowtie import BowtieOutputParser
 from util import create_path
-from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+
+from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
 
@@ -86,7 +87,7 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
         file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
         chrom_table = make_chrom_coord_table(all_coords, chrom)
         if run_record:
-            run_record.addMessage('minimal_reads', 'stdout',
+            run_record.addMessage('reduce', 'stdout',
                 'Unique reads on %s' % chrom, chrom_table.Shape[0])
         
         if not dry_run:
@@ -100,7 +101,7 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     
     end = time.time()
     if run_record:
-        run_record.addMessage(program_name='minimal_reads',
+        run_record.addMessage(program_name='reduce',
                 error_type='stdout', message='Time taken (mins)',
                 value= ((end-start)/60.))
     

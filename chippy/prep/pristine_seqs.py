@@ -74,14 +74,14 @@ def write_pristine(fastq_name, not_pristine, run_record, test_run):
         outfile_contaminated.close()
         outfile_pristine.close()
     
-    run_record.addMessage(program_name='get_pristine_seqs',
+    run_record.addMessage(program_name='pristine_seqs',
                 error_type='stdout', message='Pristine Seqs',
                 value=num)
-    run_record.addMessage(program_name='get_pristine_seqs',
+    run_record.addMessage(program_name='pristine_seqs',
                 error_type='stdout',
                 message='Sequences were contaminated with adapter, but still kept',
                 value=num_contaminated)
-    run_record.addMessage(program_name='get_pristine_seqs',
+    run_record.addMessage(program_name='pristine_seqs',
                 error_type='stdout',
                 message='Sequences were discarded as too small',
                 value=num_too_short)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     script_info['script_usage']=[]
     script_info['script_usage'].append(
         ("Example 1","""Test run of write pristine:""",
-        """python get_pristine_seqs.py -p <somefile.psl> -i <seqs> -o <outfile_root> -t"""))
+        """python pristine_seqs.py -p <somefile.psl> -i <seqs> -o <outfile_root> -t"""))
     
     script_info['help_on_no_arguments'] = True
     script_info['required_options'] = [

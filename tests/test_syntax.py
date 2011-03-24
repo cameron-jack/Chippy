@@ -1,6 +1,6 @@
 """simple test to catch syntax errors from incorrect editing of conflicts"""
 import sys
-sys.path.append('../src')
+sys.path.extend(['../src', '..'])
 
 def my_import(name):
     """Imports a module, possibly qualified with periods. Returns the module.
@@ -23,7 +23,7 @@ _modules_to_import = [
     'fastq_to_fasta',
     'get_pristine_seqs',
     'inline_stats',
-    'light_seq',
+    'chippy.parse.light_seq',
     'plot_quality',
     'make_counts',
     'chippy.parse.fastq',

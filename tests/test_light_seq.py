@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append('../src')
+sys.path.append('..')
 
 from cogent.util.unit_test import TestCase, main
-from light_seq import LightSeq
+from chippy.parse.light_seq import LightSeq
 
 test_seq_name = 'GAPC_0015:6:1:1259:10413#0/1'
 test_seq = 'AACACCAAACTTCTCCACCACGTGAGCTACAAAAG'

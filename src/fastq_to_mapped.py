@@ -14,10 +14,7 @@ from cogent import LoadTable
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-import fastq_to_fasta
-import command_line
-import get_pristine_seqs
-from chippy.prep import reduce
+from chippy.prep import reduce, get_pristine_seqs, command_line, fastq_to_fasta
 
 class RunRecord(object):
     """object for recording program messages"""

@@ -8,7 +8,7 @@ from cogent.util.unit_test import TestCase, main
 from cogent.maths.stats.util import NumberFreqs, Numbers
 from cogent.util.misc import remove_files
 
-from inline_stats import RunningStats, quantile
+from chippy.util.inline_stats import RunningStats, quantile
 from chippy.parse.fastq import FastqParser
 
 def _to_freqs(values):

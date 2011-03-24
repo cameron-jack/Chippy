@@ -9,7 +9,7 @@ from cogent.util.progress_display import display_wrap
 
 from region_count import CacheLaneCounts
 from gene_data import GetGeneIndexes
-from plot_util import smooth
+from chippy.draw.util import smooth
 
 try:
     from matplotlib import pyplot

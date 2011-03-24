@@ -1,4 +1,4 @@
-from parse_psl import MinimalPslParser
+from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fasta import MinimalFastaParser
 
 def eval_psl(psl_name):

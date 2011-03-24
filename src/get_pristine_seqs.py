@@ -2,7 +2,7 @@
 import os, re
 from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
-from light_seq import LightSeq
+from chippy.parse.light_seq import LightSeq
 
 file_end = re.compile(r'\.fastq$')
 

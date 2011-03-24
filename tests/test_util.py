@@ -1,7 +1,7 @@
 import sys
-sys.path.append('../src')
+sys.path.extend(['../src', '..'])
 
-import util
+from chippy.util import util
 
 import numpy
 

@@ -1,6 +1,6 @@
 from __future__ import division
 import os
-import util
+from chippy.util import util
 
 from cogent import LoadTable
 

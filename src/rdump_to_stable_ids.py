@@ -4,7 +4,7 @@ from __future__ import division
 import os
 from cogent import LoadTable
 
-from util import data_dir
+from chippy.util.util import data_dir
 from chippy.parse.r_dump import RDumpToTable
 
 # we first get the rdumped genes and the ensembl transcript to gene id table

@@ -1,5 +1,5 @@
 import sys
-sys.path.append('../src')
+sys.path.extend(['../src', '..'])
 
 import numpy, os
 
@@ -7,7 +7,7 @@ from cogent.util.unit_test import TestCase, main
 from cogent import LoadTable
 from cogent.util.misc import remove_files
 from export_counts import get_counts
-from util import data_dir
+from chippy.util.util import data_dir
 
 
 stable_id_file = './data/stable_ids.txt'

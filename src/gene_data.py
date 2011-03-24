@@ -4,7 +4,7 @@ import os
 
 from cogent import LoadTable
 
-from util import data_dir
+from chippy.util.util import data_dir
 
 class GenomeCoord(object):
     """basic object to store a chromosome and an index"""

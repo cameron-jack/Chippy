@@ -6,7 +6,7 @@ from cogent.parse.fastq import MinimalFastqParser
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-from util import create_path
+from chippy.util.util import create_path
 from chippy.parse.fastq import FastqParser
 
 def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, test_run):

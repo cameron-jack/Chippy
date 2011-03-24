@@ -11,7 +11,7 @@ from numpy import zeros, uint16, uint32, int32, savez, load, array, inf
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
-import util
+from chippy.util import util
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 class WholeChrom(object):

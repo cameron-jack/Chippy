@@ -2,7 +2,10 @@ from __future__ import division
 
 import os
 
+# bad design, dependency on specific path relationships needs to be completely
+# removed
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+project_dir = project_dir.split('chippy')[0]
 data_dir = os.path.join(project_dir, 'data')
 src_dir = os.path.join(project_dir, 'src')
 

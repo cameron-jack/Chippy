@@ -14,7 +14,7 @@ from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
 from cogent.parse.bowtie import BowtieOutputParser
-from util import create_path
+from chippy.util.util import create_path
 
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 

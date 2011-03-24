@@ -6,7 +6,7 @@ import re
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
-from numpy import zeros, uint16, uint32, int32, savez, load, array
+from numpy import zeros, uint16, uint32, int32, savez, load, array, inf
 
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
@@ -15,7 +15,7 @@ import util
 from definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 class WholeChrom(object):
-    def __init__(self, mapped_reads, max_read_length, strand=0, sep='\t', is_sorted=True):
+    def __init__(self, mapped_reads, max_read_length=None, strand=0, sep='\t', is_sorted=True):
         super(WholeChrom, self).__init__()
         self.max_read_length = max_read_length
         
@@ -59,15 +59,24 @@ class WholeChrom(object):
     def update(self, ui=None):
         """applies referenced read count data to produce a single numpy array"""
         total = self.data.shape[0]
+        max_read_length = self.max_read_length or inf
         for i in range(total):
             if i % 10 == 0:
                 ui.display('Adding reads [%d / %d]' % (i, total), i / total)
             
             start, length, strand, freq = self.data[i]
+            
             if self.strand != NULL_STRAND and self.strand != strand:
                 continue
             
             end = start + length
+            if max_read_length < length:
+                diff = length - max_read_length
+                if strand == PLUS_STRAND:
+                    end -= diff
+                elif strand == MINUS_STRAND:
+                    start += diff
+            
             self[start:end] += freq
         
     

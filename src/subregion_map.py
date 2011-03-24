@@ -4,7 +4,7 @@ from glob import glob1
 import numpy as np
 from os import path as p
 
-from region_count import _CacheCounts
+from chippy.core.read_count import _CacheCounts
 
 class SubregionMap(object):
     """A class that handles the mappability score of a set of coordinates

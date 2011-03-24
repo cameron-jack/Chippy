@@ -18,6 +18,7 @@ def my_import(name):
 
 
 _modules_to_import = [
+    'chippy.core.read_count',
     'chippy.draw.quality',
     'chippy.parse.fastq',
     'chippy.parse.light_seq',
@@ -27,7 +28,6 @@ _modules_to_import = [
     'chippy.ref.gene_transcript_map',
     'chippy.ref.genome',
     'chippy.util.inline_stats',
-    'region_count',
     'segment_count',
     ]
 

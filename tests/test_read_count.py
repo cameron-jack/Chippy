@@ -1,12 +1,12 @@
 import sys
-sys.path.append('../src')
+sys.path.extend(['../src', '..'])
 
 import numpy
 
 from cogent import LoadTable
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
-from region_count import RegularRegionCounts, IrregularRegionCounts, WholeChrom
+from chippy.core.read_count import RegularRegionCounts, IrregularRegionCounts, WholeChrom
 
 class RegionCountTests(TestCase):
     def test_handle_one_zero_based_systems(self):

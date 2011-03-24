@@ -5,7 +5,7 @@ import numpy
 
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
-from region_count import CacheLaneCounts,RegularRegionCounts
+from chippy.core.read_count import CacheLaneCounts, RegularRegionCounts
 
 def generate_test_files():
     for index in range(10):

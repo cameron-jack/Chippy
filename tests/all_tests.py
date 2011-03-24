@@ -35,7 +35,7 @@ def suite():
         'test_light_seq',
         'test_reduce',
         'test_parse_fastq',
-        'test_region_count',
+        'test_read_count',
         'test_syntax',
         'test_cache_lane_counts',
         'test_jackknife',

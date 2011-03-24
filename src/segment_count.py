@@ -7,7 +7,7 @@ import numpy
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
-from region_count import CacheLaneCounts
+from chippy.core.read_count import CacheLaneCounts
 from gene_data import GetGeneIndexes
 from chippy.draw.util import smooth
 

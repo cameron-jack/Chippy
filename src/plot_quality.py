@@ -5,7 +5,7 @@ import numpy as np
 from cogent.util.misc import parse_command_line_parameters
 
 from inline_stats import RunningStats
-from parse_fastq import FastqParser, MinimalFastqParser
+from chippy.parse.fastq import FastqParser, MinimalFastqParser
 import time
 
 try:

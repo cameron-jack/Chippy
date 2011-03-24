@@ -2,14 +2,14 @@
 
 import numpy
 import sys
-sys.path.append('../src')
+sys.path.append('..')
 
 from cogent.util.unit_test import TestCase, main
 from cogent.maths.stats.util import NumberFreqs, Numbers
 from cogent.util.misc import remove_files
 
 from inline_stats import RunningStats, quantile
-from parse_fastq import FastqParser
+from chippy.parse.fastq import FastqParser
 
 def _to_freqs(values):
     """convenience func to produce a value, counts structure for checking

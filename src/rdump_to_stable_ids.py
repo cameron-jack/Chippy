@@ -5,7 +5,7 @@ import os
 from cogent import LoadTable
 
 from util import data_dir
-from parse_r_dump import RDumpToTable
+from chippy.parse.r_dump import RDumpToTable
 
 # we first get the rdumped genes and the ensembl transcript to gene id table
 def get_gene_ids(rdump_filename):

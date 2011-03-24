@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append('../src')
+sys.path.append('..')
 
 from cogent.util.unit_test import TestCase, main
 
-from parse_fastq import FastqParser
+from chippy.parse.fastq import FastqParser
 
 data = {
 "GAPC_0015:6:1:1259:10413#0/1": dict(seq='AACACCAAACTTCTCCACCACGTGAGCTACAAAAG', qual=r'````Y^T]`]c^cabcacc`^Lb^ccYT\T\Y\WF'),

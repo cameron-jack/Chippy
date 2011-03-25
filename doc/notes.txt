@@ -171,6 +171,19 @@ Doing 3 runs in one go:
 5.05472222222
 5.65638888889
 
+*****************************************
+Refactor for inclusion of expression data
+*****************************************
+
+diff-file=M-less-G1-summTable.txt
+diff-file=M-less-S-summTable.txt
+diff-file=S-less-G1-summTable.txt
+diff-file=DT-less-G1-summTable.txt
+G1-file=G1.abs.exp.ranked.txt
+M-file=M.abs.exp.ranked.txt
+S-file=S.abs.exp.ranked.txt
+DT-file=DT.abs.exp.ranked.txt
+
 
 **********
 References

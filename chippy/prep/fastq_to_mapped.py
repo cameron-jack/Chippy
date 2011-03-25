@@ -37,6 +37,10 @@ class RunRecord(object):
         print table
 
 
+def make_fastq_output_filename(input_file):
+    """makes the fasta output filename from the fastq input name"""
+    return input_file.replace('_sequence.txt', '.fasta')
+
 script_info = fastq_to_fasta.script_info
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
@@ -44,13 +48,25 @@ required.append(make_option('--blat_adapters',
 required.append(make_option('--bowtie_index',
                             help='path to the bowtie genome index'))
 
+# output_file is required for fastq_to_fasta, but not as part of full chain
+# since we will automatically generate it
+output_file = None
+for option in required:
+    if option.dest == 'output_file':
+        output_file = option
+        break
+
+assert output_file is not None
+required.remove(output_file)
+
 def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
     # make the assorted filenames
+    output_file = make_fastq_output_filename(opts.input_file)
     working_dir = '%s-working' % (opts.save_dir)
-    fasta_file = os.path.join(working_dir, opts.output_file)
+    fasta_file = os.path.join(working_dir, output_file)
     psl_out = fasta_file.replace('.fasta', '.psl')
     trimmed_fastq = fasta_file.replace('.fasta', '_trimmed.fastq')
     pristine_fastq = trimmed_fastq.replace('_trimmed',
@@ -69,7 +85,7 @@ def main():
     # exist
     print 'Prepping for blat (fastq to fasta)'
     run_record = fastq_to_fasta.run(opts.input_file, working_dir,
-        opts.output_file, opts.minimum_length, True,
+        output_file, opts.minimum_length, True,
         run_record, opts.test_run)
     
     print 'Running blat'

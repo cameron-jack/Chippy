@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+./_chippy_env
+python ../chippy/ref/genome.py $@

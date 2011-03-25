@@ -1,6 +1,4 @@
 #!/usr/bin/env sh
 
-script_dir=`pwd`
-chippy_path=`dirname $script_dir`
-export PYTHONPATH=$PYTHONPATH:$chippy_path
+./_chippy_env
 python ../chippy/prep/fastq_to_mapped.py $@

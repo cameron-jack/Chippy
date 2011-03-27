@@ -31,7 +31,7 @@ def add_ensembl_gene_data(session, species, release, account=None, debug=False):
             if gene.Location.CoordName not in species_chroms:
                 continue
             
-            db_gene = Gene(stable_id=gene.StableId, symbol=gene.Symbol,
+            db_gene = Gene(ensembl_id=gene.StableId, symbol=gene.Symbol,
                 biotype=gene.BioType,
                 description=gene.Description, status=gene.Status,
                 coord_name=gene.Location.CoordName,

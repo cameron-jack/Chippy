@@ -4,6 +4,15 @@ from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
 from chippy.parse.light_seq import LightSeq
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 file_end = re.compile(r'\.fastq$')
 
 def get_corrupt_seq_names(psl_name, test_run):

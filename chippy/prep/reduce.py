@@ -18,6 +18,17 @@ from chippy.util.util import create_path
 
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
+
+# TODO the following is mouse specific, needs to be generalised
 chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
 
 def mapped_coords(mapfile, limit, dry_run):

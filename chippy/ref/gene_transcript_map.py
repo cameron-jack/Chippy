@@ -1,6 +1,15 @@
 from cogent import LoadTable
 from cogent.db.ensembl import Genome, HostAccount
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 def gene_transcript_mappings(species, release, account=None, debug=False):
     """returns {gene: [transcripts,,], ..} and {transcript: gene, ..}"""
     transcript_gene = {}

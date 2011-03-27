@@ -16,6 +16,15 @@ from optparse import make_option
 
 from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 class RunRecord(object):
     """object for recording program messages"""
     def __init__(self):

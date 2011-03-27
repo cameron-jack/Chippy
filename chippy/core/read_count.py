@@ -14,6 +14,15 @@ from cogent.util.progress_display import display_wrap
 from chippy.util import util
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
+__author__ = "Anuj Pahwa, Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__credits__ = ["Anuj Pahwa", "Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 class WholeChrom(object):
     def __init__(self, mapped_reads, max_read_length=None, strand=0, sep='\t', is_sorted=True):
         super(WholeChrom, self).__init__()

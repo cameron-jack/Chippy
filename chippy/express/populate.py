@@ -8,7 +8,7 @@ from cogent.db.ensembl import HostAccount, Genome
 from chippy.express.db import Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
-from chippy.express.util import chroms
+from chippy.ref.util import chroms
 from chippy.parse.r_dump import RDumpToTable
 
 now = datetime.datetime.now()

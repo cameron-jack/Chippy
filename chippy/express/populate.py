@@ -52,7 +52,8 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                     num_exons = len(transcript.Exons)
                     for ex in transcript.Exons:
                         db_exon = Exon(ex.StableId, ex.Rank,
-                                ex.Location.Start, ex.Location.End)
+                                ex.Location.Start, ex.Location.End,
+                                ensembl_release)
                         db_exon.transcript = db_transcript
                         db_exon.gene = db_gene
                         data.append(db_exon)

@@ -14,12 +14,12 @@ from chippy.parse.r_dump import RDumpToTable
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
 
-def add_ensembl_gene_data(session, species, release, account=None, debug=False):
+def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug=False):
     """add Ensembl genes and their transcripts to the db session"""
     
     species_chroms = chroms[species]
     
-    genome = Genome(species, Release=release, account=account)
+    genome = Genome(species, Release=ensembl_release, account=account)
     skip = set(['processed_transcript', 'pseudogene'])
     biotypes = [b for b in genome.getDistinct('BioType') if b not in skip]
     
@@ -37,7 +37,7 @@ def add_ensembl_gene_data(session, species, release, account=None, debug=False):
                 coord_name=gene.Location.CoordName,
                 start=gene.Location.Start, end=gene.Location.End,
                 strand=gene.Location.Strand,
-                ensembl_release=release)
+                ensembl_release=ensembl_release)
             total_objects += 1
             data.append(db_gene)
             canonical = gene.CanonicalTranscript.StableId

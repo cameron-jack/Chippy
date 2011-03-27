@@ -3,12 +3,10 @@ from optparse import make_option
 from cogent.util.misc import parse_command_line_parameters
 from cogent.db.ensembl import Genome, HostAccount
 
+from chippy.ref.util import chroms
+
 __version__ = '0.1'
 
-# we ignore mitochondria
-mouse_chroms = map(str, range(1,20)+['X', 'Y'])
-human_chroms = map(str, range(1,23)+['X', 'Y'])
-chroms = dict(mouse=mouse_chroms, human=human_chroms)
 
 def get_chrom_seqs(species, release, account=None):
     """yields sequence objects for the indicated chromosomes from Ensembl"""

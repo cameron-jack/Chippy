@@ -37,7 +37,7 @@ def add_ensembl_gene_data(session, species, release, account=None, debug=False):
                 coord_name=gene.Location.CoordName,
                 start=gene.Location.Start, end=gene.Location.End,
                 strand=gene.Location.Strand,
-                ensembl_release=Release)
+                ensembl_release=release)
             total_objects += 1
             data.append(db_gene)
             canonical = gene.CanonicalTranscript.StableId

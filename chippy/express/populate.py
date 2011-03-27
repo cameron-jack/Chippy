@@ -42,7 +42,7 @@ def add_ensembl_gene_data(session, species, release, account=None, debug=False):
             data.append(db_gene)
             canonical = gene.CanonicalTranscript.StableId
             for transcript in gene.Transcripts:
-                db_transcript = Transcript(transcript.StableId)
+                db_transcript = Transcript(transcript.StableId, ensembl_release)
                 total_objects += 1
                 db_transcript.gene = db_gene
                 data.append(db_transcript)

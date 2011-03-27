@@ -2,6 +2,15 @@
 from cogent.parse.table import SeparatorFormatParser, ConvertFields
 from cogent import LoadTable
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 def sans_quotes(val):
     """returns string without quotes"""
     return val.replace("'", "").replace('"', '')

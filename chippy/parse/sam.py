@@ -1,6 +1,15 @@
 import re
 from cogent.parse.table import ConvertFields, SeparatorFormatParser
 
+__author__ = "Anuj Pahwa, Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__credits__ = ["Anuj Pahwa", "Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 _not_digits = re.compile(r'\D+')
 
 def _strict_cigar_span(val):

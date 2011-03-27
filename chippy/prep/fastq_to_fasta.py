@@ -9,6 +9,15 @@ from optparse import make_option
 from chippy.util.util import create_path
 from chippy.parse.fastq import FastqParser
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, test_run):
     if not test_run:
         assert '/' not in output_file, \

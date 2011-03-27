@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 
 from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Genome
+from cogent.util.progress_display import display_wrap
 
 from chippy.express.db import Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
@@ -13,6 +14,23 @@ from chippy.parse.r_dump import RDumpToTable
 
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
+
+def successful_commit(session, data):
+    """returns True if successfully added data"""
+    if not data:
+        return False
+    
+    try:
+        data[0]
+    except TypeError:
+        data = [data]
+    
+    session.add_all(data)
+    try:
+        session.commit()
+    except IntegrityError:
+        return False
+    return True
 
 def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug=False):
     """add Ensembl genes and their transcripts to the db session"""
@@ -74,16 +92,20 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
 
 def add_samples(session, names_descriptions):
     """add basic sample type"""
-    samples = []
+    failed = []
     for name, description in names_descriptions:
         sample = Sample(name, description)
-        samples.append(sample)
-    session.add_all(samples)
-    session.commit()
+        if not successful_commit(session, sample):
+            session.rollback()
+            failed.append([name, description])
+    
+    if len(failed) > 0:
+        print 'The following were excluded as they exist in the db'
+        print failed
 
 def get_transcript_gene_mapping(session, ensembl_release):
     """docstring for get_transcript_gene_mapping"""
-    transcript_to_gene = dict(session.query(Transcript.name,
+    transcript_to_gene = dict(session.query(Transcript.ensembl_id,
         Transcript.gene_id).filter_by(ensembl_release=ensembl_release).all())
     return transcript_to_gene
 
@@ -102,9 +124,10 @@ def single_gene(transcript_to_gene, transcript_ids):
     return value
 
 
+@display_wrap
 def add_expression_study(session, sample_name, data_path, table,
         ensembl_release='58', ensembl_id_label='ENSEMBL',
-        expression_label='exp'):
+        expression_label='exp', ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -137,34 +160,74 @@ def add_expression_study(session, sample_name, data_path, table,
     sample = session.query(Sample).filter_by(name=sample_name).all()
     assert len(sample) == 1, 'error querying for a sample'
     sample = sample[0]
+    if not successful_commit(session, data):
+        session.rollback()
+        pass
+    data = []
     
     # order the table in descending order of expression
     table = table.sorted(columns=expression_label, reverse=expression_label)
     rank = 0
-    for record in table:
+    failed = []
+    probeset_many_loci = 0
+    for record in ui.series(table, noun='Adding expression instances'):
         transcript_ids = record[ensembl_id_label]
         gene_id = single_gene(transcript_to_gene, transcript_ids)
         if gene_id is None:
+            probeset_many_loci += 1
             continue
         
         expression = Expression(record[expression_label], rank)
         expression.sample = sample
         expression.gene_id = gene_id
         expression.reference_file = reffile
-        data.append(expression)
+        if not successful_commit(session, expression):
+            failed.append(gene_id)
+            session.rollback()
+            continue
+        
         rank += 1
     
-    session.add_all(data)
-    session.commit()
+    if len(failed) > 0:
+        # expressed = Expression.__table__.select(Expression.gene_id.in_(failed))
+        # print expressed.execute()
+        deleted = 0
+        failed = session.query(Expression).filter(Expression.gene_id.in_(failed)).all()
+        for failure in ui.series(failed,
+            noun='Deleting records that had duplicates'):
+            session.delete(failure)
+            deleted += 1
+        
+        session.commit()
+        # now redo the rank's
+        all_expressed = session.query(Expression).filter_by(
+                reference_file_id=reffile.reference_file_id).order_by(
+                                Expression.rank).all()
+        
+        for i in ui.series(range(len(all_expressed)),
+            noun='Updating ranks for unique expressed records'):
+            expressed = all_expressed[i]
+            expressed.rank = i
+            session.merge(expressed)
+        
+        session.commit()
+    
+    print 'Number of probesets excluded because:'
+    print '\tProbeset maps to multiple loci = %d' % probeset_many_loci
+    print '\tProbesets excluded (loci map to multiple probesets): %d' % len(failed)
+    print 'Associated loci deleted: %d' % deleted
+    kept = session.query(Expression).filter_by(
+                reference_file_id=reffile.reference_file_id).count()
+    print 'Unique loci with expression: %d' % kept
+    
 
-def add_expression_diff_study(session, sample_name, data_path, table,
+def add_expression_diff_study(session, data_path, table,
             ref_a_path, ref_b_path,
             ensembl_release='58', ensembl_id_label='ENSEMBL',
-            expression_label='exp'):
+            expression_label='exp', prob_label='rawp', sig_label='sig'):
     """adds Expression instances into the database from table
     
     Arguments:
-        - sample_name: the sample name to connect expression instances to
         - data_path: the reference file path
         - table: the actual expression data table
         - ref_a_path, ref_b_path: the difference file contains measurements
@@ -182,14 +245,8 @@ def add_expression_diff_study(session, sample_name, data_path, table,
           to B, -1 means down in A relative to B, 0 means no difference.
     """
     
-    ref_a = session.query(ReferenceFile).filter_by(name=ref_a_path).all()
-    ref_b = session.query(ReferenceFile).filter_by(name=ref_b_path).all()
-    if len(ref_a) == 0 or len(ref_b) == 0:
-        raise RuntimeError("Required data not entered yet")
-    
-    # the reference files
-    ref_a = ref_a[0]
-    ref_b = ref_b[0]
+    ref_a = session.query(ReferenceFile).filter_by(name=ref_a_path).one()
+    ref_b = session.query(ReferenceFile).filter_by(name=ref_b_path).one()
     data = []
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
@@ -200,8 +257,16 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     # get all gene ID data for the specified Ensembl release
     transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
     
+    if not successful_commit(session, data):
+        session.rollback()
+        pass
+    
+    data = []
+    
     table = table.sorted(columns=expression_label, reverse=expression_label)
     rank = 0
+    
+    failed = []
     for record in table:
         transcript_ids = record[ensembl_id_label]
         gene_id = single_gene(transcript_to_gene, transcript_ids)
@@ -209,9 +274,9 @@ def add_expression_diff_study(session, sample_name, data_path, table,
             continue
         
         expression_a = session.query(Expression).filter_by(gene_id=gene_id,
-                    reference_file=ref_a)
+                    reference_file=ref_a).one()
         expression_b = session.query(Expression).filter_by(gene_id=gene_id,
-                    reference_file=ref_b)
+                    reference_file=ref_b).one()
         
         diff = ExpressionDiff(fold_change=record[expression_label],
                     prob=record[prob_label],
@@ -219,9 +284,36 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         diff.reference_file = reffile
         diff.express_A = expression_a
         diff.express_B = expression_b
-        data.append(diff)
+        if not successful_commit(session, diff):
+            failed.append(gene_id)
+            session.rollback()
+            continue
+        
         rank += 1
     
-    session.add_all(data)
-    session.commit()
+    if len(failed) > 0:
+        failed = session.query(ExpressionDiff).filter(Transcript.gene_id.in_(failed)).all()
+        deleted = 0
+        for failure in failed:
+            session.delete(failure)
+            deleted += 1
+        # now redo the rank's
+        all_diffs = session.query(ExpressionDiff).filter_by(
+                reference_file_id=reffile.reference_file_id).order_by(
+                                ExpressionDiff.rank).all()
+        
+        for i in ui.series(range(len(all_diffs)),
+            noun='Updating ranks for unique diff records'):
+            diff = all_diffs[i]
+            diff.rank = i
+            session.merge(diff)
+        
+        session.commit()
+        
+    
+    print 'Loci duplicates excluded: %d' % len(failed)
+    print 'Associated loci deleted: %d' % deleted
+    kept = session.query(ExpressionDiff).filter_by(
+                reference_file_id=reffile.reference_file_id).count()
+    print 'Loci successfully retained: %d' % kept
     

@@ -275,7 +275,7 @@ def make_session(db_name, reset=False):
     engine = create_engine(db_name)
     metadata = Base.metadata
     if reset:
-        # metadata.drop_all(engine)
+        metadata.drop_all(engine)
         pass
     
     metadata.create_all(engine)

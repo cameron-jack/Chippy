@@ -2,7 +2,7 @@
 
 src_dir=$dirname"$0"
 cwd=`pwd`
-cd src_dir
+cd $src_dir
 ./_chippy_env
-cd cwd
+cd $cwd
 python ../chippy/prep/fastq_to_mapped.py $@

@@ -1,6 +1,13 @@
 #!/usr/bin/env sh
 
-script_dir=`dirname $0`
+if [ -L $0 ]; then
+  src=`which chippy_genome`
+  src=`readlink $src`
+else
+  src=$0
+fi
+
+script_dir=`dirname $src`
 chippy_path=`dirname $script_dir`
 export PYTHONPATH=$PYTHONPATH:$chippy_path
 

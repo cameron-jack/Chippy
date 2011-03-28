@@ -15,14 +15,18 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 
-def get_chrom_seqs(species, release, account=None):
+def get_chrom_seqs(species, release, account=None, debug=False):
     """yields sequence objects for the indicated chromosomes from Ensembl"""
     genome = Genome(species, Release=release, account=account)
     for chrom in chroms[species]:
-        region = genome.getRegion(CoordName = chrom)
+        region = genome.getRegion(CoordName=chrom)
         seq = region.Seq
         name = 'chr_%s' % chrom
         seq.Name = name
+        if debug:
+            print name
+            print repr(seq)
+        
         yield seq
 
 script_info = {}
@@ -90,8 +94,9 @@ def main():
     if opts.test_run:
         print 'Will write to: %s' % outdir
     
-    for chrom in get_chrom_seqs(opts.species, opts.release, account):
-        fasta = chrom[:10].toFasta()
+    for chrom in get_chrom_seqs(opts.species, opts.release, account,
+                                debug=opts.test_run):
+        fasta = chrom.toFasta()
         outfile_name = os.path.join(outdir, '%s.fasta' % chrom.Name)
         if opts.test_run:
             print outfile_name

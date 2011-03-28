@@ -1,8 +1,7 @@
 #!/usr/bin/env sh
 
-src_dir=$dirname"$0"
-cwd=`pwd`
-cd $src_dir
-./_chippy_env
-cd $cwd
-python ../chippy/prep/fastq_to_mapped.py $@
+script_dir=`dirname $0`
+chippy_path=`dirname $script_dir`
+export PYTHONPATH=$PYTHONPATH:$chippy_path
+
+python $chippy_path/chippy/prep/fastq_to_mapped.py $@

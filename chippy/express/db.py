@@ -254,8 +254,8 @@ class ExpressionDiff(Base):
     reference_file = relationship(ReferenceFile,
             backref=backref('expression_diffs', order_by=expression_diff_id))
     
-    __table_args__ = (UniqueConstraint('sample_a_id', 'sample_b_id',
-                    'gene_id', name='unique'), {})
+    __table_args__ = (UniqueConstraint('gene_id', 'reference_file_id',
+                        name='unique'), {})
     
     
     def __init__(self, fold_change, prob, signif):
@@ -266,7 +266,7 @@ class ExpressionDiff(Base):
     
     def __repr__(self):
         return 'ExpressionDiff(ensembl_id=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
-            (self.sample_a.gene.ensembl_id, self.sample_a.name,
+            (self.gene.ensembl_id, self.sample_a.name,
             self.sample_b.name, self.probability, self.multitest_signif)
 
 

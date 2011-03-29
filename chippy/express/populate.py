@@ -16,7 +16,7 @@ from chippy.parse.r_dump import RDumpToTable
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
 
-def successful_commit(session, data):
+def successful_commit(session, data, debug=False):
     """returns True if successfully added data"""
     if not data:
         return False
@@ -26,10 +26,15 @@ def successful_commit(session, data):
     except TypeError:
         data = [data]
     
+    if debug:
+        print data
+    
     session.add_all(data)
     try:
         session.commit()
-    except IntegrityError:
+    except IntegrityError, msg:
+        if debug:
+            print msg
         return False
     return True
 

@@ -126,7 +126,7 @@ class Gene(Base):
             self._exon_coords = None
         
         if self._exon_coords is None:
-            self._exon_coords = [(e.start, e.end) for e in self.exons]
+            self._exon_coords = sorted([(e.start, e.end) for e in self.exons])
         return self._exon_coords
     
     @property

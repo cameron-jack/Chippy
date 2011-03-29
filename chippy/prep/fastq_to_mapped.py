@@ -17,7 +17,7 @@ from optparse import make_option
 from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"

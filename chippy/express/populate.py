@@ -209,7 +209,7 @@ def add_expression_study(session, sample_name, data_path, table,
         session.commit()
         # now redo the rank's
         all_expressed = session.query(Expression).filter_by(
-                id=reffile.reference_file_id).order_by(
+                reference_file_id=reffile.reference_file_id).order_by(
                                 Expression.rank).all()
         
         for i in ui.series(range(len(all_expressed)),

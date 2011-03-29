@@ -277,6 +277,9 @@ def add_expression_diff_study(session, data_path, table,
     if not ref_a or not ref_b:
         raise RuntimeError('Reference files not added yet?')
     
+    sample_a = ref_a.sample
+    sample_b = ref_b.sample
+    
     data = []
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
@@ -290,18 +293,18 @@ def add_expression_diff_study(session, data_path, table,
     
     data = []
     
-    # get all gene ID data for the specified Ensembl release
-    sample_a = ref_a.sample
-    sample_b = ref_b.sample
+    # get all transcript to gene ID data for the specified Ensembl release
     transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
     
     table = table.sorted(columns=expression_label, reverse=expression_label)
     rank = 0
+    probeset_many_loci = 0
     failed = []
     for record in ui.series(table, noun='Adding expression diffs'):
         transcript_ids = record[ensembl_id_label]
         gene_id = single_gene(transcript_to_gene, transcript_ids)
         if gene_id is None:
+            probeset_many_loci += 1
             continue
         
         diff = ExpressionDiff(fold_change=record[expression_label],
@@ -311,7 +314,6 @@ def add_expression_diff_study(session, data_path, table,
         diff.sample_a = sample_a
         diff.sample_b = sample_b
         diff.gene_id = gene_id
-        
         if not successful_commit(session, diff):
             failed.append(gene_id)
             session.rollback()

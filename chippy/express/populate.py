@@ -13,6 +13,15 @@ from chippy.express.db import Gene, Transcript, Exon, \
 from chippy.ref.util import chroms
 from chippy.parse.r_dump import RDumpToTable
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
 

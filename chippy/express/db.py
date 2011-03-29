@@ -3,6 +3,16 @@ from sqlalchemy import (Integer, Float, String, Date,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
+
 Session = sessionmaker()
 
 Base = declarative_base()

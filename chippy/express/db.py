@@ -106,6 +106,9 @@ class Gene(Base):
     @property
     def IntronCoords(self):
         """returns list of intron coordinates"""
+        if not hasattr(self, '_intron_coords'):
+            self._intron_coords = None
+        
         if self._intron_coords is None:
             exons = self.ExonCoords
             introns = []
@@ -119,6 +122,9 @@ class Gene(Base):
     @property
     def ExonCoords(self):
         """returns list of exon coordinates"""
+        if not hasattr(self, '_exon_coords'):
+            self._exon_coords = None
+        
         if self._exon_coords is None:
             self._exon_coords = [(e.start, e.end) for e in self.exons]
         return self._exon_coords
@@ -126,6 +132,9 @@ class Gene(Base):
     @property
     def Tss(self):
         """the transcription start site"""
+        if not hasattr(self, '_tss'):
+            self._tss = None
+        
         if self._tss is None:
             if self.strand == 1:
                 self._tss = self.start

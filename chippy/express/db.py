@@ -7,26 +7,11 @@ Session = sessionmaker()
 
 Base = declarative_base()
 
-class ReferenceFile(Base):
-    """original input source file name"""
-    __tablename__ = 'reference_file'
-    
-    reference_file_id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    date = Column(Date)
-    
-    def __init__(self, name, date):
-        super(ReferenceFile, self).__init__()
-        self.name = name
-        self.date = date
-    
-    def __repr__(self):
-        return "ReferenceFile('%s')" % self.name
-    
-
 class Sample(Base):
     __tablename__ = "sample"
+    
     sample_id = Column(Integer, primary_key=True)
+    
     name = Column(String, unique=True)
     description = Column(String)
     
@@ -36,6 +21,37 @@ class Sample(Base):
     
     def __repr__(self):
         return "Sample('%s', '%s')" % (self.name, self.description)
+    
+
+class ReferenceFile(Base):
+    """original input source file name"""
+    __tablename__ = 'reference_file'
+    
+    reference_file_id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    date = Column(Date)
+    sample_id = Column(Integer, ForeignKey('sample.sample_id'))
+    ref_a_name = Column(String, nullable=True)
+    ref_b_name = Column(String, nullable=True)
+    
+    sample = relationship(Sample,
+                backref=backref('reference_files', order_by=reference_file_id))
+    
+    def __init__(self, name,date, ref_a_name=None, ref_b_name=None):
+        super(ReferenceFile, self).__init__()
+        self.name = name
+        self.date = date
+        if ref_a_name or ref_b_name:
+            assert ref_a_name and ref_b_name, 'Need 2 reference file names'
+        
+        self.ref_a_name = ref_a_name
+        self.ref_b_name = ref_b_name
+    
+    def __repr__(self):
+        depends = ''
+        if self.ref_a_name:
+            depends = ', depends=%s' % str([self.ref_a_name, self.ref_b_name])
+        return "ReferenceFile('%s'%s)" % (self.name, depends)
     
 
 class Gene(Base):
@@ -119,6 +135,7 @@ class Transcript(Base):
     __tablename__ = 'transcript'
     
     transcript_id = Column(Integer, primary_key=True)
+    
     ensembl_id = Column(String, unique=True)
     ensembl_release = Column(String)
     
@@ -173,6 +190,8 @@ class Exon(Base):
         return "Exon(gene=%s, start=%s, rank=%s, strand=%s)" % (
             self.transcript.gene.ensembl_id, self.start, self.rank,
             self.gene.strand)
+        
+    
 
 class Expression(Base):
     __tablename__ = 'expression'
@@ -214,25 +233,29 @@ class ExpressionDiff(Base):
     __tablename__ = 'expression_diff'
     
     expression_diff_id = Column(Integer, primary_key=True)
+    
     fold_change = Column(Float)
     probability = Column(Float)
     multitest_signif = Column(Integer)
     
-    express_A_id = Column(Integer, ForeignKey('expression.expression_id'))
-    express_B_id = Column(Integer, ForeignKey('expression.expression_id'))
+    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
+    sample_a_id = Column(Integer, ForeignKey('sample.sample_id'))
+    sample_b_id = Column(Integer, ForeignKey('sample.sample_id'))
     reference_file_id = Column(Integer,
             ForeignKey('reference_file.reference_file_id'))
     
-    express_A = relationship(Expression,
-            primaryjoin = express_A_id == Expression.expression_id)
-    express_B = relationship(Expression,
-            primaryjoin = express_B_id == Expression.expression_id)
+    gene = relationship(Gene,
+                backref=backref('expression_diffs', order_by=expression_diff_id))
+    sample_a = relationship(Sample,
+            primaryjoin = sample_a_id == Sample.sample_id)
+    sample_b = relationship(Sample,
+            primaryjoin = sample_b_id == Sample.sample_id)
     
     reference_file = relationship(ReferenceFile,
             backref=backref('expression_diffs', order_by=expression_diff_id))
     
-    __table_args__ = (UniqueConstraint('express_A_id', 'express_B_id',
-                    name='unique'), {})
+    __table_args__ = (UniqueConstraint('sample_a_id', 'sample_b_id',
+                    'gene_id', name='unique'), {})
     
     
     def __init__(self, fold_change, prob, signif):
@@ -243,8 +266,8 @@ class ExpressionDiff(Base):
     
     def __repr__(self):
         return 'ExpressionDiff(ensembl_id=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
-            (self.express_A.gene.ensembl_id, self.express_A.sample.name,
-            self.express_B.sample.name, self.probability, self.multitest_signif)
+            (self.sample_a.gene.ensembl_id, self.sample_a.name,
+            self.sample_b.name, self.probability, self.multitest_signif)
 
 
 class ExternalGene(Base):

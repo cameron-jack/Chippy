@@ -5,7 +5,7 @@ sys.path.append('..')
 from cogent.util.unit_test import TestCase, main
 
 import datetime
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from chippy.express.db import Gene, Transcript, Exon, \
@@ -36,32 +36,32 @@ class TestDbBase(TestCase):
     def setUp(self):
         self.session = make_session("sqlite:///:memory:")
 
-# GENE
-# Column('gene_id', Integer, primary_key=True),
-# Column('ensembl_id', String),
-# Column('ensembl_release', String),
-# Column('symbol', String),
-# Column('biotype', String),
-# Column('status', String),
-# Column('description', String, nullable=True),
-# Column('coord_name', String),
-# Column('start', Integer),
-# Column('end', Integer),
-# Column('strand', Integer),
-
-# TRANSCRIPT
-# name = Column(String)
-# gene = relationship(Gene,
-#             backref=backref('transcript', order_by=transcript_id))
-
-
-# EXON
-# name = Column(String)
-# rank = Column(Integer)
-# start = Column(Integer)
-# end = Column(Integer)
-
 ensembl_release = '58'
+
+class TestRefFiles(TestDbBase):
+    a = 'reffile-a.txt'
+    b = 'reffile-b.txt'
+    d = 'reffile-depends.txt'
+    
+    def test_depends(self):
+        """a reference file with dependencies should correctly link"""
+        reffile_a = ReferenceFile(self.a, today)
+        reffile_b = ReferenceFile(self.b, today)
+        reffile_d = ReferenceFile(self.d, today, ref_a_name=self.a,
+                                ref_b_name=self.b)
+        self.assertEqual(str(reffile_d),
+        "ReferenceFile('reffile-depends.txt', depends=['reffile-a.txt', 'reffile-b.txt'])")
+    
+    def test_sample_association(self):
+        """correctly associate a reference file with a sample"""
+        sample = Sample('A', 'a sample')
+        reffile_a = ReferenceFile(self.a, today)
+        reffile_a.sample = sample
+        self.session.add_all([reffile_a, sample])
+        self.session.commit()
+        reffiles = self.session.query(ReferenceFile).all()
+        self.assertEqual(reffiles[0].sample.name, 'A')
+
 
 class TestGene(TestDbBase):
     """test gene properties"""
@@ -244,10 +244,8 @@ class TestExpression(TestDbBase):
     
     def test_unique_constraint_expression(self):
         """expression records unique by gene and reference file"""
-        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').all()
-        gene = gene[0]
-        sample = self.session.query(Sample).filter_by(name='sample 1').all()
-        sample = sample[0]
+        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        sample = self.session.query(Sample).filter_by(name='sample 1').one()
         reffile = self.session.query(ReferenceFile).filter_by(name='file-1.txt').all()
         reffile = reffile[0]
         data = []
@@ -264,34 +262,24 @@ class TestExpression(TestDbBase):
     
     def test_unique_constraint_expressiondiff(self):
         """expression diff records unique by id of expression in samples A & B"""
-        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').all()
-        gene = gene[0]
+        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         samples = self.session.query(Sample).all()
         reffiles = self.session.query(ReferenceFile).all()
-        score_ranks = [(12.3, 1), (12.3, 1)]
-        data = []
-        # adding two distinct expression records for the same gene
-        for i in range(2):
-            e = Expression(*score_ranks[i])
-            e.reference_file = reffiles[i]
-            e.gene = gene
-            e.sample = samples[i]
-            data.append(e)
         
-        self.session.add_all(data)
-        self.session.commit()
         values = (13, 0.1, 0)
         ediffs = []
         # now add 2 copies of one expressiondiff
         for i in range(2):
             ed = ExpressionDiff(*values)
-            ed.express_A = data[-2]
-            ed.express_B = data[-1]
+            ed.sample_a = samples[0]
+            ed.sample_b = samples[1]
             ed.reference_file = reffiles[0]
+            ed.gene = gene
             ediffs.append(ed)
         
         self.session.add_all(ediffs)
         self.assertRaises(IntegrityError, self.session.commit)
+    
 
 class TestExternalGene(TestDbBase):
     reffiles = [('file-1.txt', today),

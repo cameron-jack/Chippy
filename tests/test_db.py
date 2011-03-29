@@ -39,6 +39,7 @@ def add_all_gene_transcript_exons(session, genes):
             exon.transcript = ts
             data.append(exon)
     session.add_all(data)
+    session.commit()
 
 
 class TestDbBase(TestCase):
@@ -116,11 +117,11 @@ class TestGene(TestDbBase):
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
         coord_name='1', start=1000, end=2000, strand=-1), 
-        exons=[dict(ensembl_id='exon-3', rank=1, start=1050, end=1400,
+        exons=[dict(ensembl_id='exon-3', rank=3, start=1050, end=1400,
                     ensembl_release=ensembl_release),
                dict(ensembl_id='exon-2', rank=2, start=1600, end=1700,
                     ensembl_release=ensembl_release),
-               dict(ensembl_id='exon-1', rank=3, start=1800, end=1900,
+               dict(ensembl_id='exon-1', rank=1, start=1800, end=1900,
                     ensembl_release=ensembl_release)],
         transcripts=dict(ensembl_id='MINUS-3-trans-1',
                     ensembl_release=ensembl_release))

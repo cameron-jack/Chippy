@@ -3,7 +3,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from cogent.util.progress_display import display_wrap
 
-from chippy.express.db import Gene, Transcript, Exon, \
+from chippy.express.db_schema import Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.ref.util import chroms

@@ -8,7 +8,7 @@ import datetime
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
-from chippy.express.db import Gene, Transcript, Exon, \
+from chippy.express.db_schema import Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             make_session
 

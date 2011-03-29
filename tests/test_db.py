@@ -225,9 +225,7 @@ class TestExpression(TestDbBase):
     samples = [('sample 1', 'fake sample 1'),
                ('sample 2', 'fake sample 2')]
     
-    
-    
-    proccessed=False
+    proccessed = False
     
     def setUp(self):
         """docstring for add_files_samples"""

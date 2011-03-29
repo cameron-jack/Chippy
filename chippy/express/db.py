@@ -85,35 +85,43 @@ class Gene(Base):
         self.start = start
         self.end = end
         self.strand = strand
+        self._exon_coords = None
+        self._intron_coords = None
+        self._tss = None
     
     def __repr__(self):
-        return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" % (
-                self.ensembl_id, self.coord_name, self.start, self.strand)
+        return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
+                % (self.ensembl_id, self.coord_name, self.start, self.strand)
     
     @property
     def IntronCoords(self):
         """returns list of intron coordinates"""
-        exons = self.ExonCoords
-        introns = []
-        for i in range(1, len(exons)):
-            intron = (exons[i-1][1], exons[i][0])
-            introns.append(intron)
-        return introns
+        if self._intron_coords is None:
+            exons = self.ExonCoords
+            introns = []
+            for i in range(1, len(exons)):
+                intron = (exons[i-1][1], exons[i][0])
+                introns.append(intron)
+            self._intron_coords = introns
+        
+        return self._intron_coords
     
     @property
     def ExonCoords(self):
         """returns list of exon coordinates"""
-        coords = [(e.start, e.end) for e in self.exons]
-        return coords
+        if self._exon_coords is None:
+            self._exon_coords = [(e.start, e.end) for e in self.exons]
+        return self._exon_coords
     
     @property
     def Tss(self):
         """the transcription start site"""
-        if self.strand == 1:
-            tss = self.start
-        else:
-            tss = self.end
-        return tss
+        if self._tss is None:
+            if self.strand == 1:
+                self._tss = self.start
+            else:
+                self._tss = self.end
+        return self._tss
     
     def getTssCentredCoords(self, size):
         """returns coords centred on the gene TSS"""

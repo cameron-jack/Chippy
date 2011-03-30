@@ -1,4 +1,5 @@
 from sqlalchemy import and_
+from sqlalchemy.orm import contains_eager
 from sqlalchemy.orm.exc import NoResultFound
 
 from cogent.util.progress_display import display_wrap
@@ -33,7 +34,7 @@ def get_ranked_expression(session, ensembl_release, sample_name, test=False):
     expressed = session.query(Expression).join(Gene).filter(
             and_(Gene.ensembl_release==ensembl_release,
                  Expression.sample_id==sample.sample_id)).order_by(
-                 Expression.rank).all()
+                 Expression.rank).options(contains_eager('gene')).all()
     return expressed
 
 def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, test=False):
@@ -47,6 +48,6 @@ def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, tes
             and_(Gene.coord_name==chrom,
                  Gene.ensembl_release==ensembl_release,
                  Expression.sample_id==sample.sample_id)).order_by(
-                 Expression.rank).all()
+                 Expression.rank).options(contains_eager('gene')).all()
     
     return expressed

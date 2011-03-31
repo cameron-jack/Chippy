@@ -30,6 +30,7 @@ def my_import(name):
 
 def suite():
     modules_to_test = [
+        'test_collection',
         'test_db',
         'test_export_counts',
         'test_inline_stats',

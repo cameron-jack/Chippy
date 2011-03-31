@@ -46,6 +46,12 @@ class RegionCollection(object):
             self._load(filename)
         
     
+    def __str__(self):
+        v = 'RegionCollection(num_records=%s; has_ranks=%s; has_labels=%s)'\
+                % (len(self.counts), self.ranks is not None,
+                                    self.labels is not None)
+        return v
+    
     def writeToFile(self, filename):
         """writes a gzipped .npy formatted data store"""
         outfile = gzip.GzipFile(filename, 'w')

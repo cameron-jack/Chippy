@@ -51,3 +51,14 @@ def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, tes
                  Expression.rank).options(contains_eager('gene')).all()
     
     return expressed
+
+def get_total_gene_counts(session, ensembl_release, sample_name, test=False):
+    """docstring for get_total_gene_counts"""
+    sample = _get_sample(session, sample_name)
+    if sample is None:
+        raise RuntimeError('Unknown sample name: %s' % sample_name)
+    
+    total = session.query(Expression).join(Gene).filter(
+            and_(Gene.ensembl_release==ensembl_release,
+                 Expression.sample_id==sample.sample_id)).count()
+    return total

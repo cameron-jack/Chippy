@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import re
 import time
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
@@ -15,7 +16,7 @@ from optparse import make_option
 
 from cogent.parse.bowtie import BowtieOutputParser
 from chippy.util.util import create_path
-
+from chippy.ref.util import chroms
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 __author__ = "Gavin Huttley"
@@ -29,7 +30,7 @@ __version__ = '0.1'
 
 
 # TODO the following is mouse specific, needs to be generalised
-chroms = tuple(['Do All'] + map(str, range(1,20)+['X', 'Y']))
+chroms = ('Do All',) + chroms['mouse']
 
 def mapped_coords(mapfile, limit, dry_run):
     """From a bowtie output file and a chromosome name, generate
@@ -38,7 +39,8 @@ def mapped_coords(mapfile, limit, dry_run):
     parser = BowtieOutputParser(mapfile, row_converter=None)
     header = parser.next()
     
-    all_coords = dict(('chr%s' % chr, {}) for chr in chroms)
+    all_coords = None
+    bowtie_chr_prefix = None
     count_records = 0
     
     if dry_run:
@@ -47,6 +49,12 @@ def mapped_coords(mapfile, limit, dry_run):
     for record in parser:
         chrom = record[2]
         count_records += 1
+        
+        if bowtie_chr_prefix is None:
+            bowtie_chr_prefix = re.findall(r'\D+', chrom)[0]
+            all_coords = dict(('%s%s' % (bowtie_chr_prefix, chr), {})
+                            for chr in chroms)
+        
         
         strand = [MINUS_STRAND, PLUS_STRAND][record[1] == '+']
         # coordinates for the match
@@ -59,10 +67,17 @@ def mapped_coords(mapfile, limit, dry_run):
         
         if count_records >= limit:
             break
-        
+    
+    # make a dict with consistent chrom keys
+    all_consistent_keys = {}
+    for chrom in chroms:
+        bowtie_chr_name = '%s%s' % (bowtie_chr_prefix, chrom)
+        chrom_name = 'chr%s' % chrom
+        all_consistent_keys[chrom_name] = all_coords[bowtie_chr_name]
+    
     if dry_run:
         print 'Total mapped reads: %d' % (count_records)
-    return all_coords
+    return all_consistent_keys
 
 def make_chrom_coord_table(all_coords, chrom):
     """returns a Table of sorted coordinates for just the indicated chromosome"""

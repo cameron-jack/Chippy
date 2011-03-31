@@ -19,7 +19,7 @@ def run_command(command, test):
             stdout=PIPE, stderr=PIPE, bufsize=-1)
     
     stdout, stderr = r.communicate()
-    return_value = r.returncode
+    returncode = r.returncode
     return returncode, stdout, stderr
 
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):

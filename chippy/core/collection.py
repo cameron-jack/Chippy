@@ -107,8 +107,8 @@ class RegionCollection(_GenericCollection):
     
     def normalisedCounts(self, axis=None):
         """Arguments:
-            - axis: normalisation is done per column (axis=1), per rows
-              (axis=0) or across the entire collection (axis=None).
+            - axis: normalisation is done per column (axis=0), per rows
+              (axis=1) or across the entire collection (axis=None).
         """
         copied = self.counts.copy()
         means = copied.mean(axis=axis)
@@ -128,8 +128,8 @@ class RegionCollection(_GenericCollection):
               exclusion
             - normalised: if True, the results of normalisedCounts are
               returned
-            - axis: normalisation is done per column (axis=1), per rows
-              (axis=0) or across the entire collection (axis=None).
+            - axis: normalisation is done per column (axis=0), per rows
+              (axis=1) or across the entire collection (axis=None).
             - indices: indices of rows to keep
         """
         

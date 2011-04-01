@@ -348,3 +348,40 @@ def add_expression_diff_study(session, data_path, table,
     print '\tProbeset maps to multiple loci = %d' % probeset_many_loci
     print '\tLocus maps to multiple probesets = %d' % loci_many_probesets
     print 'Unique loci with expression diffs: %d' % kept
+
+
+def add_external_genes(session, sample_name, data_path, table, ensembl_release='58',
+        ensembl_id_label='ENSEMBL'):
+    """adds Expression instances into the database from table
+
+    Arguments:
+        - data_path: the reference file path
+        - table: the actual expression data table
+        - ensembl_release: the Ensembl release
+        - ensembl_id_label: label of the column containing Ensembl Stable IDs
+    """
+    data = []
+    sample = _one(session.query(Sample).filter_by(name=sample_name))
+    if not sample:
+        session.rollback()
+        raise RuntimeError('error querying for a sample')
+    
+    reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
+    if len(reffile) == 0:
+        reffile = ReferenceFile(data_path, today)
+        reffile.sample = sample
+        data.append(reffile)
+    else:
+        reffile = reffile[0]
+    
+    ensembl_ids = table.getRawData(ensembl_id_label)
+    genes = session.query(Gene).filter(Gene.ensembl_id.in_(ensembl_ids)).all()
+    for gene in genes:
+        external = ExternalGene()
+        external.gene = gene
+        external.reference_file = reffile
+        external.sample = sample
+        data.append(external)
+    
+    session.add_all(data)
+    session.commit()

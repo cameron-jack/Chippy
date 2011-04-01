@@ -182,6 +182,11 @@ class RegionCollection(_GenericCollection):
             yield count_data, rank_data, label_data
         
     
+    def iterDescriptiveStats(self, **kwargs):
+        """return column means & stdevs for each group"""
+        for counts, ranks, labels in self.itergroups(**kwargs):
+            yield column_mean(counts), column_stdev(counts), rank_mean(ranks)
+    
     def iterTransformedGroups(self, rank_func=row_mean,
                     counts_func=column_mean, **kwargs):
         """docstring for transformedGroups"""

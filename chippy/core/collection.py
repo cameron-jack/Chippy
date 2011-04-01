@@ -171,14 +171,14 @@ class RegionCollection(_GenericCollection):
             if ranks is None:
                 rank_data = None
             else:
-                rank_data = ranks[i]
+                rank_data = numpy.array(ranks[i])
             
             if labels is None:
                 label_data = None
             else:
-                label_data = labels[i]
+                label_data = numpy.array(labels[i])
             
-            count_data = counts[i]
+            count_data = numpy.array(counts[i])
             yield count_data, rank_data, label_data
         
     

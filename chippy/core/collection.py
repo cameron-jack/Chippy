@@ -15,13 +15,19 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 def _make_mean(axis):
-    """docstring for _make_mean"""
     def call(data):
         return data.mean(axis=axis)
     return call
 
+def _make_std(axis):
+    def call(data):
+        return data.std(axis=axis, ddof=1)
+    return call
+
 column_mean = _make_mean(0)
-row_mean = _make_mean(None)
+column_stdev = _make_std(0)
+row_mean = _make_mean(1)
+rank_mean = _make_mean(None)
 
 def _get_keep_indices(data, filtered=None):
     keep = range(data.shape[0])

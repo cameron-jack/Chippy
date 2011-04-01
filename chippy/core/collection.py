@@ -14,12 +14,31 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
+def _make_mean(axis):
+    """docstring for _make_mean"""
+    def call(data):
+        return data.mean(axis=axis)
+    return call
 
-class RegionCollection(object):
-    """store counts, ranks, labels, run arguments from a read count session"""
-    def __init__(self, counts=None, ranks=None, labels=None, info=None,
-            filename=None):
-        super(RegionCollection, self).__init__()
+column_mean = _make_mean(0)
+row_mean = _make_mean(None)
+
+def _get_keep_indices(data, filtered=None):
+    keep = range(data.shape[0])
+    
+    if filtered is not None:
+        keep = []
+        for i in range(data.shape[0]):
+            if filtered(data[i]):
+                keep.append(i)
+        if len(keep) == 0:
+            raise RuntimeError('Filter operation excluded all data!!')
+    
+    return keep
+
+class _GenericCollection(object):
+    def __init__(self, counts=None, ranks=None, labels=None, info=None):
+        super(_GenericCollection, self).__init__()
         
         if counts is not None:
             counts = numpy.array(counts)
@@ -38,13 +57,19 @@ class RegionCollection(object):
         self.ranks = ranks
         self.labels = labels
         self.info = info
+    
+
+class RegionCollection(_GenericCollection):
+    """store counts, ranks, labels, run arguments from a read count session"""
+    def __init__(self, filename=None, **kwargs):
+        super(RegionCollection, self).__init__(**kwargs)
         
         if filename is not None:
-            assert min(counts, ranks, labels, info) is None,\
-                            "Conflicting arguments"
+            assert min(self.counts, self.ranks, self.labels,
+                self.info) is None, "Conflicting arguments"
             
             self._load(filename)
-        
+    
     
     def __str__(self):
         v = 'RegionCollection(num_records=%s; has_ranks=%s; has_labels=%s)'\
@@ -74,47 +99,69 @@ class RegionCollection(object):
             self.__dict__[name] = data[name]
         
     
-    def _get_keep_indices(self, filtered=None):
-        keep = range(self.counts.shape[0])
-        if filtered is not None:
-            keep = []
-            for i in range(self.counts.shape[0]):
-                if filtered(self.counts[i]):
-                    keep.append(i)
-            if len(keep) == 0:
-                raise RuntimeError('Filter operation excluded all data!!')
-        
-        return keep
+    def normalisedCounts(self, axis=None):
+        """Arguments:
+            - axis: normalisation is done per column (axis=1), per rows
+              (axis=0) or across the entire collection (axis=None).
+        """
+        copied = self.counts.copy()
+        means = copied.mean(axis=axis)
+        stdevs = copied.std(axis=axis, ddof=1)
+        if axis == 1:
+            means = numpy.vstack(means)
+            stdevs = numpy.vstack(stdevs)
+        copied -= means
+        copied /= stdevs
+        return copied
     
-    def getGrouped(self, group_size, filtered=None):
+    def getGrouped(self, group_size, filtered=None, normalised=False,
+                                axis=None, indices=None):
         """Arguments:
             - filtered: a callback function that takes individual counts
               records and returns True if they're to be included, False for
               exclusion
+            - normalised: if True, the results of normalisedCounts are
+              returned
+            - axis: normalisation is done per column (axis=1), per rows
+              (axis=0) or across the entire collection (axis=None).
+            - indices: indices of rows to keep
         """
-        keep = self._get_keep_indices(filtered=filtered)
-        counts = self.counts.take(keep, axis=0)
+        
+        assert not (normalised and indices), \
+                    'Normalisation only relevant if indices not provided'
+        
+        if normalised:
+            data = self.normalisedCounts(axis=axis)
+        else:
+            data = self.counts
+        
+        if not indices:
+            indices = _get_keep_indices(data, filtered=filtered)
+        
+        counts = self.counts.take(indices, axis=0)
+        
+        if group_size > 1:
+            counts = make_even_groups(counts, group_size)
         
         if self.ranks is not None:
-            ranks = self.ranks.take(keep, axis=0)
+            ranks = self.ranks.take(indices, axis=0)
+            ranks = make_even_groups(ranks, group_size)
         else:
             ranks = None
         
         if self.labels is not None:
-            labels = self.labels.take(keep, axis=0)
+            labels = self.labels.take(indices, axis=0)
+            labels = make_even_groups(labels, group_size)
         else:
             labels = None
         
-        return counts, ranks, labels
+        return numpy.array(counts), numpy.array(ranks), numpy.array(labels)
     
-    def itergroups(self, group_size, filtered=None):
-        """Arguments:
-            - filtered: a callback function that takes individual counts
-              records and returns True if they're to be included, False for
-              exclusion
+    def itergroups(self, **kwargs):
+        """Arguments same as for getGrouped
         """
-        counts, ranks, labels = self.getGrouped(group_size, filtered=filtered)
-        for i in range(counts.shape[0]):
+        counts, ranks, labels = self.getGrouped(**kwargs)
+        for i in range(len(counts)):
             if ranks is None:
                 rank_data = None
             else:
@@ -129,6 +176,9 @@ class RegionCollection(object):
             yield count_data, rank_data, label_data
         
     
-
-
-
+    def iterTransformedGroups(self, rank_func=row_mean,
+                    counts_func=column_mean, **kwargs):
+        """docstring for transformedGroups"""
+        for counts, ranks, labels in self.itergroups(**kwargs):
+            yield counts_func(counts), rank_func(ranks)
+    

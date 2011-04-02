@@ -127,7 +127,7 @@ class RegionCollection(_GenericCollection):
               records and returns True if they're to be included, False for
               exclusion
             - normalised: if True, the results of normalisedCounts are
-              returned
+              supplied to filtered
             - axis: normalisation is done per column (axis=0), per rows
               (axis=1) or across the entire collection (axis=None).
             - indices: indices of rows to keep
@@ -187,9 +187,12 @@ class RegionCollection(_GenericCollection):
         for counts, ranks, labels in self.itergroups(**kwargs):
             yield column_mean(counts), column_stdev(counts), rank_mean(ranks)
     
-    def iterTransformedGroups(self, rank_func=row_mean,
+    def iterTransformedGroups(self, rank_func=rank_mean,
                     counts_func=column_mean, **kwargs):
         """docstring for transformedGroups"""
         for counts, ranks, labels in self.itergroups(**kwargs):
-            yield counts_func(counts), rank_func(ranks)
+            c = counts_func(counts)
+            r = rank_func(ranks)
+            yield c, r
+        
     

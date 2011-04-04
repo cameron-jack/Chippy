@@ -6,8 +6,10 @@ from cogent.parse.fastq import MinimalFastqParser
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-from chippy.util.util import create_path
 from chippy.parse.fastq import FastqParser
+from chippy.util.util import create_path
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -57,9 +59,9 @@ def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, 
             outfile_fastq.close()
     
     run_record.addMessage(program_name='fastq_to_fasta',
-                error_type='stdout', message='Sequences read', value=i)
+                error_type=LOG_INFO, message='Sequences read', value=i)
     run_record.addMessage(program_name='fastq_to_fasta',
-            error_type='stdout', message='Sequences discarded as too small',
+            error_type=LOG_INFO, message='Sequences discarded as too small',
             value=num_too_small)
     
     return run_record
@@ -107,7 +109,7 @@ def main():
         opts.minimum_length, opts.rewrite_fastq, run_record, opts.test_run)
     end = time.time()
     run_record.addMessage(program_name='fastq_to_fasta',
-            error_type='stdout', message='Time taken (mins)',
+            error_type=LOG_INFO, message='Time taken (mins)',
             value= ((end-start)/60.))
     return run_record
 

@@ -2,6 +2,15 @@ from __future__ import division
 
 import os
 
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1'
+
 # bad design, dependency on specific path relationships needs to be completely
 # removed
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

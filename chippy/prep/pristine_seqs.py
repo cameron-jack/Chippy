@@ -3,6 +3,8 @@ import os, re
 from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
 from chippy.parse.light_seq import LightSeq
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -84,14 +86,14 @@ def write_pristine(fastq_name, not_pristine, run_record, test_run):
         outfile_pristine.close()
     
     run_record.addMessage(program_name='pristine_seqs',
-                error_type='stdout', message='Pristine Seqs',
+                error_type=LOG_INFO, message='Pristine Seqs',
                 value=num)
     run_record.addMessage(program_name='pristine_seqs',
-                error_type='stdout',
+                error_type=LOG_INFO,
                 message='Sequences were contaminated with adapter, but still kept',
                 value=num_contaminated)
     run_record.addMessage(program_name='pristine_seqs',
-                error_type='stdout',
+                error_type=LOG_INFO,
                 message='Sequences were discarded as too small',
                 value=num_too_short)
     return run_record

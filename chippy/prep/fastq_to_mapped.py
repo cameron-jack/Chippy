@@ -16,6 +16,8 @@ from optparse import make_option
 
 from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
 from chippy.util import RunRecord
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"

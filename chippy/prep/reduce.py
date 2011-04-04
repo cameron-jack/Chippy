@@ -17,7 +17,8 @@ from optparse import make_option
 from cogent.parse.bowtie import BowtieOutputParser
 from chippy.util.util import create_path
 from chippy.ref.util import chroms
-from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND, \
+    LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -113,7 +114,7 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
         file_name = os.path.join(outdir, '%s.txt.gz' % chrom)
         chrom_table = make_chrom_coord_table(all_coords, chrom)
         if run_record:
-            run_record.addMessage('reduce', 'stdout',
+            run_record.addMessage('reduce', LOG_INFO,
                 'Unique reads on %s' % chrom, chrom_table.Shape[0])
         
         if not dry_run:
@@ -128,7 +129,7 @@ def run(input_file, outdir, chroms, limit, run_record, dry_run, ui=None):
     end = time.time()
     if run_record:
         run_record.addMessage(program_name='reduce',
-                error_type='stdout', message='Time taken (mins)',
+                error_type=LOG_INFO, message='Time taken (mins)',
                 value= ((end-start)/60.))
     
     return run_record

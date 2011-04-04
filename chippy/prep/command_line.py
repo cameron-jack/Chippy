@@ -3,6 +3,9 @@ import os, sys, re, time
 import subprocess
 from optparse import OptionParser
 
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
+
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
@@ -33,8 +36,8 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     run_record.addMessage(program_name='blat',
-            error_type='stdout', message='Time taken (mins)',
-            value= ((end-start)/60.))
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
     if stdout:
         print
         print ''.join(stdout)
@@ -53,10 +56,11 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
     end = time.time()
     
     run_record.addMessage(program_name='bowtie',
-            error_type='stdout', message='Time taken (mins)',
-            value= ((end-start)/60.))
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
     
     pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
     for pipe in pipes:
         for line in pipes[pipe].splitlines():
             print line
@@ -64,7 +68,7 @@ def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record,
                 continue
             line = [element.strip() for element in line[2:].split(':')]
             run_record.addMessage(program_name='bowtie',
-                        error_type=pipe, message=line[0], value=line[1])
+                    error_type=logmsg[pipe], message=line[0], value=line[1])
     
     return run_record
 
@@ -91,6 +95,6 @@ def concatenate(pristine_path, contaminated_path, combined_path, run_record, tes
     concatenated.close()
     
     run_record.addMessage(program_name='concatenate',
-                error_type='stdout', message='Total lines', value=total_lines)
+                error_type=LOG_INFO, message='Total lines', value=total_lines)
     return run_record
 

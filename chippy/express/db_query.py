@@ -11,6 +11,8 @@ from chippy.express.db_schema import Gene, Transcript, Exon, \
             Session, Base, make_session
 from chippy.express.db_populate import get_transcript_gene_mapping, single_gene
 from chippy.ref.util import chroms
+from chippy.util.run_record import RunRecord
+from chippy.express.util import single_gene, _one
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -20,15 +22,6 @@ __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
-
-def _one(query):
-    """returns result if found, False otherwise"""
-    try:
-        result = query.one()
-    except NoResultFound:
-        result = False
-    
-    return result
 
 def _get_sample(session, sample_name):
     try:

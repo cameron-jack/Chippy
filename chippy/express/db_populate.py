@@ -11,6 +11,7 @@ from chippy.express.db_schema import Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.ref.util import chroms
+from chippy.express.util import single_gene, _one
 from chippy.parse.r_dump import RDumpToTable
 
 __author__ = "Gavin Huttley"

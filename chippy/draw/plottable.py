@@ -106,6 +106,7 @@ class _Plottable(object):
             pyplot.xlabel(xlabel)
         
         return fig, ax
+    
 
 class PlottableSingle(_Plottable):
     """Plots a single line"""

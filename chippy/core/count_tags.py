@@ -69,11 +69,12 @@ def get_counts_ranks_ensembl_ids(expressed, ui=None):
         ensembl_ids.append(expressed_gene.gene.ensembl_id)
     return counts, ranks, ensembl_ids
 
-def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_release, max_read_length, window_size):
+def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_release, max_read_length, window_size, test_run):
     species_chroms = chroms[species]
     
     print 'Getting ranked expression instances'
-    expressed = get_ranked_expression(session, ensembl_release, sample_name)
+    expressed = get_ranked_expression(session, ensembl_release, sample_name,
+                    test=test_run)
     
     print 'Decorating'
     expressed = get_count_decorated_expressed_genes(expressed, counts_dir,
@@ -86,10 +87,10 @@ def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_
     return expressed
 
 def centred_counts_for_genes(session, sample_name, species, counts_dir,
-                    ensembl_release, max_read_length, window_size):
+                    ensembl_release, max_read_length, window_size, test_run):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     expressed = _get_decorated_expressed(session, sample_name, species,
-                    counts_dir, ensembl_release, max_read_length, window_size)
+        counts_dir, ensembl_release, max_read_length, window_size, test_run)
     total_expressed_genes = len(expressed)
     
     counts, ranks, ensembl_ids = get_counts_ranks_ensembl_ids(expressed)

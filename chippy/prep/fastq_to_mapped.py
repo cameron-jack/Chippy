@@ -15,6 +15,7 @@ from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
 from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
+from chippy.util import RunRecord
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -24,27 +25,6 @@ __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
-
-class RunRecord(object):
-    """object for recording program messages"""
-    def __init__(self):
-        super(RunRecord, self).__init__()
-        self.records = []
-        
-    def addMessage(self, program_name, error_type, message, value):
-        """add a message about an execution"""
-        self.records.append([program_name, error_type, message, value])
-    
-    def getMessageTable(self):
-        """docstring for display"""
-        header = ['program_name', 'message type', 'message', 'value']
-        table = LoadTable(header=header, rows=self.records)
-        return table
-    
-    def display(self):
-        table = self.getMessageTable()
-        print table
-
 
 def make_fastq_output_filename(input_file):
     """makes the fasta output filename from the fastq input name"""

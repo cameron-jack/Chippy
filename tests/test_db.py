@@ -2,15 +2,20 @@
 import sys
 sys.path.append('..')
 
+import warnings
+warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
+
 from cogent.util.unit_test import TestCase, main
 
 import datetime
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
-from chippy.express.db_schema import Gene, Transcript, Exon, \
+from chippy.express.db_schema import Association, Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             make_session
+from chippy.express.db_query import get_total_gene_counts, \
+        get_ranked_expression, get_ranked_genes_per_chrom
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -31,13 +36,14 @@ def add_all_gene_transcript_exons(session, genes):
         exons_data = record['exons']
         gene = Gene(**gene_data)
         data.append(gene)
-        ts = Transcript(**record['transcripts'])
-        ts.gene = gene
-        for e_data in exons_data:
-            exon = Exon(**e_data)
-            exon.gene = gene
-            exon.transcript = ts
-            data.append(exon)
+        for transcript in record['transcripts']:
+            ts = Transcript(**transcript)
+            ts.gene = gene
+            for e_data in exons_data:
+                exon = Exon(**e_data)
+                exon.gene = gene
+                exon.transcript = ts
+                data.append(exon)
     session.add_all(data)
     session.commit()
 
@@ -82,49 +88,57 @@ class TestGene(TestDbBase):
         coord_name='1', start=1000, end=2000, strand=1),
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950,
                     ensembl_release=ensembl_release)],
-        transcripts=dict(ensembl_id='PLUS-1-trans-1',
-                    ensembl_release=ensembl_release)
+        transcripts=[dict(ensembl_id='PLUS-1-trans-1',
+                    ensembl_release=ensembl_release, canonical=True),
+                    dict(ensembl_id='PLUS-1-trans-2',
+                    ensembl_release=ensembl_release)]
         )
     
     plus_coords_many_exons = dict(gene=dict(ensembl_id='PLUS-3',
         ensembl_release='58',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='1', start=1000, end=2000, strand=1), 
+        coord_name='2', start=1000, end=2000, strand=1), 
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1400,
                     ensembl_release=ensembl_release),
                dict(ensembl_id='exon-2', rank=2, start=1600, end=1700,
                     ensembl_release=ensembl_release),
                dict(ensembl_id='exon-3', rank=3, start=1800, end=1900,
                     ensembl_release=ensembl_release)],
-        transcripts=dict(ensembl_id='PLUS-3-trans-1',
-                    ensembl_release=ensembl_release))
+        transcripts=[dict(ensembl_id='PLUS-3-trans-1',
+                    ensembl_release=ensembl_release, canonical=True),
+                    dict(ensembl_id='PLUS-3-trans-2',
+                    ensembl_release=ensembl_release)])
     
     # 
     minus_coords_one_exons = dict(gene=dict(ensembl_id='MINUS-1',
         ensembl_release=ensembl_release,
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='1', start=1000, end=2000, strand=-1),
+        coord_name='2', start=1000, end=2000, strand=-1),
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950,
                     ensembl_release=ensembl_release)],
-        transcripts=dict(ensembl_id='MINUS-1-trans-1',
-                    ensembl_release=ensembl_release)
+        transcripts=[dict(ensembl_id='MINUS-1-trans-1',
+                    ensembl_release=ensembl_release, canonical=True),
+                    dict(ensembl_id='MINUS-1-trans-2',
+                    ensembl_release=ensembl_release)]
         )
     
     minus_coords_many_exons = dict(gene=dict(ensembl_id='MINUS-3',
         ensembl_release=ensembl_release,
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='1', start=1000, end=2000, strand=-1), 
+        coord_name='3', start=1000, end=2000, strand=-1), 
         exons=[dict(ensembl_id='exon-3', rank=3, start=1050, end=1400,
                     ensembl_release=ensembl_release),
                dict(ensembl_id='exon-2', rank=2, start=1600, end=1700,
                     ensembl_release=ensembl_release),
                dict(ensembl_id='exon-1', rank=1, start=1800, end=1900,
                     ensembl_release=ensembl_release)],
-        transcripts=dict(ensembl_id='MINUS-3-trans-1',
-                    ensembl_release=ensembl_release))
+        transcripts=[dict(ensembl_id='MINUS-3-trans-1',
+                    ensembl_release=ensembl_release, canonical=True),
+                    dict(ensembl_id='MINUS-3-trans-2',
+                    ensembl_release=ensembl_release)])
     
     genes = [plus_coords_one_exons, plus_coords_many_exons,
             minus_coords_one_exons, minus_coords_many_exons]
@@ -152,7 +166,7 @@ class TestGene(TestDbBase):
         """adding same exon/rank for a gene should raise IntegrityError"""
         data = []
         gene = Gene(**self.plus_coords_many_exons['gene'])
-        ts = Transcript(**self.plus_coords_many_exons['transcripts'])
+        ts = Transcript(**self.plus_coords_many_exons['transcripts'][0])
         ts.gene = gene
         data.append(gene)
         data.append(ts)
@@ -175,6 +189,7 @@ class TestGene(TestDbBase):
         """Gene instances correctly derive coords for their exons"""
         add_all_gene_transcript_exons(self.session, self.genes)
         genes = self.session.query(Gene).all()
+        
         expect = {'PLUS-1': [(1050, 1950)],
             'PLUS-3': [(1050, 1400),(1600, 1700),(1800, 1900)],
             'MINUS-1': [(1050, 1950)],
@@ -251,30 +266,35 @@ class TestExpression(TestDbBase):
         self.proccessed = True
     
     def test_unique_constraint_expression(self):
-        """expression records unique by gene and reference file"""
+        """expression records unique by probeset and reference file"""
         gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         sample = self.session.query(Sample).filter_by(name='sample 1').one()
         reffile = self.session.query(ReferenceFile).filter_by(name='file-1.txt').all()
         reffile = reffile[0]
         data = []
-        # adding multiple copies with same reffile and gene
-        for score, rank in [(12.3, 1), (12.3, 1)]:
-            e = Expression(score, rank)
-            e.reference_file = reffile
-            e.gene = gene
-            e.sample = sample
-            data.append(e)
+        # adding multiple copies with same reffile and transcript
+        parent = gene.CanonicalTranscript
+        for probeset, score, rank in [(1024, 12.3, 1), (1024, 12.3, 1)]:
+            a = Association()
+            expressed = Expression(probeset, score, rank)
+            expressed.reffile_id = reffile.reffile_id
+            expressed.sample = sample
+            a.expressed = expressed
+            a.transcript_id = parent.transcript_id
+            parent.expressions.append(a)
         
-        self.session.add_all(data)
+        self.session.add_all([parent])
         self.assertRaises(IntegrityError, self.session.commit)
     
     def test_unique_constraint_expressiondiff(self):
         """expression diff records unique by id of expression in samples A & B"""
         gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        canonical_transcript = gene.CanonicalTranscript
+        
         samples = self.session.query(Sample).all()
         reffiles = self.session.query(ReferenceFile).all()
         
-        values = (13, 0.1, 0)
+        values = (12345, 13, 0.1, 0)
         ediffs = []
         # now add 2 copies of one expressiondiff
         for i in range(2):
@@ -282,7 +302,7 @@ class TestExpression(TestDbBase):
             ed.sample_a = samples[0]
             ed.sample_b = samples[1]
             ed.reference_file = reffiles[0]
-            ed.gene = gene
+            ed.transcript = canonical_transcript
             ediffs.append(ed)
         
         self.session.add_all(ediffs)
@@ -311,14 +331,11 @@ class TestExternalGene(TestDbBase):
         self.session.commit()
         self.proccessed = True
     
-    def test_unique_constraint_expression(self):
-        """docstring for test_a"""
-        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').all()
-        gene = gene[0]
-        sample = self.session.query(Sample).filter_by(name='sample 1').all()
-        sample = sample[0]
-        reffile = self.session.query(ReferenceFile).filter_by(name='file-1.txt').all()
-        reffile = reffile[0]
+    def test_unique_constraint_external(self):
+        """study external genes can only map to single genes"""
+        gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        sample = self.session.query(Sample).filter_by(name='sample 1').one()
+        reffile = self.session.query(ReferenceFile).filter_by(name='file-1.txt').one()
         data = []
         # adding multiple copies with same reffile and gene
         for i in range(2):

@@ -7,12 +7,18 @@ from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
-from chippy.express.db_schema import Gene, Transcript, Exon, \
+from chippy.express.db_schema import Association, Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
+from chippy.express.db_query import get_ensembl_id_transcript_mapping, \
+        get_transcript_gene_mapping
 from chippy.ref.util import chroms
 from chippy.express.util import single_gene, _one
 from chippy.parse.r_dump import RDumpToTable
+from chippy.util.run_record import RunRecord
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
+
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -76,13 +82,10 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
             data.append(db_gene)
             canonical = gene.CanonicalTranscript.StableId
             for transcript in gene.Transcripts:
-                db_transcript = Transcript(transcript.StableId, ensembl_release)
-                total_objects += 1
-                db_transcript.gene = db_gene
-                data.append(db_transcript)
-                
                 if transcript.StableId == canonical:
                     # add the exons too
+                    db_transcript = Transcript(transcript.StableId,
+                            ensembl_release, canonical=True)
                     num_exons = len(transcript.Exons)
                     for ex in transcript.Exons:
                         db_exon = Exon(ex.StableId, ex.Rank,
@@ -92,6 +95,13 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                         db_exon.gene = db_gene
                         data.append(db_exon)
                         total_objects += 1
+                else:
+                    db_transcript = Transcript(transcript.StableId,
+                            ensembl_release, canonical=False)
+                
+                total_objects += 1
+                db_transcript.gene = db_gene
+                data.append(db_transcript)
                 
             n += 1
             if n % 100 == 0:
@@ -106,44 +116,27 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
     session.commit()
 
 
-def add_samples(session, names_descriptions):
+def add_samples(session, names_descriptions, run_record=None):
     """add basic sample type"""
-    failed = []
+    if run_record is None:
+        run_record = RunRecord()
+    
     for name, description in names_descriptions:
         sample = Sample(name, description)
         if not successful_commit(session, sample):
+            run_record.addMessage('add_samples',
+                LOG_INFO, 'Sample already exists in db', name)
+            
             session.rollback()
-            failed.append([name, description])
     
-    if len(failed) > 0:
-        print 'The following were excluded as they exist in the db'
-        print failed
-
-def get_transcript_gene_mapping(session, ensembl_release):
-    """docstring for get_transcript_gene_mapping"""
-    transcript_to_gene = dict(session.query(Transcript.ensembl_id,
-        Transcript.gene_id).filter_by(ensembl_release=ensembl_release).all())
-    return transcript_to_gene
-
-def single_gene(transcript_to_gene, transcript_ids):
-    gene_ids = set()
-    for tid in transcript_ids:
-        try:
-            gid = transcript_to_gene[tid]
-        except KeyError:
-            continue
-        gene_ids.update([gid])
-    if len(gene_ids) == 1:
-        value = gid
-    else:
-        value = None
-    return value
+    return run_record
 
 
 @display_wrap
 def add_expression_study(session, sample_name, data_path, table,
-        ensembl_release='58', ensembl_id_label='ENSEMBL',
-        expression_label='exp', ui=None):
+        ensembl_release='58', probeset_label='probeset',
+        ensembl_id_label='ENSEMBL', expression_label='exp', run_record=None,
+        ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -151,10 +144,13 @@ def add_expression_study(session, sample_name, data_path, table,
         - data_path: the reference file path
         - table: the actual expression data table
         - ensembl_release: the Ensembl release
+        - probeset_label: label of the column containing probset id
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
         - expression_label: label of the column containing absolute measure
           of expression
     """
+    if run_record is None:
+        run_record = RunRecord()
     
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
@@ -173,87 +169,74 @@ def add_expression_study(session, sample_name, data_path, table,
     # check we haven't already added expression data from this file
     records = session.query(Expression).filter_by(reference_file=reffile).all()
     if len(records) > 0:
-        print 'Already added this expression file'
-        return
+        run_record.addMessage('add_expression_study',
+            LOG_WARNING, 'Already added this expression file', data_path)
+        return run_record
     
     # get all gene ID data for the specified Ensembl release
+    ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
+                                                            ensembl_release)
     transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
-    
     if not successful_commit(session, data):
         pass
     
     data = []
-    
     # order the table in descending order of expression
     table = table.sorted(columns=expression_label, reverse=expression_label)
     rank = 0
     failed = []
-    probeset_many_loci = 0
+    all_genes = set()
+    probeset_to_many = 0
+    many_probeset = 0
     for record in ui.series(table, noun='Adding expression instances'):
         transcript_ids = record[ensembl_id_label]
+        # only keep data from probesets that map to a single gene
         gene_id = single_gene(transcript_to_gene, transcript_ids)
         if gene_id is None:
-            probeset_many_loci += 1
+            probeset_to_many += 1
             continue
         
-        expression = Expression(record[expression_label], rank)
-        expression.sample = sample
-        expression.gene_id = gene_id
-        expression.reference_file = reffile
-        if not successful_commit(session, expression):
-            failed.append(gene_id)
+        all_genes.update([gene_id])
+        probeset = record[probeset_label]
+        expressed = Expression(probeset, record[expression_label], rank)
+        expressed.reffile_id = reffile.reffile_id
+        expressed.sample = sample
+        data = [expressed]
+        
+        for ensembl_id in transcript_ids:
+            transcript = ensembl_to_transcript[ensembl_id]
+            a = Association()
+            a.expressed = expressed
+            a.transcript_id = transcript.transcript_id
+            transcript.expressions.append(a)
+            data.extend([a, transcript])
+        
+        if not successful_commit(session, data):
+            many_probeset += 1
             session.rollback()
             continue
         
         rank += 1
     
-    deleted = 0
-    if len(failed) > 0:
-        failed = session.query(Expression).\
-                filter(Expression.gene_id.in_(failed)).all()
-        for failure in ui.series(failed,
-            noun='Deleting records that had duplicates'):
-            session.delete(failure)
-            deleted += 1
-        
-        session.commit()
-        # now redo the rank's
-        all_expressed = session.query(Expression).filter_by(
-                reference_file_id=reffile.reference_file_id).order_by(
-                                Expression.rank).all()
-        
-        for i in ui.series(range(len(all_expressed)),
-            noun='Updating ranks for unique expressed records'):
-            expressed = all_expressed[i]
-            expressed.rank = i
-            session.merge(expressed)
-        
-        session.commit()
+    session.commit()
     
-    loci_many_probesets = len(failed) + deleted
-    kept = session.query(Expression).filter_by(
-                reference_file_id=reffile.reference_file_id).count()
-    print 'Number of probesets excluded because:'
-    print '\tProbeset maps to multiple loci = %d' % probeset_many_loci
-    print '\tLocus maps to multiple probesets = %d' % loci_many_probesets
-    print 'Unique loci with expression: %d' % kept
-    
-
-def _one(query):
-    """returns result if found, False otherwise"""
-    try:
-        result = query.one()
-    except NoResultFound:
-        result = False
-    
-    return result
+    run_record.addMessage('add_expression_study',
+        LOG_INFO, 'Probset mapped to multiple loci', probeset_to_many)
+    run_record.addMessage('add_expression_study',
+        LOG_ERROR, 'other probeset error', many_probeset)
+    run_record.addMessage('add_expression_study',
+        LOG_INFO, 'Total probesets added to db', rank)
+    run_record.addMessage('add_expression_study',
+        LOG_INFO, 'Total genes uniquely referenced', len(all_genes))
+    return run_record
 
 @display_wrap
 def add_expression_diff_study(session, data_path, table,
             ref_a_path, ref_b_path,
-            ensembl_release='58', ensembl_id_label='ENSEMBL',
-            expression_label='exp', prob_label='rawp', sig_label='sig',
-            ui=None):
+            ensembl_release='58', probeset_label='probeset',
+            ensembl_id_label='ENSEMBL', expression_label='exp',
+            prob_label='rawp', sig_label='sig',
+            run_record=None, ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -264,6 +247,7 @@ def add_expression_diff_study(session, data_path, table,
           affects the inferences concerning gene expression being up / down
           in a sample.
         - ensembl_release: the Ensembl release
+        - probeset_label: label of the column containing probset id
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
         - expression_label: label of the column containing absolute measure
           of expression
@@ -272,19 +256,27 @@ def add_expression_diff_study(session, data_path, table,
         - sig_label: label of the column classifying probabilities as
           significant after multiple test correction. 1 means up in A relative
           to B, -1 means down in A relative to B, 0 means no difference.
+        - run_record: a RunRecord instance for tracking messages. If not
+          provided, one is created and returned.
     """
+    
+    if run_record is None:
+        run_record = RunRecord()
     
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
-        print 'Could not find a record for ref_a %s' % ref_a_path
-        print session.query(ReferenceFile).filter_by(name=ref_a_path).all()
+        run_record.addMessage('add_expression_diff_study',
+            LOG_WARNING, 'Could not find a record for ref_a %s' % ref_a_path,
+            str(session.query(ReferenceFile).filter_by(name=ref_a_path).all()))
     
     ref_b = _one(session.query(ReferenceFile).filter_by(name=ref_b_path))
     if not ref_b:
-        print 'Could not find a record for ref_b %s' % ref_b_path
-        print session.query(ReferenceFile).filter_by(name=ref_b_path).all()
+        run_record.addMessage('add_expression_diff_study',
+            LOG_WARNING, 'Could not find a record for ref_b %s' % ref_b_path,
+            str(session.query(ReferenceFile).filter_by(name=ref_b_path).all()))
     
     if not ref_a or not ref_b:
+        run_record.display()
         raise RuntimeError('Reference files not added yet?')
     
     sample_a = ref_a.sample
@@ -301,55 +293,51 @@ def add_expression_diff_study(session, data_path, table,
     if not successful_commit(session, data):
         session.rollback()
     
-    data = []
     
     # get all transcript to gene ID data for the specified Ensembl release
+    ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
+                                                            ensembl_release)
     transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
     
     table = table.sorted(columns=expression_label, reverse=expression_label)
-    rank = 0
-    probeset_many_loci = 0
-    failed = []
+    num = 0
+    all_genes = set()
+    probeset_to_many = 0
+    many_probeset = 0
     for record in ui.series(table, noun='Adding expression diffs'):
         transcript_ids = record[ensembl_id_label]
         gene_id = single_gene(transcript_to_gene, transcript_ids)
         if gene_id is None:
-            probeset_many_loci += 1
+            probeset_to_many += 1
             continue
         
-        diff = ExpressionDiff(fold_change=record[expression_label],
+        all_genes.update([gene_id])
+        probeset = record[probeset_label]
+        diff = ExpressionDiff(probeset, fold_change=record[expression_label],
                     prob=record[prob_label],
                     signif=record[sig_label])
-        diff.reference_file = reffile
+        diff.reffile_id = reffile.reffile_id
         diff.sample_a = sample_a
         diff.sample_b = sample_b
-        diff.gene_id = gene_id
         if not successful_commit(session, diff):
-            failed.append(gene_id)
+            many_probeset += 1
             session.rollback()
             continue
         
-        rank += 1
+        num += 1
     
-    deleted = 0
-    if len(failed) > 0:
-        failed = session.query(ExpressionDiff).\
-                filter(ExpressionDiff.gene_id.in_(failed)).all()
-        for failure in ui.series(failed,
-            noun='Deleting diff records that had duplicates'):
-            session.delete(failure)
-            deleted += 1
-        
-        session.commit()
+    session.commit()
     
-    loci_many_probesets = len(failed) + deleted
-    kept = session.query(ExpressionDiff).filter_by(
-                reference_file_id=reffile.reference_file_id).count()
-    print 'Number of probesets excluded because:'
-    print '\tProbeset maps to multiple loci = %d' % probeset_many_loci
-    print '\tLocus maps to multiple probesets = %d' % loci_many_probesets
-    print 'Unique loci with expression diffs: %d' % kept
-
+    run_record.addMessage('add_expression_diff_study',
+        LOG_INFO, 'Probeset maps to multiple loci', probeset_to_many)
+    run_record.addMessage('add_expression_diff_study',
+        LOG_ERROR, 'Probeset in file multiple times', many_probeset)
+    run_record.addMessage('add_expression_diff_study',
+        LOG_INFO, 'Total probesets added to db', num)
+    run_record.addMessage('add_expression_diff_study',
+        LOG_INFO, 'Total genes uniquely referenced', len(all_genes))
+    
+    return run_record
 
 def add_external_genes(session, sample_name, data_path, table, ensembl_release='58',
         ensembl_id_label='ENSEMBL'):

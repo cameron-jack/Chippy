@@ -1,3 +1,5 @@
+from __future__ import division
+
 from sqlalchemy import (Integer, Float, String, Date,
     Boolean, ForeignKey, Column, UniqueConstraint, Table, create_engine)
 from sqlalchemy.ext.declarative import declarative_base
@@ -16,6 +18,20 @@ __version__ = '0.1'
 Session = sessionmaker()
 
 Base = declarative_base()
+
+class Association(Base):
+    __tablename__ = 'association'
+    
+    transcript_id = Column(Integer, ForeignKey('transcript.transcript_id'),
+                        primary_key=True)
+    expression_id = Column(Integer, ForeignKey('expression.expression_id'),
+                        primary_key=True)
+    expressed = relationship("Expression", backref="expression_assocs")
+    
+    __table_args__ = (UniqueConstraint('transcript_id', 'expression_id',
+                        name='unique'), {})
+    
+
 
 class Sample(Base):
     __tablename__ = "sample"
@@ -37,7 +53,7 @@ class ReferenceFile(Base):
     """original input source file name"""
     __tablename__ = 'reference_file'
     
-    reference_file_id = Column(Integer, primary_key=True)
+    reffile_id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     date = Column(Date)
     sample_id = Column(Integer, ForeignKey('sample.sample_id'))
@@ -45,7 +61,7 @@ class ReferenceFile(Base):
     ref_b_name = Column(String, nullable=True)
     
     sample = relationship(Sample,
-                backref=backref('reference_files', order_by=reference_file_id))
+                backref=backref('reference_files', order_by=reffile_id))
     
     def __init__(self, name,date, ref_a_name=None, ref_b_name=None):
         super(ReferenceFile, self).__init__()
@@ -98,10 +114,44 @@ class Gene(Base):
         self._exon_coords = None
         self._intron_coords = None
         self._tss = None
+        self._canonical_transcript = None
+        self._probeset_data = None
     
     def __repr__(self):
         return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
                 % (self.ensembl_id, self.coord_name, self.start, self.strand)
+    
+    def getMeanRank(self):
+        """returns average rank of transcripts"""
+        if not self.transcripts:
+            return None
+        
+        # we get probeset keys, expression instances from ProbesetData property
+        # this 
+        ranks = [e.rank for e in self.ProbesetData.values() if e]
+        return sum(ranks) / len(ranks)
+    
+    def getMeanScore(self):
+        """returns average expression score of Expression instances"""
+        if not self.transcripts:
+            return None
+        
+        score = [e.expression_score for e in self.ProbesetData.values() if e]
+        return sum(score) / len(score)
+    
+    @property
+    def ProbesetData(self):
+        # getProbesetData
+        if not hasattr(self, '_probeset_data'):
+            self._probeset_data = None
+        
+        if self._probeset_data is None:
+            data = {}
+            for transcript in self.transcripts:
+                data.update(transcript.getProbesetData())
+            self._probeset_data = data
+        
+        return self._probeset_data
     
     @property
     def IntronCoords(self):
@@ -126,8 +176,23 @@ class Gene(Base):
             self._exon_coords = None
         
         if self._exon_coords is None:
-            self._exon_coords = sorted([(e.start, e.end) for e in self.exons])
+            ts = self.CanonicalTranscript
+            self._exon_coords = sorted([(e.start, e.end) for e in ts.exons])
         return self._exon_coords
+    
+    @property
+    def CanonicalTranscript(self):
+        """the canonical transcript"""
+        if not hasattr(self, '_canonical_transcript'):
+            self._canonical_transcript = None
+        
+        if self._canonical_transcript is None:
+            ts = [ts for ts in self.transcripts if ts.canonical == True]
+            assert len(ts) == 1, 'Found two canonical transcripts, contact dev'
+            ts = ts[0]
+            self._canonical_transcript = ts
+        
+        return self._canonical_transcript
     
     @property
     def Tss(self):
@@ -165,6 +230,8 @@ class Transcript(Base):
     
     ensembl_id = Column(String, unique=True)
     ensembl_release = Column(String)
+    canonical = Column(Boolean)
+    expressions = relationship(Association, backref="transcripts")
     
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     gene = relationship(Gene,
@@ -173,13 +240,24 @@ class Transcript(Base):
     __table_args__ = (UniqueConstraint('ensembl_id', 'ensembl_release',
                 name='unique'), {})
     
-    def __init__(self, ensembl_id, ensembl_release):
+    def __init__(self, ensembl_id, ensembl_release, canonical=False):
         super(Transcript, self).__init__()
         self.ensembl_id = ensembl_id
         self.ensembl_release = ensembl_release
-        
+        self.canonical = canonical
+    
     def __repr__(self):
-        return "Transcript(%s, %s)" % (self.ensembl_id, self.gene.ensembl_id)
+        return "Transcript(ensembl_id=%s, gene=%s, canonical=%s)" % \
+            (self.ensembl_id, self.gene.ensembl_id, self.canonical)
+    
+    def getProbesetData(self):
+        """returns average rank of Expression instances"""
+        if not self.expressions:
+            return {}
+        
+        data = dict([(e.expressed.probeset, e.expressed)
+                            for e in self.expressions])
+        return data
     
 
 class Exon(Base):
@@ -196,10 +274,6 @@ class Exon(Base):
     transcript_id = Column(Integer, ForeignKey('transcript.transcript_id'))
     transcript = relationship(Transcript,
                 backref=backref('exons', order_by=exon_id))
-    
-    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    gene = relationship(Gene,
-                backref=backref('exons', order_by=rank))
     
     __table_args__ = (UniqueConstraint('transcript_id', 'rank', 'ensembl_id',
                         name='unique'), {})
@@ -225,32 +299,29 @@ class Expression(Base):
     
     expression_id = Column(Integer, primary_key=True)
     
+    probeset = Column(Integer)
     expression_score = Column(Float)
     rank = Column(Integer)
     
     sample_id = Column(Integer, ForeignKey('sample.sample_id'))
-    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    reference_file_id = Column(Integer,
-            ForeignKey('reference_file.reference_file_id'))
+    reffile_id = Column(Integer,
+            ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
                 backref=backref('expression', order_by=expression_id))
-    gene = relationship(Gene,
-                backref=backref('expression', order_by=expression_id))
-    reference_file = relationship(ReferenceFile,
-                backref=backref('expression', order_by=expression_id))
     
-    __table_args__ = (UniqueConstraint('gene_id', 'reference_file_id',
+    __table_args__ = (UniqueConstraint('probeset', 'reffile_id',
                         name='unique'), {})
     
-    def __init__(self, expression_score, rank):
+    def __init__(self, probeset, expression_score, rank):
         super(Expression, self).__init__()
+        self.probeset = probeset
         self.expression_score = expression_score
         self.rank = rank
     
     def __repr__(self):
-        return 'Expression(ensembl_id=%s, sample=%s, score=%s, rank=%s)' % (
-                self.gene.ensembl_id, self.sample.name, self.expression_score,
+        return 'Expression(probeset=%s, sample=%s, score=%s, rank=%s)' % (
+                self.probeset, self.sample.name, self.expression_score,
                 self.rank)
         
     
@@ -261,18 +332,15 @@ class ExpressionDiff(Base):
     
     expression_diff_id = Column(Integer, primary_key=True)
     
+    probeset = Column(Integer)
     fold_change = Column(Float)
     probability = Column(Float)
     multitest_signif = Column(Integer)
     
-    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     sample_a_id = Column(Integer, ForeignKey('sample.sample_id'))
     sample_b_id = Column(Integer, ForeignKey('sample.sample_id'))
-    reference_file_id = Column(Integer,
-            ForeignKey('reference_file.reference_file_id'))
+    reffile_id = Column(Integer, ForeignKey('reference_file.reffile_id'))
     
-    gene = relationship(Gene,
-                backref=backref('expression_diffs', order_by=expression_diff_id))
     sample_a = relationship(Sample,
             primaryjoin = sample_a_id == Sample.sample_id)
     sample_b = relationship(Sample,
@@ -281,19 +349,19 @@ class ExpressionDiff(Base):
     reference_file = relationship(ReferenceFile,
             backref=backref('expression_diffs', order_by=expression_diff_id))
     
-    __table_args__ = (UniqueConstraint('gene_id', 'reference_file_id',
+    __table_args__ = (UniqueConstraint('probeset', 'reffile_id',
                         name='unique'), {})
     
-    
-    def __init__(self, fold_change, prob, signif):
+    def __init__(self, probeset, fold_change, prob, signif):
         super(ExpressionDiff, self).__init__()
+        self.probeset = probeset
         self.fold_change = fold_change
         self.probability = prob
         self.multitest_signif = signif
     
     def __repr__(self):
-        return 'ExpressionDiff(ensembl_id=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
-            (self.gene.ensembl_id, self.sample_a.name,
+        return 'ExpressionDiff(probeset=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
+            (self.probeset, self.sample_a.name,
             self.sample_b.name, self.probability, self.multitest_signif)
 
 
@@ -306,8 +374,8 @@ class ExternalGene(Base):
     
     sample_id = Column(Integer, ForeignKey('sample.sample_id'))
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    reference_file_id = Column(Integer,
-            ForeignKey('reference_file.reference_file_id'))
+    reffile_id = Column(Integer,
+            ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
                 backref=backref('external_genes', order_by=external_gene_id))
@@ -316,7 +384,7 @@ class ExternalGene(Base):
     reference_file = relationship(ReferenceFile,
                 backref=backref('external_genes', order_by=external_gene_id))
     
-    __table_args__ = (UniqueConstraint('gene_id', 'reference_file_id',
+    __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                     name='unique'), {})
     
 

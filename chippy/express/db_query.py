@@ -6,10 +6,9 @@ from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 from cogent.util.misc import flatten
 
-from chippy.express.db_schema import Gene, Transcript, Exon, \
+from chippy.express.db_schema import Association, Gene, Transcript, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
-from chippy.express.db_populate import get_transcript_gene_mapping, single_gene
 from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
 from chippy.express.util import single_gene, _one
@@ -30,104 +29,116 @@ def _get_sample(session, sample_name):
         sample = None
     return sample
 
+def _get_gene_expression_query(session, ensembl_release, sample_name,
+            data_path=None, test=False):
+    """returns a query instance"""
+    sample = _get_sample(session, sample_name)
+    if sample is None:
+        raise RuntimeError('Unknown sample name: %s' % sample_name)
+    
+    if data_path is not None:
+        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
+                            filter(ReferenceFile.name==data_path))
+        if not data_path:
+            raise RuntimeError('Unknown data_path %s' % data_path)
+        
+        reffile_id = reffile_id[0]
+    
+    if data_path:
+        query = session.query(Gene).join(Transcript).filter(
+        and_(Transcript.gene_id==Gene.gene_id,
+            Gene.ensembl_release==ensembl_release)).join(Association).\
+            filter(Transcript.transcript_id==Association.transcript_id).\
+            join(Expression).\
+            filter(and_(Association.expression_id==Expression.expression_id,
+            Expression.sample_id==sample.sample_id,
+            Expression.reffile_id==reffile_id)).\
+            distinct()
+    else:
+        query = session.query(Gene).join(Transcript).filter(
+        and_(Transcript.gene_id==Gene.gene_id,
+            Gene.ensembl_release==ensembl_release)).join(Association).\
+            filter(Transcript.transcript_id==Association.transcript_id).\
+            join(Expression).\
+            filter(and_(Association.expression_id==Expression.expression_id,
+            Expression.sample_id==sample.sample_id)).\
+            distinct()
+    
+    return query
+
 def get_samples(session):
     """returns all samples"""
     samples = session.query(Sample).all()
     return samples
 
+def get_transcript_gene_mapping(session, ensembl_release):
+    """get ensembl transcript id to chippy gene id mapping"""
+    transcript_to_gene = dict(session.query(Transcript.ensembl_id,
+        Transcript.gene_id).filter_by(ensembl_release=ensembl_release).all())
+    return transcript_to_gene
+
+def get_ensembl_id_transcript_mapping(session, ensembl_release):
+    """get ensembl transcript id to chippy transcript id mapping"""
+    transcripts = session.query(Transcript.ensembl_id,
+                Transcript.transcript_id).filter_by(
+                ensembl_release=ensembl_release).all()
+    ensembl_id_transcript = dict(transcripts)
+    return transcript_to_gene
+
+
 def get_ranked_expression(session, ensembl_release, sample_name, data_path=None, test=False):
     """returns all ranked genes from a sample"""
-    sample = _get_sample(session, sample_name)
-    if data_path is not None:
-        reffile = _one(session.query(ReferenceFile).filter_by(name=data_path))
-        if reffile is None:
-            raise RuntimeError('No reference file record for that path')
-    
-    if sample is None:
-        raise RuntimeError('Unknown sample name: %s' % sample_name)
-    if test:
-        if data_path is None:
-            total = session.query(Expression).filter(
-            Expression.sample_id==sample.sample_id).count()
-        else:
-            total = session.query(Expression).filter(
-            and_(Expression.sample_id==sample.sample_id,
-                Expression.reference_file_id==reffile.reference_file_id)
-                ).count()
-        
-        print 'Num expression records for sample in db', total
-        
-    if data_path is None:
-        query = session.query(Expression).join(Gene).filter(
-            and_(Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id)).order_by(
-                 Expression.rank).options(contains_eager('gene'))
-    else:
-        query = session.query(Expression).join(Gene).filter(
-            and_(Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id,
-                 Expression.reference_file_id==reffile.reference_file_id)
-                 ).order_by(Expression.rank).options(contains_eager('gene'))
-    
-    expressed = query.all()
-    return expressed
+    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+                    data_path=data_path, test=test)
+    genes = query.options(contains_eager('transcripts.expressions')).all()
+    genes = sorted((g.getMeanRank(), g) for g in genes)
+    return [g for r, g in genes]
 
-def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, test=False):
+def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, data_path=None, test=False):
     """returns genes from a chromosome"""
     # TODO remove hardcoding for mouse!
     assert chrom in chroms['mouse']
-    sample = _get_sample(session, sample_name)
-    if sample is None:
-        raise RuntimeError('Unknown sample name: %s' % sample_name)
     
-    expressed = session.query(Expression).join(Gene).filter(
-            and_(Gene.coord_name==chrom,
-                 Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id)).order_by(
-                 Expression.rank).options(contains_eager('gene')).all()
+    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+                             data_path=data_path, test=test)
     
-    return expressed
+    query = query.filter(Gene.coord_name==chrom)
+    genes = query.all()
+    genes = sorted((g.getMeanRank(), g) for g in genes)
+    return [g for r, g in genes]
 
 def get_external_genes_from_expression_study(session, ensembl_release, external_gene_sample_name, sample_name, test=False):
-    expression_sample = _get_sample(session, sample_name)
     external_sample = _get_sample(session, external_gene_sample_name)
-    if expression_sample is None or external_sample is None:
-        raise RuntimeError('Unknown sample name(s): %s / %s' % (
-                                external_gene_sample_name, sample_name))
+    if not external_sample:
+        raise RuntimeError('No external_sample with name %s' % \
+                        external_gene_sample_name)
     
+    query = _get_gene_expression_query(session, ensembl_release, sample_name)
+    all = query.all()
     # get the gene id's from the external sample
-    genes = session.query(Gene.gene_id).join(ExternalGene).filter(and_(
+    external_genes = query.join(ExternalGene).filter(and_(
                     ExternalGene.gene_id==Gene.gene_id,
                     ExternalGene.sample_id==external_sample.sample_id,
-                    Gene.ensembl_release==ensembl_release)).all()
+                    Gene.ensembl_release==ensembl_release))
+    genes = query.all()
     genes = flatten(genes)
-    if not genes:
-        raise RuntimeError('No external genes found from %s' % external_sample)
-    
-    # get the expressed instances from joining to the expression sample
-    expressed = session.query(Expression).join(Gene).filter(
-            and_(Expression.gene_id.in_(genes),
-                 Expression.sample_id==expression_sample.sample_id)).order_by(
-                 Expression.rank).options(contains_eager('gene')).all()
-    return expressed
+    return genes
 
-def get_total_gene_counts(session, ensembl_release, sample_name, test=False):
+def get_total_gene_counts(session, ensembl_release, sample_name, data_path=None, test=False):
     """docstring for get_total_gene_counts"""
-    sample = _get_sample(session, sample_name)
-    if sample is None:
-        raise RuntimeError('Unknown sample name: %s' % sample_name)
-    
-    total = session.query(Expression).join(Gene).filter(
-            and_(Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id)).count()
-    return total
+    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+        data_path, test)
+    return query.count()
 
 
 @display_wrap
 def diff_expression_study(session, sample_name, data_path, table,
-            ensembl_release='58', ensembl_id_label='ENSEMBL', test=False, ui=None):
+            ensembl_release='58', ensembl_id_label='ENSEMBL', test=False,
+            run_record=None, ui=None):
     """returns list of genes and why they're not present in an existing
     expression db"""
+    if run_record is None:
+        run_record = RunRecord()
     # query db for every gene linked to this expression study
     records = get_ranked_expression(session, ensembl_release, sample_name,
             data_path=data_path, test=test)
@@ -158,20 +169,23 @@ def diff_expression_study(session, sample_name, data_path, table,
         failures.extend([('gene', gid, 'gene mapped to multiple probesets')
                                                 for gid in in_table_not_db])
     
-    run_record = LoadTable(header=['Type', 'Id', 'Explanation'], rows=failures,
+    full_log = LoadTable(header=['Type', 'Id', 'Explanation'], rows=failures,
     title='Difference between db for'\
         +' %(sample)s and %(reffile)s' % dict(reffile=data_path,
                                                sample=sample_name))
     
+    # TODO import log constants and change to LOG_INFO etc ..
     failed_probsets = run_record.count("Type == 'probeset'")
     dup_gene_transcripts = run_record.count("Type == 'gene'")
     dberror = run_record.count("Type == 'dberror'")
-    summary = LoadTable(header=['Label', 'Number'],
-        rows=[['Num genes in db', len(records)],
-              ['Probsets that do not map to a unique gene', failed_probsets],
-              ['Genes with multiple transcripts', dup_gene_transcripts],
-              ['Database population errors', dberror]],
-              title='Summary of difference')
+    run_record.addMessage('diff_expression_study',
+        'notice', 'Num genes in db', len(records))
+    run_record.addMessage('diff_expression_study',
+        'notice', 'Probsets that do not map to a unique gene', failed_probsets)
+    run_record.addMessage('diff_expression_study',
+        'notice', 'Genes with multiple transcripts', dup_gene_transcripts)
+    run_record.addMessage('diff_expression_study',
+        'notice', 'Database population errors', dberror)
     
-    return summary, run_record
+    return run_record, full_log
 

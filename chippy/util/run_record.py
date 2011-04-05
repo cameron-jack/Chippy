@@ -20,6 +20,9 @@ class RunRecord(object):
     
     def getMessageTable(self):
         """docstring for display"""
+        if not self.records:
+            return None
+        
         header = ['program_name', 'message type', 'message', 'value']
         table = LoadTable(header=header, rows=self.records)
         return table

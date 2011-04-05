@@ -347,8 +347,105 @@ class TestExternalGene(TestDbBase):
         
         self.session.add_all(data)
         self.assertRaises(IntegrityError, self.session.commit)
-        
+    
 
+class TestQueryFunctions(TestDbBase):
+    """test the db querying functions"""
+    reffiles = [('file-1.txt', today),
+                ('file-2.txt', today)]
+    
+    samples = [('sample 1', 'fake sample 1'),
+               ('sample 2', 'fake sample 2')]
+    
+    proccessed = False
+    
+    def populate_db(self, **kwargs):
+        singleton = kwargs.get('singleton', False)
+        data = [ReferenceFile(*r) for r in self.reffiles]
+        data += [Sample(*s) for s in self.samples]
+        self.session.add_all(data)
+        transcripts = self.session.query(Transcript).all()
+        if singleton:
+            samples = self.session.query(Sample).filter_by(name='sample 1').all()
+            reffiles = self.session.query(ReferenceFile).filter_by(name='file-1.txt').all()
+        else:
+            samples = self.session.query(Sample).all()
+            reffiles = self.session.query(ReferenceFile).all()
+        
+        # adding multiple copies with same reffile and transcript
+        for sample, reffile in zip(samples, reffiles):
+            i = 0
+            for transcript in transcripts:
+                rank = 1+i
+                probeset, score, rank = (1024, 21.0+i, rank)
+                a = Association()
+                expressed = Expression(probeset+i, score, rank)
+                expressed.reffile_id = reffile.reffile_id
+                expressed.sample = sample
+                a.expressed = expressed
+                a.transcript_id = transcript.transcript_id
+                transcript.expressions.append(a)
+                i += 1
+                
+                self.session.add_all([transcript])
+        # add a file with nothign related to it
+        reffile = ReferenceFile('file-no-data.txt', today)
+        self.session.add(reffile)
+        self.session.commit()
+    
+    def setUp(self, force=False, singleton=False):
+        """docstring for add_files_samples"""
+        super(TestQueryFunctions, self).setUp()
+        
+        if not self.proccessed or force:
+            add_all_gene_transcript_exons(self.session, TestGene.genes)
+        
+        self.populate_db(singleton=singleton)
+        self.proccessed = True
+    
+    def test_counting_genes(self):
+        """correctly return number of genes for a sample"""
+        # return correct number with/without filename
+        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+            'sample 1'), 4)
+        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+            'sample 1', data_path='file-1.txt'), 4)
+        # return correct number if no records
+        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+            'sample 1', data_path='file-no-data.txt'), 0)
+    
+    def test_get_expressed_genes_from_chrom(self):
+        """should return the correct number of expressed genes from a chrom"""
+        ranked = get_ranked_genes_per_chrom(self.session, ensembl_release,
+            'sample 1', '2')
+        for i in range(1, len(ranked)):
+            self.assertTrue(ranked[i-1].getMeanRank() < ranked[i].getMeanRank())
+        
+        for gene in ranked:
+            self.assertTrue(gene.coord_name == '2')
+    
+    def test_get_ranks_scores(self):
+        """return correct gene mean ranks and mean scores"""
+        self.setUp(force=True, singleton=True)
+        genes = get_ranked_expression(self.session, ensembl_release,
+            'sample 1')
+        expected_ranks = {'PLUS-1':1.5, 'PLUS-3':3.5, 'MINUS-1':5.5, 'MINUS-3':7.5 }
+        expected_scores = {'PLUS-1':21.5, 'PLUS-3':23.5, 'MINUS-1':25.5, 'MINUS-3':27.5 }
+        for gene in genes:
+            self.assertEqual(gene.getMeanRank(),
+                        expected_ranks[gene.ensembl_id])
+            self.assertEqual(gene.getMeanScore(),
+                        expected_scores[gene.ensembl_id])
+    
+    def test_get_ranked_genes(self):
+        """return correct gene order"""
+        self.setUp(force=True, singleton=True)
+        ranked = get_ranked_expression(self.session, ensembl_release,
+            'sample 1')
+        for i in range(1, len(ranked)):
+            self.assertTrue(ranked[i-1].getMeanRank() < ranked[i].getMeanRank())
+        
+    
 
 if __name__ == '__main__':
     main()

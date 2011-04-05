@@ -29,5 +29,10 @@ class RunRecord(object):
     
     def display(self):
         table = self.getMessageTable()
-        print table
+        if table is None:
+            print 'No log messages'
+        else:
+            print table
+        
+    
 

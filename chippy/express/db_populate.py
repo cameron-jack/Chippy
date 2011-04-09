@@ -90,8 +90,8 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                 db_exon.gene = db_gene
                 data.append(db_exon)
                 total_objects += 1
-                n += 1
             
+            n += 1
             if n % 100 == 0:
                 print 'Genes processed=%s; Db objects created=%d' % (n,
                                                             total_objects)

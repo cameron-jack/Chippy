@@ -15,7 +15,7 @@ from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
 from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta
-from chippy.util import RunRecord
+from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 

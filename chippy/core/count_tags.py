@@ -21,21 +21,21 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 @display_wrap
-def get_count_decorated_expressed_genes(expressed, counts_dir, chrom_names, max_read_length, window_size, ui=None):
+def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read_length, window_size, ui=None):
     """decorates the Expression instances with a counts attribute, length=2*window_size"""
-    # group the expressed by chromosome
+    # group the genes by chromosome
     chrom_ordered = {}
-    for expressed_gene in ui.series(expressed, noun='Grouping into chromosomes'):
+    for gene in ui.series(genes, noun='Grouping into chromosomes'):
         try:
-            chrom_ordered[expressed_gene.gene.coord_name].append(expressed_gene)
+            chrom_ordered[gene.coord_name].append(gene)
         except KeyError:
-            chrom_ordered[expressed_gene.gene.coord_name] = [expressed_gene]
+            chrom_ordered[gene.coord_name] = [gene]
     
     assert set(chrom_ordered.keys()) <= set(chrom_names), \
                     'Chromosome mismatch between study and species reference'
     
     n = 0
-    total = len(expressed)
+    total = len(genes)
     for chrom_name in sorted(chrom_ordered):
         chrom_counts_path = os.path.join(counts_dir,
                     'chr%s.txt.gz' % chrom_name)
@@ -44,29 +44,28 @@ def get_count_decorated_expressed_genes(expressed, counts_dir, chrom_names, max_
         print 'Making full counts array for chromosome %s' % chrom_name
         counts.update()
         
-        print '\tDecorating expressed_genes'
-        for expressed_gene in chrom_ordered[chrom_name]:
-            start, end = expressed_gene.gene.getTssCentredCoords(window_size)
-            expressed_gene.counts = counts[start:end].copy()
+        print '\tDecorating genes'
+        for gene in chrom_ordered[chrom_name]:
+            start, end = gene.getTssCentredCoords(window_size)
+            gene.counts = counts[start:end].copy()
             n += 1
             if n % 10 == 0:
                 ui.display('Decorating genes [%d / %d]' % (n, total), n/total)
         
         del counts
     
-    return expressed
+    return genes
 
 @display_wrap
-def get_counts_ranks_ensembl_ids(expressed, ui=None):
+def get_counts_ranks_ensembl_ids(genes, ui=None):
     """returns separate series for counts, ranks and ensembl_ids"""
     ranks = []
     counts = []
     ensembl_ids = []
-    for expressed_gene in ui.series(expressed,
-                        noun='Getting counts, ranks and ensembl_ids'):
-        ranks.append(expressed_gene.rank)
-        counts.append(expressed_gene.counts)
-        ensembl_ids.append(expressed_gene.gene.ensembl_id)
+    for gene in ui.series(genes, noun='Getting counts, ranks and ensembl_ids'):
+        ranks.append(gene.getMeanRank())
+        counts.append(gene.counts)
+        ensembl_ids.append(gene.ensembl_id)
     return counts, ranks, ensembl_ids
 
 def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_release, max_read_length, window_size, test_run):
@@ -79,10 +78,6 @@ def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_
     print 'Decorating'
     expressed = get_count_decorated_expressed_genes(expressed, counts_dir,
                             species_chroms, max_read_length, window_size)
-    
-    for i in range(1, len(expressed)):
-        assert expressed[i].rank > expressed[i-1].rank,\
-            'Ranks were not sequential'
     
     return expressed
 

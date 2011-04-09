@@ -1,12 +1,12 @@
 from sqlalchemy import and_
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 from cogent.util.misc import flatten
 
-from chippy.express.db_schema import Association, Gene, Transcript, Exon, \
+from chippy.express.db_schema import Gene, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.ref.util import chroms
@@ -45,24 +45,16 @@ def _get_gene_expression_query(session, ensembl_release, sample_name,
         reffile_id = reffile_id[0]
     
     if data_path:
-        query = session.query(Gene).join(Transcript).filter(
-        and_(Transcript.gene_id==Gene.gene_id,
-            Gene.ensembl_release==ensembl_release)).join(Association).\
-            filter(Transcript.transcript_id==Association.transcript_id).\
-            join(Expression).\
-            filter(and_(Association.expression_id==Expression.expression_id,
-            Expression.sample_id==sample.sample_id,
-            Expression.reffile_id==reffile_id)).\
-            distinct()
+        query = session.query(Expression).join(Gene).filter(
+            and_(Gene.ensembl_release==ensembl_release,
+                 Expression.sample_id==sample.sample_id,
+                 Expression.reffile_id==reffile_id)).\
+                    options(contains_eager('gene'))
     else:
-        query = session.query(Gene).join(Transcript).filter(
-        and_(Transcript.gene_id==Gene.gene_id,
-            Gene.ensembl_release==ensembl_release)).join(Association).\
-            filter(Transcript.transcript_id==Association.transcript_id).\
-            join(Expression).\
-            filter(and_(Association.expression_id==Expression.expression_id,
-            Expression.sample_id==sample.sample_id)).\
-            distinct()
+        query = session.query(Expression).join(Gene).filter(
+            and_(Gene.ensembl_release==ensembl_release,
+                 Expression.sample_id==sample.sample_id)).\
+                    options(contains_eager('gene'))
     
     return query
 
@@ -86,26 +78,38 @@ def get_ensembl_id_transcript_mapping(session, ensembl_release):
     return transcript_to_gene
 
 
-def get_ranked_expression(session, ensembl_release, sample_name, data_path=None, test=False):
+def get_ranked_expression(session, ensembl_release, sample_name, data_path=None, rank_by='mean', test=False):
     """returns all ranked genes from a sample"""
-    query = _get_gene_expression_query(session, ensembl_release, sample_name,
-                    data_path=data_path, test=test)
-    genes = query.options(contains_eager('transcripts.expressions')).all()
-    genes = sorted((g.getMeanRank(), g) for g in genes)
-    return [g for r, g in genes]
+    records = _get_gene_expression_query(session, ensembl_release, sample_name,
+                    data_path=data_path, test=test).all()
+    
+    genes = []
+    for expressed in records:
+        gene = expressed.gene
+        gene.Scores = expressed.scores
+        genes.append(gene)
+    
+    # set rank
+    if rank_by.lower() == 'mean':
+        scored = [(g.MeanScore, g) for g in genes]
+    else:
+        raise NotImplementedError
+    
+    scored = reversed(sorted(scored))
+    genes = []
+    for rank, (score, gene) in enumerate(scored):
+        gene.Rank = rank + 1
+        genes.append(gene)
+    
+    return genes
 
 def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, data_path=None, test=False):
     """returns genes from a chromosome"""
     # TODO remove hardcoding for mouse!
     assert chrom in chroms['mouse']
-    
-    query = _get_gene_expression_query(session, ensembl_release, sample_name,
-                             data_path=data_path, test=test)
-    
-    query = query.filter(Gene.coord_name==chrom)
-    genes = query.all()
-    genes = sorted((g.getMeanRank(), g) for g in genes)
-    return [g for r, g in genes]
+    genes = get_ranked_expression(session, ensembl_release, sample_name, data_path=None, test=False)
+    genes = (g for g in genes if g.coord_name==chrom)
+    return tuple(genes)
 
 def get_external_genes_from_expression_study(session, ensembl_release, external_gene_sample_name, sample_name, test=False):
     external_sample = _get_sample(session, external_gene_sample_name)
@@ -116,19 +120,18 @@ def get_external_genes_from_expression_study(session, ensembl_release, external_
     query = _get_gene_expression_query(session, ensembl_release, sample_name)
     all = query.all()
     # get the gene id's from the external sample
-    external_genes = query.join(ExternalGene).filter(and_(
-                    ExternalGene.gene_id==Gene.gene_id,
-                    ExternalGene.sample_id==external_sample.sample_id,
-                    Gene.ensembl_release==ensembl_release))
-    genes = query.all()
-    genes = flatten(genes)
-    return genes
+    external_gene_ids = session.query(ExternalGene.gene_id).filter(
+                    ExternalGene.sample_id==external_sample.sample_id).all()
+    print 'done external'
+    external_genes = [genes[gid] for gid in flatten(external_gene_ids)
+                if gid in genes]
+    return external_genes
 
 def get_total_gene_counts(session, ensembl_release, sample_name, data_path=None, test=False):
     """docstring for get_total_gene_counts"""
     query = _get_gene_expression_query(session, ensembl_release, sample_name,
-        data_path, test)
-    return query.count()
+                                        data_path, test)
+    return query.distinct().count()
 
 
 @display_wrap

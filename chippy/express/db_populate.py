@@ -80,7 +80,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                 ensembl_release=ensembl_release)
             total_objects += 1
             data.append(db_gene)
-            for exon in gene.Exons:
+            for exon in gene.CanonicalTranscript.Exons:
                 db_exon = Exon(exon.StableId, exon.Rank,
                         exon.Location.Start, exon.Location.End,
                         ensembl_release)

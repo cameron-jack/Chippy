@@ -30,6 +30,7 @@ __version__ = '0.1'
 
 def make_fastq_output_filename(input_file):
     """makes the fasta output filename from the fastq input name"""
+    input_file = os.path.basename(input_file)
     return input_file.replace('_sequence.txt', '.fasta')
 
 script_info = fastq_to_fasta.script_info

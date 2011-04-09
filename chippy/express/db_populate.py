@@ -7,7 +7,7 @@ from cogent import LoadTable
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
-from chippy.express.db_schema import Association, Gene, Transcript, Exon, \
+from chippy.express.db_schema import Gene, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.express.db_query import get_ensembl_id_transcript_mapping, \
@@ -80,41 +80,28 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                 ensembl_release=ensembl_release)
             total_objects += 1
             data.append(db_gene)
-            canonical = gene.CanonicalTranscript.StableId
-            for transcript in gene.Transcripts:
-                if transcript.StableId == canonical:
-                    # add the exons too
-                    db_transcript = Transcript(transcript.StableId,
-                            ensembl_release, canonical=True)
-                    num_exons = len(transcript.Exons)
-                    for ex in transcript.Exons:
-                        db_exon = Exon(ex.StableId, ex.Rank,
-                                ex.Location.Start, ex.Location.End,
-                                ensembl_release)
-                        db_exon.transcript = db_transcript
-                        db_exon.gene = db_gene
-                        data.append(db_exon)
-                        total_objects += 1
-                else:
-                    db_transcript = Transcript(transcript.StableId,
-                            ensembl_release, canonical=False)
-                
+            for exon in gene.Exons:
+                db_exon = Exon(exon.StableId, exon.Rank,
+                        exon.Location.Start, exon.Location.End,
+                        ensembl_release)
+                db_exon.gene = db_gene
+                data.append(db_exon)
                 total_objects += 1
-                db_transcript.gene = db_gene
-                data.append(db_transcript)
-                
-            n += 1
+                n += 1
+            
             if n % 100 == 0:
-                print 'Genes processed=%s; Db objects created=%d' % (n, total_objects)
+                print 'Genes processed=%s; Db objects created=%d' % (n,
+                                                            total_objects)
                 if debug:
                     session.add_all(data)
                     session.commit()
                     return
+                
+            
     
     print 'Writing objects into db'
     session.add_all(data)
     session.commit()
-
 
 def add_samples(session, names_descriptions, run_record=None):
     """add basic sample type"""

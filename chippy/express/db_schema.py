@@ -1,9 +1,11 @@
 from __future__ import division
 
-from sqlalchemy import (Integer, Float, String, Date,
+from sqlalchemy import (Integer, Float, String, Date, PickleType,
     Boolean, ForeignKey, Column, UniqueConstraint, Table, create_engine)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
+
+from cogent.util.misc import flatten
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -18,20 +20,6 @@ __version__ = '0.1'
 Session = sessionmaker()
 
 Base = declarative_base()
-
-class Association(Base):
-    __tablename__ = 'association'
-    
-    transcript_id = Column(Integer, ForeignKey('transcript.transcript_id'),
-                        primary_key=True)
-    expression_id = Column(Integer, ForeignKey('expression.expression_id'),
-                        primary_key=True)
-    expressed = relationship("Expression", backref="expression_assocs")
-    
-    __table_args__ = (UniqueConstraint('transcript_id', 'expression_id',
-                        name='unique'), {})
-    
-
 
 class Sample(Base):
     __tablename__ = "sample"
@@ -114,44 +102,56 @@ class Gene(Base):
         self._exon_coords = None
         self._intron_coords = None
         self._tss = None
-        self._canonical_transcript = None
-        self._probeset_data = None
+        self._probeset_scores = None
+        self._rank_stats = None
     
     def __repr__(self):
         return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
                 % (self.ensembl_id, self.coord_name, self.start, self.strand)
     
-    def getMeanRank(self):
-        """returns average rank of transcripts"""
-        if not self.transcripts:
-            return None
+    @property
+    def Rank(self):
+        if not hasattr(self, '_rank_stats'):
+            self._rank_stats = {}
         
-        # we get probeset keys, expression instances from ProbesetData property
-        # this 
-        ranks = [e.rank for e in self.ProbesetData.values() if e]
-        return sum(ranks) / len(ranks)
+        return self._rank_stats.get('rank', None)
     
-    def getMeanScore(self):
-        """returns average expression score of Expression instances"""
-        if not self.transcripts:
-            return None
+    @Rank.setter
+    def Rank(self, value):
+        if not hasattr(self, '_rank_stats'):
+            self._rank_stats = {}
         
-        score = [e.expression_score for e in self.ProbesetData.values() if e]
-        return sum(score) / len(score)
+        self._rank_stats['rank'] = value
     
     @property
-    def ProbesetData(self):
-        # getProbesetData
-        if not hasattr(self, '_probeset_data'):
-            self._probeset_data = None
+    def MeanScore(self):
+        """returns average expression score of Expression instances"""
+        return sum(self.Scores) / len(self.Scores)
+    
+    @property
+    def MaxScore(self):
+        """returns maximum score"""
+        return max(self._probeset_scores)
+    
+    @property
+    def SumScores(self):
+        """sum of expression scores"""
+        return sum(self._probeset_scores)
+    
+    @property
+    def Scores(self):
+        # getScores
+        if not hasattr(self, '_probeset_scores'):
+            self._probeset_scores = None
         
-        if self._probeset_data is None:
-            data = {}
-            for transcript in self.transcripts:
-                data.update(transcript.getProbesetData())
-            self._probeset_data = data
+        return self._probeset_scores
+    
+    @Scores.setter
+    def Scores(self, value):
+        if not hasattr(self, '_probeset_scores'):
+            self._probeset_scores = None
         
-        return self._probeset_data
+        self._probeset_scores = flatten(value)
     
     @property
     def IntronCoords(self):
@@ -176,23 +176,8 @@ class Gene(Base):
             self._exon_coords = None
         
         if self._exon_coords is None:
-            ts = self.CanonicalTranscript
-            self._exon_coords = sorted([(e.start, e.end) for e in ts.exons])
+            self._exon_coords = sorted([(e.start, e.end) for e in self.exons])
         return self._exon_coords
-    
-    @property
-    def CanonicalTranscript(self):
-        """the canonical transcript"""
-        if not hasattr(self, '_canonical_transcript'):
-            self._canonical_transcript = None
-        
-        if self._canonical_transcript is None:
-            ts = [ts for ts in self.transcripts if ts.canonical == True]
-            assert len(ts) == 1, 'Found two canonical transcripts, contact dev'
-            ts = ts[0]
-            self._canonical_transcript = ts
-        
-        return self._canonical_transcript
     
     @property
     def Tss(self):
@@ -222,44 +207,6 @@ class Gene(Base):
         return start, end
     
 
-class Transcript(Base):
-    """map Ensembl transcripts to genes"""
-    __tablename__ = 'transcript'
-    
-    transcript_id = Column(Integer, primary_key=True)
-    
-    ensembl_id = Column(String, unique=True)
-    ensembl_release = Column(String)
-    canonical = Column(Boolean)
-    expressions = relationship(Association, backref="transcripts")
-    
-    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    gene = relationship(Gene,
-                backref=backref('transcripts', order_by=transcript_id))
-    
-    __table_args__ = (UniqueConstraint('ensembl_id', 'ensembl_release',
-                name='unique'), {})
-    
-    def __init__(self, ensembl_id, ensembl_release, canonical=False):
-        super(Transcript, self).__init__()
-        self.ensembl_id = ensembl_id
-        self.ensembl_release = ensembl_release
-        self.canonical = canonical
-    
-    def __repr__(self):
-        return "Transcript(ensembl_id=%s, gene=%s, canonical=%s)" % \
-            (self.ensembl_id, self.gene.ensembl_id, self.canonical)
-    
-    def getProbesetData(self):
-        """returns average rank of Expression instances"""
-        if not self.expressions:
-            return {}
-        
-        data = dict([(e.expressed.probeset, e.expressed)
-                            for e in self.expressions])
-        return data
-    
-
 class Exon(Base):
     __tablename__ = 'exon'
     
@@ -271,11 +218,11 @@ class Exon(Base):
     end = Column(Integer)
     ensembl_release = Column(String)
     
-    transcript_id = Column(Integer, ForeignKey('transcript.transcript_id'))
-    transcript = relationship(Transcript,
+    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
+    gene = relationship(Gene,
                 backref=backref('exons', order_by=exon_id))
     
-    __table_args__ = (UniqueConstraint('transcript_id', 'rank', 'ensembl_id',
+    __table_args__ = (UniqueConstraint('gene_id', 'rank', 'ensembl_id',
                         name='unique'), {})
     
     
@@ -289,7 +236,7 @@ class Exon(Base):
     
     def __repr__(self):
         return "Exon(gene=%s, start=%s, rank=%s, strand=%s)" % (
-            self.transcript.gene.ensembl_id, self.start, self.rank,
+            self.gene.ensembl_id, self.start, self.rank,
             self.gene.strand)
         
     
@@ -299,30 +246,29 @@ class Expression(Base):
     
     expression_id = Column(Integer, primary_key=True)
     
-    probeset = Column(Integer)
-    expression_score = Column(Float)
-    rank = Column(Integer)
+    probesets = Column(PickleType)
+    scores = Column(PickleType)
     
     sample_id = Column(Integer, ForeignKey('sample.sample_id'))
+    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     reffile_id = Column(Integer,
             ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
                 backref=backref('expression', order_by=expression_id))
+    gene = relationship(Gene, backref=backref('expression'))
     
-    __table_args__ = (UniqueConstraint('probeset', 'reffile_id',
+    __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})
     
-    def __init__(self, probeset, expression_score, rank):
+    def __init__(self, probesets, scores):
         super(Expression, self).__init__()
-        self.probeset = probeset
-        self.expression_score = expression_score
-        self.rank = rank
+        self.probesets = probesets
+        self.scores = scores
     
     def __repr__(self):
-        return 'Expression(probeset=%s, sample=%s, score=%s, rank=%s)' % (
-                self.probeset, self.sample.name, self.expression_score,
-                self.rank)
+        return 'Expression(probesets=%s, sample=%s)' % (
+                self.probesets, self.sample.name)
         
     
 

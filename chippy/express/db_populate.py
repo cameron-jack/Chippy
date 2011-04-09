@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
+
 import datetime
 from sqlalchemy import create_engine, and_
 from sqlalchemy.exc import IntegrityError

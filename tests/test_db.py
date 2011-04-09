@@ -379,9 +379,12 @@ class TestQueryFunctions(TestDbBase):
             'sample 1'), 4)
         self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
             'sample 1', data_path='file-1.txt'), 4)
-        # return correct number if no records
+        # return correct number if no records, no file
         self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
             'sample 1', data_path='file-no-data.txt'), 0)
+        # return correct number if no records, wrong biotype
+        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+            'sample 1', biotype='miRNA'), 0)
     
     def test_get_expressed_genes_from_chrom(self):
         """should return the correct number of expressed genes from a chrom"""

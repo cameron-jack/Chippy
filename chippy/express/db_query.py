@@ -78,10 +78,15 @@ def get_ensembl_id_transcript_mapping(session, ensembl_release):
     return transcript_to_gene
 
 
-def get_ranked_expression(session, ensembl_release, sample_name, data_path=None, rank_by='mean', test=False):
+def get_ranked_expression(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test=False):
     """returns all ranked genes from a sample"""
-    records = _get_gene_expression_query(session, ensembl_release, sample_name,
-                    data_path=data_path, test=test).all()
+    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+                    data_path=data_path, test=test)
+    
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+    
+    records = query.all()
     
     genes = []
     for expressed in records:
@@ -103,11 +108,12 @@ def get_ranked_expression(session, ensembl_release, sample_name, data_path=None,
     
     return genes
 
-def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, data_path=None, test=False):
+def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, biotype='protein_coding', data_path=None, test=False):
     """returns genes from a chromosome"""
     # TODO remove hardcoding for mouse!
     assert chrom in chroms['mouse']
-    genes = get_ranked_expression(session, ensembl_release, sample_name, data_path=None, test=False)
+    genes = get_ranked_expression(session, ensembl_release, sample_name,
+                    biotype=biotype, data_path=data_path, test=test)
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
@@ -127,10 +133,13 @@ def get_external_genes_from_expression_study(session, ensembl_release, external_
                 if gid in genes]
     return external_genes
 
-def get_total_gene_counts(session, ensembl_release, sample_name, data_path=None, test=False):
+def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, test=False):
     """docstring for get_total_gene_counts"""
     query = _get_gene_expression_query(session, ensembl_release, sample_name,
                                         data_path, test)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+    
     return query.distinct().count()
 
 

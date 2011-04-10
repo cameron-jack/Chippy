@@ -104,17 +104,38 @@ def convert(to_float=False):
     
     return call
 
-def SimpleRdumpToTable(path, sep='\t'):
+def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='', exp_label='', validate=True):
     """returns a cogent table object
     
     Handles case where probset id's and expressions scores are separated by
     the pipe -- | -- character. The probset and expression scores are then
     converted to tuples of ints or floats respectively.
+    
+    Arguments:
+        - probeset_label: name of column containing probesets
+        - exp_label: name of column containing expression scores
+        - stable_id_label: name of column containing Ensembl stable IDs
+        - validate: checks that -- stable IDs are unique in the file, that
+          for each row the number of probesets equals the number of expression
+          scores. Raises a RuntimeException if failure occurs for any
+          of these checks.
     """
     
     converter = ConvertFields([(1, convert(to_float=False)),
                                (2, convert(to_float=True))])
     reader = SeparatorFormatParser(converter=converter, sep='\t')
     table = LoadTable(path, reader=reader)
+    if validate:
+        assert probeset_label and exp_label and stable_id_label,\
+            'Must provide all required column labels to validate'
+        stable_ids = table.getDistinctValues(stable_id_label)
+        if len(stable_ids) != table.Shape[0]:
+            raise RuntimeError('Non unique stable IDs')
+        
+        for row in table:
+            if len(row[probeset_label]) != len(row[exp_label]):
+                raise RuntimeError(
+                        'Mismatched number of probesets and exp scores')
+    
     return table
 

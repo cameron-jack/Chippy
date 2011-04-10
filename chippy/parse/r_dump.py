@@ -96,7 +96,25 @@ def RDumpToTable(data):
     rows = [l for l in parser]
     return LoadTable(header=header, rows=rows, space=2)
 
-if __name__ == "__main__":
-    infile='../tests/data/rdump_sample.txt'
-    table = RDumpToTable(infile)
-    print table.getColumns(table.Header[:-1])
+def convert(to_float=False):
+    """converts a | separated string into a tuple of floats or ints"""
+    type_ = [int, float][to_float]
+    def call(value):
+        return tuple(map(type_, value.strip().split('|')))
+    
+    return call
+
+def SimpleRdumpToTable(path, sep='\t'):
+    """returns a cogent table object
+    
+    Handles case where probset id's and expressions scores are separated by
+    the pipe -- | -- character. The probset and expression scores are then
+    converted to tuples of ints or floats respectively.
+    """
+    
+    converter = ConvertFields([(1, convert(to_float=False)),
+                               (2, convert(to_float=True))])
+    reader = SeparatorFormatParser(converter=converter, sep='\t')
+    table = LoadTable(path, reader=reader)
+    return table
+

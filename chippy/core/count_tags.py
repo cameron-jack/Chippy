@@ -8,7 +8,7 @@ from cogent.util.progress_display import display_wrap
 from chippy.core.read_count import WholeChrom
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
-            get_external_genes_from_expression_study
+        get_ranked_genes_per_chrom, get_external_genes_from_expression_study
 from chippy.ref.util import chroms
 
 __author__ = "Gavin Huttley"
@@ -46,8 +46,8 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
         
         print '\tDecorating genes'
         for gene in chrom_ordered[chrom_name]:
-            start, end = gene.getTssCentredCoords(window_size)
-            gene.counts = counts[start:end].copy()
+            start, end, strand = gene.getTssCentredCoords(window_size)
+            gene.counts = counts[start:end:strand].copy()
             n += 1
             if n % 10 == 0:
                 ui.display('Decorating genes [%d / %d]' % (n, total), n/total)
@@ -63,17 +63,23 @@ def get_counts_ranks_ensembl_ids(genes, ui=None):
     counts = []
     ensembl_ids = []
     for gene in ui.series(genes, noun='Getting counts, ranks and ensembl_ids'):
-        ranks.append(gene.getMeanRank())
+        ranks.append(gene.MeanScore)
         counts.append(gene.counts)
         ensembl_ids.append(gene.ensembl_id)
     return counts, ranks, ensembl_ids
 
-def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_release, max_read_length, window_size, test_run):
+def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir, ensembl_release, max_read_length, window_size, test_run):
     species_chroms = chroms[species]
     
-    print 'Getting ranked expression instances'
-    expressed = get_ranked_expression(session, ensembl_release, sample_name,
-                    test=test_run)
+    msg = 'Getting ranked expression instances%s'
+    if chrom is None:
+        print msg % ''
+        expressed = get_ranked_expression(session, ensembl_release,
+                    sample_name, test_run=test_run)
+    else:
+        print msg % (' for chrom ' + chrom)
+        expressed = get_ranked_genes_per_chrom(session, ensembl_release,
+                    sample_name, chrom, test_run=test_run)
     
     print 'Decorating'
     expressed = get_count_decorated_expressed_genes(expressed, counts_dir,
@@ -81,10 +87,10 @@ def _get_decorated_expressed(session, sample_name, species, counts_dir, ensembl_
     
     return expressed
 
-def centred_counts_for_genes(session, sample_name, species, counts_dir,
+def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
                     ensembl_release, max_read_length, window_size, test_run):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
-    expressed = _get_decorated_expressed(session, sample_name, species,
+    expressed = _get_decorated_expressed(session, sample_name, species, chrom,
         counts_dir, ensembl_release, max_read_length, window_size, test_run)
     total_expressed_genes = len(expressed)
     

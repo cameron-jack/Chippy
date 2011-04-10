@@ -5,6 +5,7 @@ sys.path.append('..')
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
+import numpy
 from cogent.util.unit_test import TestCase, main
 
 import datetime
@@ -15,7 +16,7 @@ from chippy.express.db_schema import Gene, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             make_session
 from chippy.express.db_query import get_total_gene_counts, \
-        get_ranked_expression, get_ranked_genes_per_chrom
+        get_ranked_expression, get_ranked_genes_per_chrom, get_genes
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -196,16 +197,24 @@ class TestGene(TestDbBase):
             self.assertEqual(gene.Tss, expect[gene.ensembl_id])
     
     def test_tss_centred_coords(self):
-        """return coordinates centred on the TSS"""
+        """coordinates centred on the TSS correctly slice numpy array"""
+        counts = numpy.arange(3000)
+        plus = counts[500:1500]
+        minus = counts[2500:1500:-1]
+        expected_counts = {1:plus, -1:minus}
         add_all_gene_exons(self.session, self.genes)
         genes = self.session.query(Gene).all()
-        expect = {'PLUS-1': [500, 1500],
-            'PLUS-3': [500, 1500],
-            'MINUS-1': [1500, 2500],
-            'MINUS-3': [1500, 2500]}
+        expect = {'PLUS-1': (500, 1500, 1),
+            'PLUS-3': (500, 1500, 1),
+            'MINUS-1': (2500, 1500, -1),
+            'MINUS-3': (2500, 1500, -1)}
         for gene in genes:
-            self.assertEqual(gene.getTssCentredCoords(500),
+            got_start, got_end, got_strand = gene.getTssCentredCoords(500)
+            self.assertEqual((got_start, got_end, got_strand),
                             expect[gene.ensembl_id])
+            self.assertEqual(counts[got_start:got_end:got_strand],
+                            expected_counts[got_strand])
+        
     
     def test_gene_upstream(self):
         """return correct coordinates ending at TSS"""
@@ -418,6 +427,20 @@ class TestQueryFunctions(TestDbBase):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
         
     
+    def test_query_genes_release(self):
+        """return correct genes for a release"""
+        genes = get_genes(self.session, '58') # returns all genes
+        self.assertEqual(len(genes.all()), 4)
+        genes = get_genes(self.session, '58', 2) # returns chrom2 genes
+        self.assertEqual(len(genes.all()), 2)
+        genes = get_genes(self.session, '58', biotype='miRNA') # returns none
+        self.assertEqual(len(genes.all()), 0)
+        
+
+
+
+# 
+# def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
 
 if __name__ == '__main__':
     main()

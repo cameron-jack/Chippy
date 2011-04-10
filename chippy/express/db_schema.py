@@ -6,6 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
 
 from cogent.util.misc import flatten
+from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -193,9 +194,25 @@ class Gene(Base):
         return self._tss
     
     def getTssCentredCoords(self, size):
-        """returns coords centred on the gene TSS"""
+        """returns start, end, strand centred on the gene TSS
+        
+        Note: if MINUS_STRAND, start > end. These can be used to slice a numpy
+        array, with the strand serving as the stride.
+        """
+        strand = self.strand
+        if strand != PLUS_STRAND and strand != MINUS_STRAND:
+            raise RuntimeError('Must have a + or - strand')
+        
         tss = self.Tss
-        return sorted([tss-size, tss+size])
+        if self.strand == PLUS_STRAND:
+            start = max(tss - size, 0)
+            end = tss + size
+        else: # MINUS_STRAND strand
+            # start which actually be > end
+            start = tss + size
+            end = max(tss - size, 0)
+        
+        return start, end, strand
     
     def getUpstreamCoords(self, size):
         """returns coords ending at the TSS"""

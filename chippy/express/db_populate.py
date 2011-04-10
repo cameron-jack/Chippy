@@ -13,8 +13,7 @@ from cogent.util.progress_display import display_wrap
 from chippy.express.db_schema import Gene, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
-from chippy.express.db_query import get_ensembl_id_transcript_mapping, \
-        get_transcript_gene_mapping
+from chippy.express.db_query import  get_stable_id_genes_mapping
 from chippy.ref.util import chroms
 from chippy.express.util import single_gene, _one
 from chippy.parse.r_dump import RDumpToTable
@@ -157,67 +156,46 @@ def add_expression_study(session, sample_name, data_path, table,
         reffile = reffile[0]
     
     # check we haven't already added expression data from this file
-    records = session.query(Expression).filter_by(reference_file=reffile).all()
+    records = session.query(Expression).filter_by(
+                                reffile_id=reffile.reffile_id).all()
+    
     if len(records) > 0:
         run_record.addMessage('add_expression_study',
             LOG_WARNING, 'Already added this expression file', data_path)
         return run_record
     
     # get all gene ID data for the specified Ensembl release
-    ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
-                                                            ensembl_release)
-    transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
+    ensembl_genes = get_stable_id_genes_mapping(session, ensembl_release)
     if not successful_commit(session, data):
         pass
     
     data = []
-    # order the table in descending order of expression
-    table = table.sorted(columns=expression_label, reverse=expression_label)
-    rank = 0
-    failed = []
-    all_genes = set()
-    probeset_to_many = 0
-    many_probeset = 0
+    unknown_ids = 0
+    total = 0
     for record in ui.series(table, noun='Adding expression instances'):
-        transcript_ids = record[ensembl_id_label]
-        # only keep data from probesets that map to a single gene
-        gene_id = single_gene(transcript_to_gene, transcript_ids)
-        if gene_id is None:
-            probeset_to_many += 1
+        ensembl_id = record[ensembl_id_label]
+        try:
+            gene = ensembl_genes[ensembl_id]
+        except KeyError:
+            unknown_ids += 1
             continue
         
-        all_genes.update([gene_id])
         probeset = record[probeset_label]
-        expressed = Expression(probeset, record[expression_label], rank)
+        scores = record[expression_label]
+        expressed = Expression(probeset, record[expression_label])
         expressed.reffile_id = reffile.reffile_id
         expressed.sample = sample
-        data = [expressed]
-        
-        for ensembl_id in transcript_ids:
-            transcript = ensembl_to_transcript[ensembl_id]
-            a = Association()
-            a.expressed = expressed
-            a.transcript_id = transcript.transcript_id
-            transcript.expressions.append(a)
-            data.extend([a, transcript])
-        
-        if not successful_commit(session, data):
-            many_probeset += 1
-            session.rollback()
-            continue
-        
-        rank += 1
+        expressed.gene = gene
+        data.append(gene)
+        total += 1
     
+    session.add_all(data)
     session.commit()
     
     run_record.addMessage('add_expression_study',
-        LOG_INFO, 'Probset mapped to multiple loci', probeset_to_many)
+        LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
     run_record.addMessage('add_expression_study',
-        LOG_ERROR, 'other probeset error', many_probeset)
-    run_record.addMessage('add_expression_study',
-        LOG_INFO, 'Total probesets added to db', rank)
-    run_record.addMessage('add_expression_study',
-        LOG_INFO, 'Total genes uniquely referenced', len(all_genes))
+        LOG_INFO, 'Total genes', total)
     return run_record
 
 @display_wrap

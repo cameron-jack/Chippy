@@ -47,6 +47,7 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
         print ''.join(stderr)
     return run_record
 
+# TODO not using save_dir
 def run_bowtie(bowtie_index, save_dir, fastq_filename, map_filename, run_record, test):
     """run bowtie"""
     command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 8 %s %s %s' % \

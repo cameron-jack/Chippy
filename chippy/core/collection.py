@@ -195,4 +195,30 @@ class RegionCollection(_GenericCollection):
             r = rank_func(ranks)
             yield c, r
         
+    def filteredByLabel(self, labels):
+        """returns a new collection object consisting of just the subset"""
+        if self.labels is None:
+            raise RuntimeError('No labels')
+        
+        if type(labels) == str:
+            labels = [labels]
+        
+        if self.ranks is None:
+            rank_data = None
+        else:
+            rank_data = []
+        
+        label_data = []
+        count_data = []
+        counts = self.counts
+        for i in range(counts.shape[0]):
+            if self.labels[i] in labels:
+                count_data.append(self.counts[i])
+                label_data.append(self.labels[i])
+                if rank_data is not None:
+                    rank_data.append(self.ranks[i])
+        
+        return self.__class__(counts=count_data, ranks=rank_data,
+                            labels=label_data, info=self.info)
     
+

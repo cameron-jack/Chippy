@@ -118,7 +118,41 @@ class CollectionTests(TestCase):
             self.assertEqual(c, r)
             self.assertEqual(l, expected_labels[i])
             i += 1
+    
+    def test_filtered_by_label(self):
+        """return correct subset by label"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+            ranks=[0, 1, 2, 3, 4],
+            labels=['0','1', '2','3', '4'])
+        coll = RegionCollection(**input)
+        new = coll.filteredByLabel('1') # one label
+        self.assertEqual(new.labels, ['1'])
+        self.assertEqual(new.counts.tolist(), [[2,3]])
+        self.assertEqual(new.ranks.tolist(), [1])
         
+        new = coll.filteredByLabel(['1']) # one label
+        self.assertEqual(new.labels, ['1'])
+        self.assertEqual(new.counts.tolist(), [[2,3]])
+        self.assertEqual(new.ranks.tolist(), [1])
+        
+        new = coll.filteredByLabel(['0', '2', '4']) # 3 disjoint labels
+        self.assertEqual(new.labels, ['0', '2', '4'])
+        self.assertEqual(new.counts.tolist(), [[0,1], [4,5], [8,9]])
+        self.assertEqual(new.ranks.tolist(), [0, 2, 4])
+        
+        # without ranks
+        input.pop('ranks')
+        coll = RegionCollection(**input)
+        new = coll.filteredByLabel('1') # one label
+        self.assertEqual(new.labels, ['1'])
+        self.assertEqual(new.counts.tolist(), [[2,3]])
+        self.assertEqual(new.ranks, None)
+    
+    def test_filtered_by_label_fails(self):
+        """filtered by label faisl if no labels"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        coll = RegionCollection(**input)
+        self.assertRaises(RuntimeError, coll.filteredByLabel, '1')
     
 
 if __name__ == '__main__':

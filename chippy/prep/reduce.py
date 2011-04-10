@@ -95,8 +95,8 @@ def what_chromosomes(chrom_name, chroms=chroms):
     chroms = list(chroms[:])
     if chrom_name == chroms[0]:
         chroms = chroms[1:]
-    elif chrom_name in chrom_names:
-        chroms = [strchrom_name]
+    elif chrom_name in chroms:
+        chroms = [chrom_name]
     else:
         raise RuntimeError('Unknown chrom_name: %s' % str(chrom_name))
     

@@ -201,7 +201,8 @@ class Gene(Base):
         """
         strand = self.strand
         if strand != PLUS_STRAND and strand != MINUS_STRAND:
-            raise RuntimeError('Must have a + or - strand')
+            raise RuntimeError('Must have a strand equal to %s or %s' % \
+                        (PLUS_STRAND, MINUS_STRAND))
         
         tss = self.Tss
         if self.strand == PLUS_STRAND:

@@ -132,21 +132,17 @@ def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, bio
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
-def get_external_genes_from_expression_study(session, ensembl_release, external_gene_sample_name, sample_name, test_run=False):
+def get_external_genes(session, ensembl_release, external_gene_sample_name, test_run=False):
+    """returns external genes, not ranked"""
     external_sample = _get_sample(session, external_gene_sample_name)
     if not external_sample:
         raise RuntimeError('No external_sample with name %s' % \
                         external_gene_sample_name)
-    print 'selecting the transcripts'
-    query = _get_gene_expression_query(session, ensembl_release, sample_name)
-    all = query.all()
-    # get the gene id's from the external sample
-    external_gene_ids = session.query(ExternalGene.gene_id).filter(
-                    ExternalGene.sample_id==external_sample.sample_id).all()
-    print 'done external'
-    external_genes = [genes[gid] for gid in flatten(external_gene_ids)
-                if gid in genes]
-    return external_genes
+    
+    query = session.query(Gene).join(ExternalGene).\
+            filter(and_(ExternalGene.sample_id==external_sample.sample_id,
+            Gene.ensembl_release==ensembl_release)).all()
+    return query
 
 def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""

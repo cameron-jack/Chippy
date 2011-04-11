@@ -8,7 +8,7 @@ from cogent.util.progress_display import display_wrap
 from chippy.core.read_count import WholeChrom
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
-        get_ranked_genes_per_chrom, get_external_genes_from_expression_study
+        get_ranked_genes_per_chrom
 from chippy.ref.util import chroms
 
 __author__ = "Gavin Huttley"

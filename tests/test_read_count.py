@@ -1,5 +1,8 @@
 import sys
 sys.path.extend(['../src', '..'])
+import warnings
+warnings.filterwarnings('ignore',
+        "you've sliced beyond the limits of the contig")
 
 import numpy
 
@@ -42,6 +45,25 @@ class MinimalRegionCountTests(TestCase):
             self.assertEqual(got, expect)
         
         remove_files(['sample.txt.gz'])
+    
+    def test_slicing_matches_numpy(self):
+        """slicing a WholeChrom instance should work for +/- strands"""
+        read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
+        read_counter.update()
+        got_plus = read_counter[5:20]
+        expect_plus = numpy.array([5, 5, 5, 5, 5, 5, 5, 2, 0, 0, 10, 10, 10,
+                                    10, 10])
+        got_plus = read_counter[5:20:1]
+        expect_plus = numpy.array([5, 5, 5, 5, 5, 5, 5, 2, 0, 0, 10, 10, 10,
+                                    10, 10])
+        self.assertEqual(got_plus, expect_plus)
+        got_minus = read_counter[20:5:-1]
+        expect_minus = numpy.array([10, 10, 10, 10, 10, 10, 0, 0, 2, 5, 5, 5,
+                                    5, 5, 5])
+        self.assertEqual(got_minus, expect_minus)
+        got = read_counter[15:30]
+        expect = numpy.array([10]*10)
+        self.assertEqual(got, expect)
     
     def test_total_chrom(self):
         """whole `chromosome' should be correct"""
@@ -88,22 +110,6 @@ class MinimalRegionCountTests(TestCase):
             self.assertEqual(got, expect)
         
         remove_files(['sample.txt.gz'])
-    
-    def test_compare_old_new(self):
-        """RegularRegionCounts and WholeChrom should give same answer"""
-        read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
-        read_counter.update()
-        counter = RegularRegionCounts(25, one_based=False)
-        
-        for i in range(2):
-            counter.addRead(2, 12)
-            counter.addRead(3, 13)
-        counter.addRead(3, 12)
-        
-        for i in range(10):
-            counter.addRead(15, 25)
-        
-        self.assertEqual(counter.counts, read_counter.total_count)
     
 
 if __name__ == "__main__":

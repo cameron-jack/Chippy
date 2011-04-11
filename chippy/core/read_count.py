@@ -43,9 +43,12 @@ class WholeChrom(object):
         self.total_count = zeros(total_length, int32)
     
     def __setitem__(self, slice, value):
+        # this is to handle the construction of a strand specific count contig
         start, end = min([slice.start, slice.stop]), max([slice.start, slice.stop])
         if slice.step is not None:
             if self.strand != slice.step:
+                # if we defined a strand for this instance, we only add reads
+                # that have the same strand
                 return
         try:
             value.shape[0]
@@ -56,12 +59,17 @@ class WholeChrom(object):
         self.total_count[start:end] += value
     
     def __getitem__(self, slice):
-        start, end = min([slice.start, slice.stop]), max([slice.start, slice.stop])
+        # not clear how to handle a slice that returns an shorter array
+        msg = "you've sliced beyond the limits of the contig"
         try:
-            result = self.total_count[start:end]
+            result = self.total_count[slice]
+            if slice.stop is not None:
+                if abs(slice.stop - slice.start) != result.shape[0]:
+                    warnings.warn(msg, UserWarning, 2)
         except IndexError:
-            print "WARNING: you've sliced beyond the limits of the contig"
+            warnings.warn(msg, UserWarning, 2)
             result = None
+        
         return result
     
     @display_wrap

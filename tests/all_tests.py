@@ -32,15 +32,12 @@ def suite():
     modules_to_test = [
         'test_collection',
         'test_db',
-        'test_export_counts',
         'test_inline_stats',
         'test_light_seq',
         'test_reduce',
         'test_parse_fastq',
         'test_read_count',
         'test_syntax',
-        'test_cache_lane_counts',
-        'test_subregion_map',
         'test_util'
         ]
 

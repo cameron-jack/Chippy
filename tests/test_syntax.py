@@ -28,7 +28,6 @@ _modules_to_import = [
     'chippy.ref.gene_transcript_map',
     'chippy.ref.genome',
     'chippy.util.inline_stats',
-    'segment_count',
     ]
 
 for mod in _modules_to_import:

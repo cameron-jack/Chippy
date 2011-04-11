@@ -63,6 +63,23 @@ def get_samples(session):
     samples = session.query(Sample).all()
     return samples
 
+def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
+    """returns the Gene's for the indicated release and biotype and chrom"""
+    if chrom and biotype:
+        condition = and_(Gene.ensembl_release==ensembl_release,
+                        Gene.coord_name==str(chrom), Gene.biotype==biotype)
+    elif chrom:
+        condition = and_(Gene.ensembl_release==ensembl_release,
+                        Gene.coord_name==str(chrom))
+    elif biotype:
+        condition = and_(Gene.ensembl_release==ensembl_release, 
+                        Gene.biotype==biotype)
+    else:
+        condition = Gene.ensembl_release==ensembl_release
+    
+    query = session.query(Gene).filter(condition)
+    return query
+
 def get_transcript_gene_mapping(session, ensembl_release):
     """get ensembl transcript id to chippy gene id mapping"""
     transcript_to_gene = dict(session.query(Transcript.ensembl_id,

@@ -25,7 +25,6 @@ _modules_to_import = [
     'chippy.parse.sam',
     'chippy.prep.fastq_to_fasta',
     'chippy.prep.pristine_seqs',
-    'chippy.ref.gene_transcript_map',
     'chippy.ref.genome',
     'chippy.util.inline_stats',
     ]

@@ -66,7 +66,7 @@ def get_counts_ranks_ensembl_ids(genes, ui=None):
     counts = []
     ensembl_ids = []
     for gene in ui.series(genes, noun='Getting counts, ranks and ensembl_ids'):
-        ranks.append(gene.MeanScore)
+        ranks.append(gene.Rank)
         counts.append(gene.counts)
         ensembl_ids.append(gene.ensembl_id)
     return counts, ranks, ensembl_ids

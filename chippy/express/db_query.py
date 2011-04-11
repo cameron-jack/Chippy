@@ -80,12 +80,6 @@ def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
     query = session.query(Gene).filter(condition)
     return query
 
-def get_transcript_gene_mapping(session, ensembl_release):
-    """get ensembl transcript id to chippy gene id mapping"""
-    transcript_to_gene = dict(session.query(Transcript.ensembl_id,
-        Transcript.gene_id).filter_by(ensembl_release=ensembl_release).all())
-    return transcript_to_gene
-
 def get_stable_id_genes_mapping(session, ensembl_release):
     """get ensembl genes for a release"""
     genes = session.query(Gene).filter_by(
@@ -165,8 +159,8 @@ def diff_expression_study(session, sample_name, data_path, table,
     # query db for every gene linked to this expression study
     records = get_ranked_expression(session, ensembl_release, sample_name,
             data_path=data_path, test_run=test_run)
-    # 
-    transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
+    # following dead
+    # transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
     failures = []
     kept_gene_ids_probesets = []
     for record in ui.series(table, noun='Adding expression diffs'):

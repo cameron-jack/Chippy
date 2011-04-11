@@ -263,9 +263,10 @@ def add_expression_diff_study(session, data_path, table,
     
     
     # get all transcript to gene ID data for the specified Ensembl release
-    ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
-                                                            ensembl_release)
-    transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
+    # dead code
+    # ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
+    #                                                         ensembl_release)
+    # transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
     
     table = table.sorted(columns=expression_label, reverse=expression_label)
     num = 0

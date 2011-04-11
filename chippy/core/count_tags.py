@@ -47,6 +47,9 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
         print '\tDecorating genes'
         for gene in chrom_ordered[chrom_name]:
             start, end, strand = gene.getTssCentredCoords(window_size)
+            # strand is being used here as a stride so if minus strand
+            # then start > end and with stride==-1 we reverse the counts so
+            # they are all 5' to 3'
             gene.counts = counts[start:end:strand].copy()
             n += 1
             if n % 10 == 0:

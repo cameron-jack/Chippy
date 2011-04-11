@@ -64,6 +64,7 @@ class MinimalRegionCountTests(TestCase):
         got = read_counter[15:30]
         expect = numpy.array([10]*10)
         self.assertEqual(got, expect)
+        remove_files(['sample.txt.gz'])
     
     def test_total_chrom(self):
         """whole `chromosome' should be correct"""
@@ -72,6 +73,7 @@ class MinimalRegionCountTests(TestCase):
         chrom = numpy.array([0, 0, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 0, 0,
                 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], numpy.int32)
         self.assertEqual(read_counter.total_count, chrom)
+        remove_files(['sample.txt.gz'])
     
     def test_count_reads_plus_strand(self):
         """correctly count reads from plus strand"""

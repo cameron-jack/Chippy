@@ -89,10 +89,10 @@ def main():
             opts.test_run)
     
     print 'Mapping contaminated seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index, working_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index,
         contaminated_fastq, contaminated_map, run_record, opts.test_run)
     print 'Mapping pristine seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index, working_dir,
+    run_record = command_line.run_bowtie(opts.bowtie_index,
         pristine_fastq, pristine_map, run_record, opts.test_run)
     
     # concatenate the pristine and contaminated files

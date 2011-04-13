@@ -42,7 +42,6 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
         counts = WholeChrom(chrom_counts_path,
                             max_read_length=max_read_length)
         print 'Making full counts array for chromosome %s' % chrom_name
-        counts.update()
         
         print '\tDecorating genes'
         for gene in chrom_ordered[chrom_name]:

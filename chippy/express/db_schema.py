@@ -296,11 +296,12 @@ class ExpressionDiff(Base):
     
     expression_diff_id = Column(Integer, primary_key=True)
     
-    probeset = Column(Integer)
-    fold_change = Column(Float)
+    probesets = Column(Integer)
+    fold_changes = Column(Float)
     probability = Column(Float)
     multitest_signif = Column(Integer)
     
+    gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     sample_a_id = Column(Integer, ForeignKey('sample.sample_id'))
     sample_b_id = Column(Integer, ForeignKey('sample.sample_id'))
     reffile_id = Column(Integer, ForeignKey('reference_file.reffile_id'))
@@ -310,10 +311,15 @@ class ExpressionDiff(Base):
     sample_b = relationship(Sample,
             primaryjoin = sample_b_id == Sample.sample_id)
     
+    gene = relationship(Gene,
+            backref=backref('expression_diffs', order_by=expression_diff_id))
+    
+    reference_file = relationship(ReferenceFile,
+            backref=backref('expression_diffs', order_by=expression_diff_id))
     reference_file = relationship(ReferenceFile,
             backref=backref('expression_diffs', order_by=expression_diff_id))
     
-    __table_args__ = (UniqueConstraint('probeset', 'reffile_id',
+    __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})
     
     def __init__(self, probeset, fold_change, prob, signif):

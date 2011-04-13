@@ -23,24 +23,70 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
+@display_wrap
+def make_contig_counts(mapped_read_path, max_read_length=None,
+                strand=NULL_STRAND, sep='\t', is_sorted=True, ui=None):
+    """returns a numpy array representing read counts
+    
+    Arguments:
+        - mapped_read_path: path to table containing read coordinates,
+          frequency data
+        - max_read_length: maximum length of a read length
+        - strand: only reads from specified strand are added. Default is both.
+        - sep: the delimiter in the read coordinates file
+        - is_sorted: whether the read file is already sorted
+    """
+    data = LoadTable(mapped_read_path, sep=sep)
+    assert list(data.Header) == ['start', 'length', 'strand', 'freq'],\
+        "mapped read Table header doesn't match expected"
+    
+    if not is_sorted:
+        data = data.sorted(columns='start')
+    
+    data = data.array.astype(int32)
+    total = data.shape[0]
+    max_read_length = max_read_length or inf
+    total_length = data[-1][0] + data[-1][1]
+    counts = zeros(total_length, int32)
+    
+    for i in range(total):
+        if i % 10 == 0:
+            ui.display('Adding reads [%d / %d]' % (i, total), i / total)
+        
+        start, length, read_strand, freq = data[i]
+        
+        if strand != NULL_STRAND and strand != read_strand:
+            continue
+        
+        end = start + length
+        if max_read_length < length:
+            diff = length - max_read_length
+            if read_strand == PLUS_STRAND:
+                end -= diff
+            elif read_strand == MINUS_STRAND:
+                start += diff
+        
+        counts[start:end] += freq
+    
+    return counts
+
 class WholeChrom(object):
-    def __init__(self, mapped_reads, max_read_length=None, strand=0, sep='\t', is_sorted=True):
+    def __init__(self, mapped_read_path=None, counts=None,
+          max_read_length=None, strand=NULL_STRAND, sep='\t', is_sorted=True):
         super(WholeChrom, self).__init__()
-        self.max_read_length = max_read_length
-        
-        data = LoadTable(mapped_reads, sep=sep)
-        assert list(data.Header) == ['start', 'length', 'strand', 'freq'],\
-            "mapped read Table header doesn't match expected"
-        
-        if not is_sorted:
-            data = data.sorted(columns='start')
-        
-        self.data = data.array.astype(int32)
         self.last_start_index = 0
         self.strand = strand
         
-        total_length = self.data[-1][0] + self.data[-1][1]
-        self.total_count = zeros(total_length, int32)
+        assert not (mapped_read_path and counts),\
+                "Cannot provide a counts array AND a path to create one from"
+        
+        if counts is not None:
+            self.counts = counts
+        else:
+            self.counts = make_contig_counts(mapped_read_path,
+                max_read_length=max_read_length, strand=strand, sep=sep,
+                is_sorted=is_sorted)
+        
     
     def __setitem__(self, slice, value):
         # this is to handle the construction of a strand specific count contig
@@ -56,44 +102,37 @@ class WholeChrom(object):
         except IndexError:
             pass
         
-        self.total_count[start:end] += value
+        self.counts[start:end] += value
     
     def __getitem__(self, slice):
         # not clear how to handle a slice that returns an shorter array
         msg = "you've sliced beyond the limits of the contig"
         try:
-            result = self.total_count[slice]
+            result = self.counts[slice]
             if slice.stop is not None:
                 if abs(slice.stop - slice.start) != result.shape[0]:
                     warnings.warn(msg, UserWarning, 2)
+                    # TODO pad the result with zeros
         except IndexError:
             warnings.warn(msg, UserWarning, 2)
             result = None
         
         return result
     
-    @display_wrap
-    def update(self, ui=None):
-        """applies referenced read count data to produce a single numpy array"""
-        total = self.data.shape[0]
-        max_read_length = self.max_read_length or inf
-        for i in range(total):
-            if i % 10 == 0:
-                ui.display('Adding reads [%d / %d]' % (i, total), i / total)
-            
-            start, length, strand, freq = self.data[i]
-            
-            if self.strand != NULL_STRAND and self.strand != strand:
-                continue
-            
-            end = start + length
-            if max_read_length < length:
-                diff = length - max_read_length
-                if strand == PLUS_STRAND:
-                    end -= diff
-                elif strand == MINUS_STRAND:
-                    start += diff
-            
-            self[start:end] += freq
+    def __add__(self, other):
+        """adds counts returns instance of self.__class__"""
+        if not isinstance(other, self.__class__):
+            raise RuntimeError('Cannot add %s to %s' % (self.__class__,
+                    other.__class__))
         
+        length = max(self.counts.shape[0], other.counts.shape[0])
+        new = zeros(length, dtype=self.counts.dtype)
+        new[:self.counts.shape[0]] += self.counts
+        new[:other.counts.shape[0]] += other.counts
+        if self.strand == other.strand:
+            strand = self.strand
+        else:
+            strand = NULL_STRAND
+        
+        return self.__class__(counts=new, strand=strand)
     

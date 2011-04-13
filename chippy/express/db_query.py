@@ -87,7 +87,7 @@ def get_stable_id_genes_mapping(session, ensembl_release):
     ensembl_id_genes = dict([(g.ensembl_id, g) for g in genes])
     return ensembl_id_genes
 
-def get_ranked_expression(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, rank_by='max', test_run=False):
+def get_ranked_expression(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
     """returns all ranked genes from a sample"""
     query = _get_gene_expression_query(session, ensembl_release, sample_name,
                     data_path=data_path, test_run=test_run)

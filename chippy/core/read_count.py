@@ -98,7 +98,13 @@ class WholeChrom(object):
                 return
         try:
             value.shape[0]
-            return # numpy modifies arrays in place
+            if not (start < self.counts.shape[0] <= end):
+                # numpy modifies arrays in place
+                return
+            else:
+                # but in this case we're beyond the end
+                diff = self.counts.shape[0] - start
+                value = value[:diff]
         except IndexError:
             pass
         
@@ -110,8 +116,18 @@ class WholeChrom(object):
         try:
             result = self.counts[slice]
             if slice.stop is not None:
-                if abs(slice.stop - slice.start) != result.shape[0]:
+                span = abs(slice.stop - slice.start)
+                if span != result.shape[0]:
+                    diff = span - result.shape[0]
+                    work = zeros(span, dtype=result.dtype)
+                    if slice.step == -1:
+                        # if minus strand, we reverse it first
+                        work[diff:] = result
+                    else:
+                        work[:result.shape[0]] = result
+                    result = work
                     warnings.warn(msg, UserWarning, 2)
+                    
                     # TODO pad the result with zeros
         except IndexError:
             warnings.warn(msg, UserWarning, 2)

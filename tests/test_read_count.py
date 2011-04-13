@@ -46,7 +46,7 @@ class MinimalRegionCountTests(TestCase):
         
         remove_files(['sample.txt.gz'])
     
-    def test_slicing_matches_numpy(self):
+    def test_slice_within_contig_correct(self):
         """slicing a WholeChrom instance should work for +/- strands"""
         read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
         got_plus = read_counter[5:20]
@@ -61,9 +61,22 @@ class MinimalRegionCountTests(TestCase):
                                     5, 5, 5])
         self.assertEqual(got_minus, expect_minus)
         got = read_counter[15:30]
-        expect = numpy.array([10]*10)
+        expect = numpy.array(([10]*10)+([0]*5))
         self.assertEqual(got, expect)
         remove_files(['sample.txt.gz'])
+    
+    def test_slice_beyond_end_works(self):
+        """always return result of the requested length"""
+        # plus strand
+        read_counter = WholeChrom('sample.txt.gz', max_read_length=30)
+        counts = read_counter[20:30]
+        self.assertEqual(counts,
+                numpy.array([10, 10, 10, 10, 10, 0, 0, 0, 0, 0], numpy.int32))
+        # minus strand
+        counts = read_counter[29:19:-1]
+        self.assertEqual(counts,
+                numpy.array([0, 0, 0, 0, 0, 10, 10, 10, 10, 10], numpy.int32))
+        
     
     def test_total_chrom(self):
         """whole `chromosome' should be correct"""
@@ -94,6 +107,8 @@ class MinimalRegionCountTests(TestCase):
         expect[3:13] += 2
         expect[:10] += 4
         self.assertEqual(read_counter.counts, expect)
+        # adding beyond length
+        read_counter[20:35] += 10
         remove_files(['sample.txt.gz'])
     
     def test_add_two_contigs(self):

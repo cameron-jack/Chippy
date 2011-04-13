@@ -269,16 +269,14 @@ class TestExpression(TestDbBase):
         self.session.add_all(data)
         self.assertRaises(IntegrityError, self.session.commit)
     
-    def est_unique_constraint_expressiondiff(self):
-        """expression diff records unique by id of expression in samples A & B"""
-        # TODO turned this test off since there is a refactor taking place
-        # and the schema is not yet finalised for this case
+    def test_unique_constraint_expressiondiff(self):
+        """expression diff records unique by gene and reffile"""
         gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         
         samples = self.session.query(Sample).all()
         reffiles = self.session.query(ReferenceFile).all()
         
-        values = (12345, 13, 0.1, 0)
+        values = ((12345,), (13,), 0.1, 0)
         ediffs = []
         # now add 2 copies of one expressiondiff
         for i in range(2):
@@ -286,7 +284,7 @@ class TestExpression(TestDbBase):
             ed.sample_a = samples[0]
             ed.sample_b = samples[1]
             ed.reference_file = reffiles[0]
-            ed.transcript = canonical_transcript
+            ed.gene = gene
             ediffs.append(ed)
         
         self.session.add_all(ediffs)

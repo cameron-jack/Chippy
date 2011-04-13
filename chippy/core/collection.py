@@ -50,7 +50,7 @@ class _GenericCollection(object):
             counts = numpy.array(counts)
         
         if ranks is not None:
-            ranks = numpy.array(ranks)
+            ranks = numpy.array(ranks).astype(float)
             assert ranks.shape[0] == counts.shape[0],\
                 'inconsistent data attributes'
         
@@ -102,7 +102,10 @@ class RegionCollection(_GenericCollection):
         
         data = data.tolist()
         for name in data:
-            self.__dict__[name] = data[name]
+            value = data[name]
+            self.__dict__[name] = value
+            if name == 'ranks' and value is not None:
+                self.__dict__[name] = value.astype(float)
         
     
     def normalisedCounts(self, axis=None):

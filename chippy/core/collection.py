@@ -114,6 +114,7 @@ class RegionCollection(_GenericCollection):
               (axis=1) or across the entire collection (axis=None).
         """
         copied = self.counts.copy()
+        copied = copied.astype(float)
         means = copied.mean(axis=axis)
         stdevs = copied.std(axis=axis, ddof=1)
         if axis == 1:
@@ -122,6 +123,33 @@ class RegionCollection(_GenericCollection):
         copied -= means
         copied /= stdevs
         return copied
+    
+    def filteredNormalised(self, cutoff=3.0, axis=None):
+        """returns a new RegionCollection excluding records above cutoff"""
+        data = self.normalisedCounts(axis=axis)
+        func = lambda x: (x < cutoff).all()
+        
+        indices = _get_keep_indices(data, filtered=func)
+        counts = self.counts.take(indices, axis=0)
+        if self.ranks is not None:
+            ranks = self.ranks.take(indices, axis=0)
+        else:
+            ranks = None
+        
+        if self.labels is not None:
+            labels = self.labels.take(indices, axis=0)
+        else:
+            labels = None
+        
+        if self.info is None:
+            info = None
+        else:
+            info = self.info.copy()
+            info['filteredNormalised'] = cutoff
+        
+        new = self.__class__(counts=counts, labels=labels, ranks=ranks,
+                    info=info)
+        return new
     
     def getGrouped(self, group_size, filtered=None, normalised=False,
                                 axis=None, indices=None):

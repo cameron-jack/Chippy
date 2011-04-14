@@ -82,7 +82,9 @@ class CollectionTests(TestCase):
         func = lambda x: x.min() != 2 and x.max() != 3
         
         coll = RegionCollection(**input_two)
+        self.assertEqual(coll.N, 5)
         new = coll.filtered(func)
+        self.assertEqual(new.N, 4)
         self.assertEqual(new.counts.astype(int).tolist(), expect_counts)
         self.assertEqual(new.ranks.astype(int).tolist(), expect_ranks)
         self.assertEqual(new.labels.tolist(), expect_labels)

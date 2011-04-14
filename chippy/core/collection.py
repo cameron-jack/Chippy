@@ -63,6 +63,9 @@ class _GenericCollection(object):
         self.ranks = ranks
         self.labels = labels
         self.info = info
+        self.N = None
+        if counts is not None:
+            self.N = self.counts.shape[0]
     
 
 class RegionCollection(_GenericCollection):

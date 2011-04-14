@@ -124,13 +124,10 @@ class RegionCollection(_GenericCollection):
         copied /= stdevs
         return copied
     
-    def filteredNormalised(self, cutoff=3.0, axis=None):
-        """returns a new RegionCollection excluding records above cutoff"""
-        data = self.normalisedCounts(axis=axis)
-        func = lambda x: (x < cutoff).all()
-        
-        indices = _get_keep_indices(data, filtered=func)
+    def take(self, indices):
+        """returns new instance corresponding to just the indices"""
         counts = self.counts.take(indices, axis=0)
+        
         if self.ranks is not None:
             ranks = self.ranks.take(indices, axis=0)
         else:
@@ -145,59 +142,61 @@ class RegionCollection(_GenericCollection):
             info = None
         else:
             info = self.info.copy()
-            info['filteredNormalised'] = cutoff
         
         new = self.__class__(counts=counts, labels=labels, ranks=ranks,
                     info=info)
+        
         return new
     
-    def getGrouped(self, group_size, filtered=None, normalised=False,
-                                axis=None, indices=None):
-        """Arguments:
-            - filtered: a callback function that takes individual counts
-              records and returns True if they're to be included, False for
-              exclusion
-            - normalised: if True, the results of normalisedCounts are
-              supplied to filtered
-            - axis: normalisation is done per column (axis=0), per rows
-              (axis=1) or across the entire collection (axis=None).
-            - indices: indices of rows to keep
-        """
-        
-        assert not (normalised and indices), \
-                    'Normalisation only relevant if indices not provided'
-        
-        if normalised:
-            data = self.normalisedCounts(axis=axis)
-        else:
-            data = self.counts
-        
-        if not indices:
-            indices = _get_keep_indices(data, filtered=filtered)
-        
-        counts = self.counts.take(indices, axis=0)
-        
-        if group_size > 1:
-            counts = make_even_groups(counts, group_size)
-        
-        if self.ranks is not None:
-            ranks = self.ranks.take(indices, axis=0)
-            ranks = make_even_groups(ranks, group_size)
-        else:
-            ranks = None
-        
-        if self.labels is not None:
-            labels = self.labels.take(indices, axis=0)
-            labels = make_even_groups(labels, group_size)
-        else:
-            labels = None
-        
-        return numpy.array(counts), numpy.array(ranks), numpy.array(labels)
+    def filtered(self, func, axis=None):
+        """returns new RegionCollection excluding records where func is False"""
+        indices = _get_keep_indices(self.counts, func)
+        return self.take(indices)
     
-    def itergroups(self, **kwargs):
-        """Arguments same as for getGrouped
-        """
-        counts, ranks, labels = self.getGrouped(**kwargs)
+    def filteredNormalised(self, cutoff=3.0, axis=None):
+        """returns a new RegionCollection excluding records above cutoff"""
+        data = self.normalisedCounts(axis=axis)
+        func = lambda x: (x < cutoff).all()
+        
+        indices = _get_keep_indices(data, filtered=func)
+        if self.info is None:
+            info = {'filteredNormalised': cutoff}
+        else:
+            info = self.info.copy()
+            info['filteredNormalised'] = cutoff
+        
+        new = self.take(indices)
+        if new.info:
+            new.info.update(info)
+        else:
+            new.info = info
+        
+        return new
+    
+    def getGrouped(self, group_size):
+        """returns counts, ranks, labels in group_size"""
+        counts = self.counts
+        ranks = self.ranks
+        labels = self.labels
+        if group_size > 1:
+            # put into groups
+            counts = make_even_groups(self.counts, group_size)
+            if ranks is not None:
+                ranks = make_even_groups(ranks, group_size)
+            if labels is not None:
+                labels = make_even_groups(labels, group_size)
+        
+        counts = numpy.array(counts)
+        if ranks is not None:
+            ranks = numpy.array(ranks)
+        
+        if labels is not None:
+            labels = numpy.array(labels)
+        
+        return counts, ranks, labels
+    
+    def itergroups(self, group_size):
+        counts, ranks, labels = self.getGrouped(group_size)
         for i in range(len(counts)):
             if ranks is None:
                 rank_data = None
@@ -213,43 +212,33 @@ class RegionCollection(_GenericCollection):
             yield count_data, rank_data, label_data
         
     
-    def iterDescriptiveStats(self, **kwargs):
+    def iterDescriptiveStats(self, group_size):
         """return column means & stdevs for each group"""
-        for counts, ranks, labels in self.itergroups(**kwargs):
+        for counts, ranks, labels in self.itergroups(group_size):
             yield column_mean(counts), column_stdev(counts), rank_mean(ranks)
     
-    def iterTransformedGroups(self, rank_func=rank_mean,
-                    counts_func=column_mean, **kwargs):
-        """docstring for transformedGroups"""
+    def iterTransformedGroups(self, group_size, rank_func=rank_mean,
+                    counts_func=column_mean):
         for counts, ranks, labels in self.itergroups(**kwargs):
             c = counts_func(counts)
             r = rank_func(ranks)
             yield c, r
-        
+    
     def filteredByLabel(self, labels):
-        """returns a new collection object consisting of just the subset"""
+        """returns a new collection object with data corresponding to the
+        provided labels"""
         if self.labels is None:
             raise RuntimeError('No labels')
         
         if type(labels) == str:
             labels = [labels]
         
-        if self.ranks is None:
-            rank_data = None
-        else:
-            rank_data = []
-        
-        label_data = []
-        count_data = []
-        counts = self.counts
-        for i in range(counts.shape[0]):
+        # determine label indices and use self.take
+        indices = []
+        for i in range(self.counts.shape[0]):
             if self.labels[i] in labels:
-                count_data.append(self.counts[i])
-                label_data.append(self.labels[i])
-                if rank_data is not None:
-                    rank_data.append(self.ranks[i])
+                indices.append(i)
         
-        return self.__class__(counts=count_data, ranks=rank_data,
-                            labels=label_data, info=self.info)
+        return self.take(indices)
     
 

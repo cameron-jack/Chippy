@@ -69,22 +69,23 @@ class CollectionTests(TestCase):
             self.assertEqual(new.counts[i], coll.counts[index])
             self.assertEqual(new.labels[i], coll.labels[index])
     
-    def test_filtered_grouping_data(self):
+    def test_filtered_data(self):
         """should correctly filter records"""
         input_two = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            ranks=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            labels=[['0','1'], ['2','3'], ['4','5'], ['6','7'], ['8','9']])
+            ranks=[0, 1, 2, 3, 4],
+            labels=['0', '1', '2', '3', '4'])
         
-        expect_counts_ranks = [[[0,1], [4,5]], [[6,7], [8,9]]]
-        expect_labels = [[['0','1'], ['4','5']], [['6','7'], ['8','9']]]
+        expect_counts = [[0,1], [4,5], [6,7], [8,9]]
+        expect_ranks = [0, 2, 3, 4]
+        expect_labels = ['0', '2', '3', '4']
         
         func = lambda x: x.min() != 2 and x.max() != 3
         
         coll = RegionCollection(**input_two)
-        grouped = coll.getGrouped(2, filtered=func)
-        self.assertEqual(grouped[0].tolist(), expect_counts_ranks)
-        self.assertEqual(grouped[1].tolist(), expect_counts_ranks)
-        self.assertEqual(grouped[2].tolist(), expect_labels)
+        new = coll.filtered(func)
+        self.assertEqual(new.counts.astype(int).tolist(), expect_counts)
+        self.assertEqual(new.ranks.astype(int).tolist(), expect_ranks)
+        self.assertEqual(new.labels.tolist(), expect_labels)
     
     def test_only_counts(self):
         """correctly handle only being provided with counts data"""
@@ -95,16 +96,15 @@ class CollectionTests(TestCase):
         
         # check filter works
         expect_counts = [[[0,1], [4,5]], [[6,7], [8,9]]]
-        expect_ranks_labels = None
         
         func = lambda x: x.min() != 2 and x.max() != 3
         
         coll = RegionCollection(**input_two)
-        
-        grouped = coll.getGrouped(2, filtered=func)
-        self.assertEqual(grouped[0].tolist(), expect_counts)
-        self.assertEqual(grouped[1].tolist(), expect_ranks_labels)
-        self.assertEqual(grouped[2].tolist(), expect_ranks_labels)
+        coll = coll.filtered(func)
+        got_counts, got_ranks, got_labels = coll.getGrouped(2)
+        self.assertEqual(got_counts.tolist(), expect_counts)
+        self.assertEqual(got_ranks, None)
+        self.assertEqual(got_labels, None)
     
     def test_itergroups(self):
         """should correctly generate groups of counts, ranks etc .."""
@@ -122,18 +122,6 @@ class CollectionTests(TestCase):
             self.assertEqual(l, expected_labels[i])
             i += 1
         
-        expect_two = input_two.copy()
-        expect_two['counts'].remove([2,3])
-        expect_two['ranks'].remove([2,3])
-        expect_two['labels'].remove(['2','3'])
-        
-        expected_labels=[[['0','1'], ['4','5']], [['6','7'], ['8','9']]]
-        func = lambda x: x.min() != 2 and x.max() != 3
-        i = 0
-        for c, r, l in coll.itergroups(group_size=2, filtered=func):
-            self.assertEqual(c, r)
-            self.assertEqual(l, expected_labels[i])
-            i += 1
     
     def test_filtered_by_label(self):
         """return correct subset by label"""

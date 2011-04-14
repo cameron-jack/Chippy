@@ -46,6 +46,16 @@ class MinimalRegionCountTests(TestCase):
         
         remove_files(['sample.txt.gz'])
     
+    def test_count_read_max_length(self):
+        """use maximum read length instead of mapped length"""
+        read_counter = WholeChrom('sample.txt.gz', max_read_length=10,
+                count_max_length=True)
+        expect = numpy.array([5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 0],
+            numpy.uint32)
+        got = read_counter[3:14]
+        self.assertEqual(got, expect)
+        remove_files(['sample.txt.gz'])
+    
     def test_slice_within_contig_correct(self):
         """slicing a WholeChrom instance should work for +/- strands"""
         read_counter = WholeChrom('sample.txt.gz', max_read_length=30)

@@ -1,6 +1,6 @@
 from __future__ import division
 
-from os import path as p
+from os import path
 from glob import glob1
 import re
 import warnings
@@ -25,13 +25,16 @@ __version__ = '0.1'
 
 @display_wrap
 def make_contig_counts(mapped_read_path, max_read_length=None,
-                strand=NULL_STRAND, sep='\t', is_sorted=True, ui=None):
+                count_max_length=False, strand=NULL_STRAND, sep='\t',
+                is_sorted=True, ui=None):
     """returns a numpy array representing read counts
     
     Arguments:
         - mapped_read_path: path to table containing read coordinates,
           frequency data
         - max_read_length: maximum length of a read length
+        - count_max_length: if max_read_length provided, all mapped seqs set
+          to this length
         - strand: only reads from specified strand are added. Default is both.
         - sep: the delimiter in the read coordinates file
         - is_sorted: whether the read file is already sorted
@@ -43,12 +46,14 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
     if not is_sorted:
         data = data.sorted(columns='start')
     
+    if count_max_length:
+        assert max_read_length, 'must specify max_read_length to use'\
+                                ' count_max_length'
     data = data.array.astype(int32)
     total = data.shape[0]
     max_read_length = max_read_length or inf
     total_length = data[-1][0] + data[-1][1]
     counts = zeros(total_length, int32)
-    
     for i in range(total):
         if i % 10 == 0:
             ui.display('Adding reads [%d / %d]' % (i, total), i / total)
@@ -66,13 +71,17 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
             elif read_strand == MINUS_STRAND:
                 start += diff
         
-        counts[start:end] += freq
+        if count_max_length:
+            counts[start:start+max_read_length] += freq
+        else:
+            counts[start:end] += freq
     
     return counts
 
 class WholeChrom(object):
     def __init__(self, mapped_read_path=None, counts=None,
-          max_read_length=None, strand=NULL_STRAND, sep='\t', is_sorted=True):
+          max_read_length=None, count_max_length=False, strand=NULL_STRAND,
+          sep='\t', is_sorted=True):
         super(WholeChrom, self).__init__()
         self.last_start_index = 0
         self.strand = strand
@@ -84,7 +93,8 @@ class WholeChrom(object):
             self.counts = counts
         else:
             self.counts = make_contig_counts(mapped_read_path,
-                max_read_length=max_read_length, strand=strand, sep=sep,
+                max_read_length=max_read_length,
+                count_max_length=count_max_length, strand=strand, sep=sep,
                 is_sorted=is_sorted)
         
     

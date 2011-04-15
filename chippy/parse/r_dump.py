@@ -96,11 +96,21 @@ def RDumpToTable(data):
     rows = [l for l in parser]
     return LoadTable(header=header, rows=rows, space=2)
 
-def convert(to_float=False):
+def convert(to_float=False, strict=False):
     """converts a | separated string into a tuple of floats or ints"""
     type_ = [int, float][to_float]
     def call(value):
-        return tuple(map(type_, value.strip().split('|')))
+        result = value.strip().split('|')
+        try:
+            result = tuple(map(type_, result))
+        except ValueError:
+            # can occur as older Affy arrays have probeset IDs that mix
+            # int/str
+            if strict:
+                raise ValueError
+            pass
+        
+        return result
     
     return call
 

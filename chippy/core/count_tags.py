@@ -5,7 +5,7 @@ import os
 
 from cogent.util.progress_display import display_wrap
 
-from chippy.core.read_count import WholeChrom
+from chippy.core.read_count import WholeChrom, get_combined_counts
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
         get_ranked_genes_per_chrom
@@ -21,7 +21,7 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 @display_wrap
-def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read_length, window_size, ui=None):
+def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read_length, count_max_length, window_size, ui=None):
     """decorates the Expression instances with a counts attribute, length=2*window_size"""
     # group the genes by chromosome
     chrom_ordered = {}
@@ -36,13 +36,12 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
     
     n = 0
     total = len(genes)
+    summed_counts = {}
     for chrom_name in sorted(chrom_ordered):
-        chrom_counts_path = os.path.join(counts_dir,
-                    'chr%s.txt.gz' % chrom_name)
-        counts = WholeChrom(chrom_counts_path,
-                            max_read_length=max_read_length)
         print 'Making full counts array for chromosome %s' % chrom_name
-        
+        counts = get_combined_counts(counts_dir, chrom_name, max_read_length,
+                                    count_max_length)
+        summed_counts[chrom_name] = counts.counts.sum()
         print '\tDecorating genes'
         for gene in chrom_ordered[chrom_name]:
             start, end, strand = gene.getTssCentredCoords(window_size)
@@ -56,7 +55,7 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
         
         del counts
     
-    return genes
+    return genes, summed_counts
 
 @display_wrap
 def get_counts_ranks_ensembl_ids(genes, ui=None):
@@ -70,7 +69,7 @@ def get_counts_ranks_ensembl_ids(genes, ui=None):
         ensembl_ids.append(gene.ensembl_id)
     return counts, ranks, ensembl_ids
 
-def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir, ensembl_release, max_read_length, window_size, test_run):
+def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir, ensembl_release, max_read_length, count_max_length, window_size, test_run):
     species_chroms = chroms[species]
     
     msg = 'Getting ranked expression instances%s'
@@ -84,16 +83,19 @@ def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir, e
                     sample_name, chrom, test_run=test_run)
     
     print 'Decorating'
-    expressed = get_count_decorated_expressed_genes(expressed, counts_dir,
-                            species_chroms, max_read_length, window_size)
+    expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
+            counts_dir, species_chroms, max_read_length, count_max_length,
+            window_size)
     
-    return expressed
+    return expressed, summed_counts
 
 def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
-                    ensembl_release, max_read_length, window_size, test_run):
+                    ensembl_release, max_read_length, count_max_length,
+                    window_size, test_run):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
-    expressed = _get_decorated_expressed(session, sample_name, species, chrom,
-        counts_dir, ensembl_release, max_read_length, window_size, test_run)
+    expressed, summed_counts = _get_decorated_expressed(session, sample_name,
+        species, chrom, counts_dir, ensembl_release, max_read_length,
+        count_max_length, window_size, test_run)
     total_expressed_genes = len(expressed)
     
     counts, ranks, ensembl_ids = get_counts_ranks_ensembl_ids(expressed)
@@ -105,7 +107,8 @@ def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
                         'max_read_length': max_read_length,
                         'ensembl_release': ensembl_release,
                         'sample_name': sample_name,
-                        'species': species}})
+                        'species': species,
+                        'summed_counts': summed_counts}})
     
     return data
 
@@ -117,8 +120,8 @@ def centred_counts_external_genes(session, external_genes_sample_name,
     expressed = get_external_genes_from_expression_study(session,
                 ensembl_release, external_genes_sample_name, sample_name)
     chrom_names = chroms[species]
-    expressed = get_count_decorated_expressed_genes(expressed, counts_dir,
-        chrom_names, max_read_length, window_size)
+    expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
+        counts_dir, chrom_names, max_read_length, window_size)
     total_expressed_genes = len(expressed)
     
     counts, ranks, ensembl_ids = get_counts_ranks_ensembl_ids(expressed)
@@ -130,9 +133,8 @@ def centred_counts_external_genes(session, external_genes_sample_name,
                         'max_read_length': max_read_length,
                         'ensembl_release': ensembl_release,
                         'sample_name': sample_name,
-                        'species': species}})
+                        'species': species,
+                        'summed_counts': summed_counts}})
     
     return data
 
-if __name__ == "__main__":
-    pass

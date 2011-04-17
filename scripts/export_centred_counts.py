@@ -38,9 +38,12 @@ def get_collection(session, sample_name, ensembl_release, counts_dir,
     return data_collection
 
 if 'CHIPPY_DB' not in os.environ:
-    db_path = "sqlite:///chippy.db"
+    # TODO remove this hardcoding when PyCogent.app allows specifying
+    # environment variables. This should be an assert statement, and fail
+    # if not present in the environment.
+    db_path = "/Users/gavin/Desktop/Pending/lap1/chippy.db"
 else:
-    db_path = "sqlite:///%s" % os.environ['CHIPPY_DB']
+    db_path = os.environ['CHIPPY_DB']
 
 # TODO remove this hardcoding to an ENSEMBL version
 ensembl_release='58'

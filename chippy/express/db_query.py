@@ -63,6 +63,11 @@ def get_samples(session):
     samples = session.query(Sample).all()
     return samples
 
+def get_external_sample(session):
+    """returns samples for external genes"""
+    query = session.query(Sample).join(ExternalGene).distinct()
+    return query.all()
+
 def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
     """returns the Gene's for the indicated release and biotype and chrom"""
     if chrom and biotype:
@@ -137,7 +142,7 @@ def get_external_genes(session, ensembl_release, external_gene_sample_name, test
     
     query = session.query(Gene).join(ExternalGene).\
             filter(and_(ExternalGene.sample_id==external_sample.sample_id,
-            Gene.ensembl_release==ensembl_release)).all()
+            Gene.ensembl_release==ensembl_release))
     return query
 
 def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, test_run=False):

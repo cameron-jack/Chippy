@@ -28,11 +28,14 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 if 'CHIPPY_DB' not in os.environ:
-    db_path = "sqlite:///chippy.db"
+    # TODO remove this hardcoding when PyCogent.app allows specifying
+    # environment variables. This should be an assert statement, and fail
+    # if not present in the environment.
+    db_path = "/Users/gavin/Desktop/Pending/lap1/chippy.db"
 else:
-    db_path = "sqlite:///%s" % os.environ['CHIPPY_DB']
+    db_path =os.environ['CHIPPY_DB']
 
-session = make_session(db_path)
+session = make_session( "sqlite:///%s" % db_path)
 
 script_info = {}
 

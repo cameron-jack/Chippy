@@ -128,6 +128,7 @@ class RegionCollection(_GenericCollection):
             if name == 'ranks' and value is not None:
                 self.__dict__[name] = value.astype(float)
         
+        self.N = self.counts.shape[0]
     
     def asfloats(self):
         """returns new RegionCollection with counts as floats"""

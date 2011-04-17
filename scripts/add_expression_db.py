@@ -28,11 +28,11 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 if 'CHIPPY_DB' not in os.environ:
-    db_ref = "sqlite:///chippy.db"
+    db_path = "sqlite:///chippy.db"
 else:
-    db_ref = "sqlite:///%s" % os.environ['CHIPPY_DB']
+    db_path = "sqlite:///%s" % os.environ['CHIPPY_DB']
 
-session = make_session(db_ref)
+session = make_session(db_path)
 
 script_info = {}
 

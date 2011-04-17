@@ -18,6 +18,8 @@ project_dir = project_dir.split('chippy')[0]
 data_dir = os.path.join(project_dir, 'data')
 src_dir = os.path.join(project_dir, 'src')
 
+DEFAULT_USER_DIR = os.path.expanduser('~/Desktop')
+
 import sys
 sys.path.append(src_dir)
 
@@ -85,3 +87,35 @@ def create_path(path):
         os.makedirs(path)
     except OSError, e:
         pass
+
+def make_cl_command(args):
+    """returns string that would be used to invoke script on the command
+    line."""
+    new = []
+    for arg in args:
+        if ' ' in arg:
+            arg = '"%s"' % arg
+        new.append(arg)
+    return ' '.join(new)
+
+
+def dirname_or_default(path):
+    """returns dirname of path or, if not specified, a default save
+    location"""
+    if '/' not in path:
+        dirname = DEFAULT_USER_DIR
+    else:
+        dirname = os.path.dirname(path)
+    return dirname
+
+def just_filename(path):
+    """whether path is just a filename"""
+    return os.path.basename(path) == path
+
+def safe_save_path(path):
+    """makes a saf save path if required"""
+    if not just_filename(path):
+        return path
+    
+    return os.path.join(DEFAULT_USER_DIR, path)
+

@@ -24,6 +24,24 @@ def _make_std(axis):
         return data.std(axis=axis, ddof=1)
     return call
 
+def normalised_data(data, axis=None):
+    """returns a new normalised array
+    
+    Arguments:
+        - axis: axis on which to compute mean and std dev. If None, all data
+          used. If 0/1, row-wise / column-wise statistics are computed.
+    """
+    copied = data.copy()
+    copied = copied.astype(float)
+    means = copied.mean(axis=axis)
+    stdevs = copied.std(axis=axis, ddof=1)
+    if axis == 1:
+        means = numpy.vstack(means)
+        stdevs = numpy.vstack(stdevs)
+    copied -= means
+    copied /= stdevs
+    return copied
+
 column_mean = _make_mean(0)
 column_stdev = _make_std(0)
 row_mean = _make_mean(1)
@@ -111,21 +129,26 @@ class RegionCollection(_GenericCollection):
                 self.__dict__[name] = value.astype(float)
         
     
-    def normalisedCounts(self, axis=None):
-        """Arguments:
+    def asfloats(self):
+        """returns new RegionCollection with counts as floats"""
+        counts = self.counts.astype(float)
+        return self.__class__(counts=counts, ranks=self.ranks,
+                            labels=self.labels, info=self.info)
+        
+    
+    def normalised(self, axis=None):
+        """returns new RegionCollection with counts normalised
+        
+        Arguments:
             - axis: normalisation is done per column (axis=0), per rows
               (axis=1) or across the entire collection (axis=None).
         """
-        copied = self.counts.copy()
-        copied = copied.astype(float)
-        means = copied.mean(axis=axis)
-        stdevs = copied.std(axis=axis, ddof=1)
-        if axis == 1:
-            means = numpy.vstack(means)
-            stdevs = numpy.vstack(stdevs)
-        copied -= means
-        copied /= stdevs
-        return copied
+        counts = normalised_data(self.counts, axis=axis)
+        new = self.__class__(counts=counts, labels=self.labels,
+                ranks=self.ranks, info=self.info)
+        
+        return new
+        
     
     def take(self, indices):
         """returns new instance corresponding to just the indices"""
@@ -158,7 +181,7 @@ class RegionCollection(_GenericCollection):
     
     def filteredNormalised(self, cutoff=3.0, axis=None):
         """returns a new RegionCollection excluding records above cutoff"""
-        data = self.normalisedCounts(axis=axis)
+        data = normalised_data(self.counts, axis=axis)
         func = lambda x: (x < cutoff).all()
         
         indices = _get_keep_indices(data, filtered=func)
@@ -222,10 +245,10 @@ class RegionCollection(_GenericCollection):
     
     def iterTransformedGroups(self, group_size, rank_func=rank_mean,
                     counts_func=column_mean):
-        for counts, ranks, labels in self.itergroups(**kwargs):
+        for counts, ranks, labels in self.itergroups(group_size):
             c = counts_func(counts)
             r = rank_func(ranks)
-            yield c, r
+            yield c, r, labels
     
     def filteredByLabel(self, labels):
         """returns a new collection object with data corresponding to the

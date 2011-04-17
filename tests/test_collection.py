@@ -160,6 +160,14 @@ class CollectionTests(TestCase):
         coll = RegionCollection(**input)
         self.assertRaises(RuntimeError, coll.filteredByLabel, '1')
     
+    def test_asfloats(self):
+        """conversion correctly returns instance with counts as floats"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        expect = numpy.array(input['counts'], dtype=float)
+        coll = RegionCollection(**input)
+        float_coll = coll.asfloats()
+        self.assertEqual(float_coll.counts, coll.counts)
+    
 
 if __name__ == '__main__':
     main()

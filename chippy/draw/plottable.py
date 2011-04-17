@@ -45,9 +45,14 @@ class _Plottable(object):
         self.xtick_interval = xtick_interval
         self.ytick_interval = ytick_interval
         self.linewidth = linewidth
+        self.fig = None
+        self.ax = None
     
     def _get_figure_axis(self, title=None, xlabel=None, ylabel=None):
         """returns the figure and axis ready for display"""
+        if self.fig is not None:
+            return self.fig, self.ax
+        
         if self.xlabel_fontsize:
             rc('xtick', labelsize=self.xlabel_fontsize)
         if self.ylabel_fontsize:
@@ -105,7 +110,19 @@ class _Plottable(object):
         if xlabel:
             pyplot.xlabel(xlabel)
         
-        return fig, ax
+        self.fig = fig
+        self.ax = ax
+        return self.fig, self.ax
+    
+    def ion(self):
+        pyplot.ion()
+    
+    def show(self):
+        pyplot.show()
+    
+    def savefig(self, filename):
+        pyplot.savefig(filename)
+    
     
 
 class PlottableSingle(_Plottable):
@@ -113,7 +130,7 @@ class PlottableSingle(_Plottable):
     def __init__(self, *args, **kwargs):
         super(PlottableSingle, self).__init__(*args, **kwargs)
     
-    def __call__(self, x, y, stderr=None, color=None, cmap='RdBu', xlabel=None, ylabel=None, title=None, filename=None):
+    def __call__(self, x, y, stderr=None, color=None, cmap='RdBu', xlabel=None, ylabel=None, title=None):
         cmap = getattr(cm, cmap)
         if color is None:
             color = 'b'
@@ -129,8 +146,6 @@ class PlottableSingle(_Plottable):
             lower = -1.96 * stderr + y
             pyplot.fill_between(x, upper, lower, alpha=0.2, color=color)
         
-        if filename is not None:
-            pyplot.savefig(filename)
     
 
 class PlottableGroups(_Plottable):
@@ -141,8 +156,7 @@ class PlottableGroups(_Plottable):
     @display_wrap
     def __call__(self, x, y_series, color_series=None, alpha=None, 
       series_labels=None, label_coords=None, cmap='RdBu', xlabel=None,
-      ylabel=None, title=None, filename_series=None, filename=None,
-      show_final=True, ui=None):
+      ylabel=None, title=None, filename_series=None, ui=None):
         cmap = getattr(cm, cmap)
         bbox = dict(facecolor='b', alpha=0.5)
         
@@ -165,7 +179,7 @@ class PlottableGroups(_Plottable):
             
             if series_labels is not None:
                 # TODO remove hard-coded label font size
-                txt = ax.text(series_labels[i], label_x, label_y,
+                txt = ax.text(label_x, label_y, series_labels[i],
                         bbox=bbox, color='w', fontsize=14)
             
             y = y_series[i]
@@ -177,10 +191,4 @@ class PlottableGroups(_Plottable):
             if series_labels is not None:
                 ax.texts.remove(txt)
         
-        pyplot.ion()
-        if show_final:
-            pyplot.show()
-        
-        if filename is not None:
-            pyplot.savefig(filename)
     

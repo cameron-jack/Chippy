@@ -316,8 +316,6 @@ class ExpressionDiff(Base):
     
     reference_file = relationship(ReferenceFile,
             backref=backref('expression_diffs', order_by=expression_diff_id))
-    reference_file = relationship(ReferenceFile,
-            backref=backref('expression_diffs', order_by=expression_diff_id))
     
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})

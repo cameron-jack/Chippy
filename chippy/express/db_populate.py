@@ -182,11 +182,11 @@ def add_expression_study(session, sample_name, data_path, table,
         
         probeset = record[probeset_label]
         scores = record[expression_label]
-        expressed = Expression(probeset, record[expression_label])
+        expressed = Expression(probeset, scores)
         expressed.reffile_id = reffile.reffile_id
         expressed.sample = sample
         expressed.gene = gene
-        data.append(gene)
+        data.append(expressed)
         total += 1
     
     session.add_all(data)
@@ -261,50 +261,38 @@ def add_expression_diff_study(session, data_path, table,
     if not successful_commit(session, data):
         session.rollback()
     
-    
-    # get all transcript to gene ID data for the specified Ensembl release
-    # dead code
-    # ensembl_to_transcript = get_ensembl_id_transcript_mapping(session,
-    #                                                         ensembl_release)
-    # transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
-    
-    table = table.sorted(columns=expression_label, reverse=expression_label)
-    num = 0
-    all_genes = set()
-    probeset_to_many = 0
-    many_probeset = 0
+    ensembl_genes = get_stable_id_genes_mapping(session, ensembl_release)
+    data = []
+    unknown_ids = 0
+    total = 0
     for record in ui.series(table, noun='Adding expression diffs'):
-        transcript_ids = record[ensembl_id_label]
-        gene_id = single_gene(transcript_to_gene, transcript_ids)
-        if gene_id is None:
-            probeset_to_many += 1
+        ensembl_id = record[ensembl_id_label]
+        try:
+            gene = ensembl_genes[ensembl_id]
+        except KeyError:
+            unknown_ids += 1
             continue
         
-        all_genes.update([gene_id])
         probeset = record[probeset_label]
-        diff = ExpressionDiff(probeset, fold_change=record[expression_label],
-                    prob=record[prob_label],
-                    signif=record[sig_label])
+        scores = record[expression_label]
+        fold_change = record[expression_label]
+        prob = record[prob_label]
+        signif = record[sig_label]
+        diff = ExpressionDiff(probeset, fold_change=fold_change,
+                    prob=prob, signif=signif)
         diff.reffile_id = reffile.reffile_id
         diff.sample_a = sample_a
         diff.sample_b = sample_b
-        if not successful_commit(session, diff):
-            many_probeset += 1
-            session.rollback()
-            continue
-        
-        num += 1
+        data.append(diff)
+        total += 1
     
+    session.add_all(data)
     session.commit()
     
     run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Probeset maps to multiple loci', probeset_to_many)
+        LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
     run_record.addMessage('add_expression_diff_study',
-        LOG_ERROR, 'Probeset in file multiple times', many_probeset)
-    run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Total probesets added to db', num)
-    run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Total genes uniquely referenced', len(all_genes))
+        LOG_INFO, 'Total genes', total)
     
     return run_record
 

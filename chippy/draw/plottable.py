@@ -47,6 +47,8 @@ class _Plottable(object):
         self.linewidth = linewidth
         self.fig = None
         self.ax = None
+        self._legend_patches = []
+        self._legend_labels = []
     
     def _get_figure_axis(self, title=None, xlabel=None, ylabel=None):
         """returns the figure and axis ready for display"""
@@ -123,6 +125,9 @@ class _Plottable(object):
     def savefig(self, filename):
         pyplot.savefig(filename)
     
+    def legend(self):
+        if self._legend_patches:
+            pyplot.legend(self._legend_patches, self._legend_labels)
     
 
 class PlottableSingle(_Plottable):
@@ -130,7 +135,7 @@ class PlottableSingle(_Plottable):
     def __init__(self, *args, **kwargs):
         super(PlottableSingle, self).__init__(*args, **kwargs)
     
-    def __call__(self, x, y, stderr=None, color=None, cmap='RdBu', xlabel=None, ylabel=None, title=None):
+    def __call__(self, x, y, stderr=None, color=None, cmap='RdBu', xlabel=None, ylabel=None, title=None, label=None):
         cmap = getattr(cm, cmap)
         if color is None:
             color = 'b'
@@ -139,7 +144,11 @@ class PlottableSingle(_Plottable):
         
         fig, ax = self._get_figure_axis(title=title, xlabel=xlabel,
                                     ylabel=ylabel)
-        pyplot.plot(x, y, color=color, linewidth=self.linewidth)
+        
+        patches = pyplot.plot(x, y, color=color, linewidth=self.linewidth,
+                    label=label)
+        self._legend_patches.append(patches[0])
+        self._legend_labels.append(label)
         
         if stderr is not None:
             upper = 1.96 * stderr + y

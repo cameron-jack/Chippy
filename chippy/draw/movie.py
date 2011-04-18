@@ -34,7 +34,7 @@ def make_movie(image_dir, mov_name, suffix, time_val=1, time_scale=1):
     
     duration = QTMakeTime(time_val, time_scale)
     # you can also use "tiff"
-    attrs = {QTAddImageCodecType: "tiff"}
+    attrs = {QTAddImageCodecType: "jpeg"}
     
     for imgpath in imgpaths:
         img = NSImage.alloc().initWithContentsOfFile_(os.path.join(image_dir,

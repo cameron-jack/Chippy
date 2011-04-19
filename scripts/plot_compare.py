@@ -11,7 +11,7 @@ from cogent.maths.stats.jackknife import JackknifeStats
 
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_counts_external_genes
-from chippy.core.collection import RegionCollection
+from chippy.core.collection import RegionCollection, column_sum, column_mean
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableSingle
 from chippy.ref.util import chroms
@@ -35,15 +35,20 @@ if 'CHIPPY_DB' not in os.environ:
 else:
     db_path = os.environ['CHIPPY_DB']
 
-def stat_maker(func, data, axis):
+def stat_maker(func, coll):
     def calc_stat(coords):
-        subset_data = data.take(coords, axis)
-        return func(subset_data, axis)
+        subset_data = coll.take(coords)
+        return func(subset_data)
     return calc_stat
 
-def sum(data, axis):
-    return data.sum(axis=axis)
+def summed(data):
+    freqs = data.asfreqs()
+    c, r = freqs.transformed(counts_func=column_sum)
+    return c
 
+def averaged(data):
+    c, r = data.transformed(counts_func=column_mean)
+    return c
 
 ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
@@ -67,6 +72,11 @@ opt_collection2 = make_option('-2', '--collection2',
   help='path to the plottable data from sample 2'\
        +'(e.g. samplename-readsname-windowsize.gz)')
 
+opt_metric = make_option('-m', '--metric', type='choice',
+        choices=['Mean counts', 'Frequency counts'],
+        default='Frequency counts',
+        help='Select the metric (note you will need to change your ylim accordingly)')
+
 # sampling options
 opt_cutoff = make_option('-k', '--cutoff', type='float', default = 3,
              help='Stdev limit [default: %default]')
@@ -89,7 +99,7 @@ opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
                help='Plot background color [default: %default]',
                choices=['black', 'white'])
 opt_yrange = make_option('-y', '--ylim', default=None,
-       help='minimum-maximum yaxis values (e.g. 0-3.5)')
+       help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
 opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
 opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = 0.5,
@@ -128,7 +138,7 @@ opt_test_run = make_option('-t', '--test_run',
              default=False)
 
 script_info['required_options'] = [opt_collection1, opts_legend1,
-                    opt_collection2, opts_legend2, opt_yrange]
+                    opt_collection2, opts_legend2, opt_metric, opt_yrange]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_cutoff, opt_top, opt_stderr]
@@ -152,31 +162,28 @@ script_info['optional_options_groups'] = [('Run control', run_opts),
                                   ]
 
 
-def plot_sample(plot, coll, x, title, xlabel, ylabel, color, label, stderr=False):
-    counts = coll.counts.copy()
-    counts = counts.astype(float)
-    counts /= counts.sum()
+def plot_sample(plot, coll, calc_stat, x, title, xlabel, ylabel, color, label, stderr=False):
     if stderr:
         print '\tJackknifing the mean and standard error'
-        column_sum = stat_maker(sum, counts, 0)
-        jk = JackknifeStats(counts.shape[0], column_sum)
+        jk = JackknifeStats(coll.N, calc_stat)
         y = jk.JackknifedStat
         stderr = jk.StandardError
     else:
         stderr = None
-        y = counts.sum(axis=0)
-    print y.max()
+        y = calc_stat(range(coll.N))
     plot(x, y=y, color=color, label=label, stderr=stderr, ylabel=ylabel, xlabel=xlabel, title=title)
 
 def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
-    ylim = map(float, opts.ylim.strip().split('-'))
+    assert ',' in opts.ylim, 'ylim must be comma separated'
+    ylim = map(float, opts.ylim.strip().split(','))
     print 'Loading counts data'
     data_collection1 = RegionCollection(filename=opts.collection1)
     window_size = data_collection1.info['args']['window_size']
     data_collection2 = RegionCollection(filename=opts.collection2)
+    
     # normalise both
     data_collection1 = data_collection1.filteredNormalised(opts.cutoff)
     data_collection2 = data_collection2.filteredNormalised(opts.cutoff)
@@ -224,10 +231,17 @@ def main():
     
     x = numpy.arange(-window_size, window_size)
     
-    plot_sample(plot, data_collection1, x, opts.title, opts.xlabel,
-                opts.ylabel, 'b', opts.legend1, opts.plot_stderr)
-    plot_sample(plot, data_collection2, x, opts.title, opts.xlabel,
-                opts.ylabel, 'r', opts.legend2, opts.plot_stderr)
+    if opts.metric == 'Mean counts':
+        stat = averaged
+    else:
+        stat = summed
+    
+    plot_sample(plot, data_collection1, stat_maker(stat, data_collection1), x,
+        opts.title, opts.xlabel, opts.ylabel, 'b', opts.legend1,
+        opts.plot_stderr)
+    plot_sample(plot, data_collection2, stat_maker(stat, data_collection2), x,
+        opts.title, opts.xlabel, opts.ylabel, 'r', opts.legend2,
+        opts.plot_stderr)
     
     plot.legend()
     plot.show()

@@ -147,6 +147,17 @@ class PlottableSingle(_Plottable):
         fig, ax = self._get_figure_axis(title=title, xlabel=xlabel,
                                     ylabel=ylabel)
         
+        if self.ylim is not None:
+            if max(y) > self.ylim[1]:
+                warnings.warn('ylimit may be too small, ymax=%s' % max(y),
+                        UserWarning)
+            elif 2*max(y) < self.ylim[1]:
+                warnings.warn('ylimit may be too large, ymax=%s' % max(y),
+                        UserWarning)
+            elif min(y) > self.ylim[1]:
+                warnings.warn('ylimit may be too small, ymin=%s' % min(y),
+                        UserWarning)
+            
         patches = pyplot.plot(x, y, color=color, linewidth=self.linewidth,
                     label=label)
         self._legend_patches.append(patches[0])
@@ -182,6 +193,8 @@ class PlottableGroups(_Plottable):
         fig, ax = self._get_figure_axis(title=title, xlabel=xlabel,
                                     ylabel=ylabel)
         num = len(y_series)
+        ymaxs = []
+        ymins = []
         for i in ui.series(range(num), noun='Applying lines to plot'):
             if color_series is None:
                 color = 'b'
@@ -194,6 +207,9 @@ class PlottableGroups(_Plottable):
                         bbox=bbox, color='w', fontsize=14)
             
             y = y_series[i]
+            ymaxs.append(max(y))
+            ymins.append(min(y))
+            
             pyplot.plot(x, y, color=color, linewidth=self.linewidth,
                     alpha=alpha)
             if filename_series is not None:
@@ -202,4 +218,14 @@ class PlottableGroups(_Plottable):
             if series_labels is not None:
                 ax.texts.remove(txt)
         
+        if self.ylim is not None:
+            if max(ymaxs) > self.ylim[1]:
+                warnings.warn('ylimit [%s] may be too small, ymax=%s' % \
+                (self.ylim[1], max(ymaxs)), UserWarning)
+            elif 2*max(ymaxs) < self.ylim[1]:
+                warnings.warn('ylimit may be too large, ymax=%s' % max(ymaxs),
+                        UserWarning)
+            elif min(ymins) > self.ylim[1]:
+                warnings.warn('ylimit may be too small, ymin=%s' % min(ymins),
+                        UserWarning)
     

@@ -14,6 +14,11 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
+def column_sum(data):
+    """returns the column sums"""
+    assert len(data.shape) == 2
+    return data.sum(axis=0)
+
 def _make_mean(axis):
     def call(data):
         return data.mean(axis=axis)
@@ -85,6 +90,11 @@ class _GenericCollection(object):
         if counts is not None:
             self.N = self.counts.shape[0]
     
+    @property
+    def Total(self):
+        """returns the total sum of counts"""
+        return self.counts.sum()
+    
 
 class RegionCollection(_GenericCollection):
     """store counts, ranks, labels, run arguments from a read count session"""
@@ -136,6 +146,12 @@ class RegionCollection(_GenericCollection):
         return self.__class__(counts=counts, ranks=self.ranks,
                             labels=self.labels, info=self.info)
         
+    def asfreqs(self):
+        """returns new instance with each count a frequency of Total"""
+        new = self.asfloats()
+        # now just divide by total
+        new.counts /= self.Total
+        return new
     
     def normalised(self, axis=None):
         """returns new RegionCollection with counts normalised
@@ -149,7 +165,15 @@ class RegionCollection(_GenericCollection):
                 ranks=self.ranks, info=self.info)
         
         return new
-        
+    
+    def transformed(self, rank_func=rank_mean, counts_func=column_mean):
+        """transforms all counts and ranks"""
+        c = counts_func(self.counts)
+        if self.ranks is not None:
+            r = rank_func(self.ranks)
+        else:
+            r = None
+        return c, r
     
     def take(self, indices):
         """returns new instance corresponding to just the indices"""

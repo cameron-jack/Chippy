@@ -5,8 +5,15 @@ import numpy
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
-from chippy.core.collection import RegionCollection
+from chippy.core.collection import RegionCollection, column_sum
 
+class UtilityFuncTests(TestCase):
+    def test_sum_column(self):
+        """correctly sum the columns of a 2D array"""
+        data = numpy.array([range(4), range(4,8)])
+        summed = column_sum(data)
+        expect = numpy.array([4, 6, 8, 10])
+        self.assertEqual(summed, expect)
 
 class CollectionTests(TestCase):
     
@@ -155,7 +162,7 @@ class CollectionTests(TestCase):
         self.assertEqual(new.ranks, None)
     
     def test_filtered_by_label_fails(self):
-        """filtered by label faisl if no labels"""
+        """filtered by label fails if no labels"""
         input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
         coll = RegionCollection(**input)
         self.assertRaises(RuntimeError, coll.filteredByLabel, '1')
@@ -168,6 +175,28 @@ class CollectionTests(TestCase):
         float_coll = coll.asfloats()
         self.assertEqual(float_coll.counts, coll.counts)
     
+    def test_total_counts(self):
+        """total counts should be correct"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        coll = RegionCollection(**input)
+        self.assertEqual(coll.Total, 45)
+    
+    def test_asfreqs(self):
+        """should correctly convert counts to freqs"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        coll = RegionCollection(**input)
+        freqs = coll.asfreqs()
+        self.assertEqual(freqs.Total, 1.0)
+    
+    def test_transformed(self):
+        """correctly return transform counts"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        coll = RegionCollection(**input)
+        c, r = coll.transformed()
+        self.assertEqual(c, [4,5])
+        freqs = coll.asfreqs()
+        c, r = freqs.transformed(counts_func=column_sum)
+        self.assertEqual(c, [20./45., 25./45])
 
 if __name__ == '__main__':
     main()

@@ -68,9 +68,18 @@ def get_external_sample(session):
     query = session.query(Sample).join(ExternalGene).distinct()
     return query.all()
 
-def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
-    """returns the Gene's for the indicated release and biotype and chrom"""
-    if chrom and biotype:
+def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding', stable_ids=None):
+    """returns the Gene's for the indicated release, chrom, biotype or ensembl stable ID.
+    
+    Note: if stable_ids provided, all arguments other are ignored.
+    """
+    if type(stable_ids) == str:
+        stable_ids = [stable_ids]
+    
+    if stable_ids:
+        condition = and_(Gene.ensembl_release==ensembl_release,
+                        Gene.ensembl_id.in_(stable_ids))
+    elif chrom and biotype:
         condition = and_(Gene.ensembl_release==ensembl_release,
                         Gene.coord_name==str(chrom), Gene.biotype==biotype)
     elif chrom:

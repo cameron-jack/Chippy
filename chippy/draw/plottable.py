@@ -1,4 +1,5 @@
 from __future__ import division
+import warnings
 
 from matplotlib import pyplot, rc, cm
 from matplotlib.ticker import MultipleLocator
@@ -112,6 +113,7 @@ class _Plottable(object):
         if xlabel:
             pyplot.xlabel(xlabel)
         
+        ax.ticklabel_format(scilimits=(-3,4))
         self.fig = fig
         self.ax = ax
         return self.fig, self.ax

@@ -45,13 +45,11 @@ def get_sample_name(sample):
         sample = None
     return sample
 
-if 'CHIPPY_DB' not in os.environ:
-    # TODO remove this hardcoding when PyCogent.app allows specifying
-    # environment variables. This should be an assert statement, and fail
-    # if not present in the environment.
-    db_path = "/Users/gavin/Desktop/Pending/lap1/chippy.db"
-else:
+if 'CHIPPY_DB' in os.environ:
     db_path = os.environ['CHIPPY_DB']
+else:
+    raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
+                       'that indicates where to find the database')
 
 ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)

@@ -10,10 +10,14 @@ from cogent.util.misc import parse_command_line_parameters
 
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_counts_external_genes
-from chippy.core.collection import RegionCollection
+from chippy.core.collection import RegionCollection, column_sum, column_mean
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
 from chippy.ref.util import chroms
+from chippy.util.run_record import RunRecord
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
+
 from chippy.util.util import create_path, make_cl_command, just_filename, \
                     dirname_or_default
 
@@ -70,6 +74,10 @@ opt_collection = make_option('-s', '--collection',
   help='path to the plottable data '\
        +'(e.g. samplename-readsname-windowsize.gz)')
 
+opt_metric = make_option('-m', '--metric', type='choice',
+        choices=['Mean counts', 'Frequency counts'],
+        default='Frequency counts',
+        help='Select the metric (note you will need to change your ylim accordingly)')
 # chrom choice
 opt_chroms = make_option('-C', '--chrom', type='choice', default='All',
                help='Choose a chromosome [default: %default]',
@@ -98,7 +106,7 @@ opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
                help='Plot background color [default: %default]',
                choices=['black', 'white'])
 opt_yrange = make_option('-y', '--ylim', default=None,
-       help='minimum-maximum yaxis values (e.g. 0-3.5)')
+       help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
 opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
 opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = 0.5,
@@ -147,7 +155,7 @@ opt_test_run = make_option('-t', '--test_run',
              action='store_true', help="Test run, don't write output",
              default=False)
 
-script_info['required_options'] = [opt_collection, opt_yrange]
+script_info['required_options'] = [opt_collection, opt_metric, opt_yrange]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff]
@@ -176,7 +184,9 @@ def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
-    ylim = map(float, opts.ylim.strip().split('-'))
+    rr = RunRecord()
+    assert ',' in opts.ylim, 'ylim must be comma separated'
+    ylim = map(float, opts.ylim.strip().split(','))
     print 'Loading counts data'
     data_collection = RegionCollection(filename=opts.collection)
     total_gene = data_collection.ranks.max()
@@ -185,29 +195,49 @@ def main():
     ensembl_release = data_collection.info['args']['ensembl_release']
     stable_ids = None
     if external_sample is not None:
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'Using an external sample', external_sample)
         genes = db_query.get_external_genes(session, ensembl_release,
                                             external_sample)
         stable_ids = [g.ensembl_id for g in genes]
     elif opts.chrom != 'All':
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'Querying a single chromosome', opts.chrom)
         genes = db_query.get_genes(session, ensembl_release, opts.chrom)
         stable_ids = [g.ensembl_id for g in genes]
     
-    if stable_ids is not None:
-        data_collection = data_collection.filteredByLabel(stable_ids)
-        session.close()
-    
-    data_collection.ranks /= total_gene
-    print '\tNumber of sampled genes: %d' % data_collection.N
-    
-    window_size = data_collection.info['args']['window_size']
     # exclude genes with a count > opts.cutoff std above mean
     # x here will be a normalised statistic -- but only if the genes are not
     # from an external_sample
+    rr.addMessage('plot_centred_counts', LOG_INFO,
+        'No. genes', data_collection.N)
     if external_sample is None:
         data_collection = data_collection.\
                                     filteredNormalised(cutoff=opts.cutoff)
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'Used normalisation filter cutoff', opts.cutoff)
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'No. genes after normalisation filter', data_collection.N)
     
-    print 'Getting grouped data'
+    if stable_ids is not None:
+        data_collection = data_collection.filteredByLabel(stable_ids)
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'Filtered by stable_ids', data_collection.N)
+        session.close()
+    
+    data_collection.ranks /= total_gene
+    
+    window_size = data_collection.info['args']['window_size']
+    
+    if opts.metric == 'Mean counts':
+        counts_func = column_mean
+    else:
+        # convert to freqs
+        counts_func = column_sum
+        data_collection = data_collection.asfreqs()
+    
+    rr.addMessage('plot_centred_counts', LOG_INFO,
+        'using metric', opts.metric)
     # if we have a plot series, we need to create a directory to dump the
     # files into
     if opts.plot_series:
@@ -218,6 +248,8 @@ def main():
         plot_series_dir = os.path.join(save_dir,
                         '%s-series' % basename[:basename.rfind('.')])
         create_path(plot_series_dir)
+        rr.addMessage('plot_centred_counts', LOG_INFO,
+            'Plotting as a series to', plot_series_dir)
         labels = []
         filename_series = []
     else:
@@ -226,22 +258,30 @@ def main():
         series_labels = None
         label_coords = None
     
-    counts = []
-    ranks = []
-    group_size = [opts.group_size, data_collection.N][opts.group_size=='All']
-    group_size = int(group_size)
-    for index, (c,r,l) in enumerate(data_collection.iterTransformedGroups(
-                        group_size=group_size)):
-        counts.append(c)
-        ranks.append(r)
-        if opts.plot_series:
-            labels.append('Group %d' % index)
+    if opts.group_size=='All':
+        counts, ranks = data_collection.transformed(counts_func=counts_func)
+        num_groups = 1
+        counts = [counts]
+        ranks = [ranks]
+    else:
+        counts = []
+        ranks = []
+        group_size = opts.group_size
+        group_size = int(group_size)
+        for index, (c,r,l) in enumerate(data_collection.iterTransformedGroups(
+                            group_size=group_size, counts_func=counts_func)):
+            counts.append(c)
+            ranks.append(r)
+            if opts.plot_series:
+                labels.append('Group %d' % index)
+        
+        num_groups = len(counts)
+        counts = list(reversed(counts))
+        ranks = list(reversed(ranks))
     
-    num_groups = len(counts)
-    print '\tNumber of groups: %d' % num_groups
+    rr.addMessage('plot_centred_counts', LOG_INFO,
+        'Number of groups', num_groups)
     # reverse the counts and colour series so low color goes first
-    counts = list(reversed(counts))
-    ranks = list(reversed(ranks))
     if opts.plot_series:
         label_coords = map(float, opts.text_coords.split(','))
         series_labels = list(reversed(labels))
@@ -249,7 +289,7 @@ def main():
         filename_series = [os.path.join(plot_series_dir, series_template % i)
                             for i in range(len(series_labels))]
     
-    print 'Starting to plot'
+    print 'Prepping for plot'
     if opts.bgcolor == 'black':
         grid={'color': 'w'}
         bgcolor='0.1'
@@ -276,9 +316,12 @@ def main():
     x = numpy.arange(-window_size, window_size)
     plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
         filename_series=filename_series, label_coords=label_coords,
-        alpha=opts.line_alpha, xlabel='Position relative to TSS',
-        ylabel='Mean counts', title = opts.title)
-    plot.savefig(opts.plot_filename)
+        alpha=opts.line_alpha, xlabel=opts.xlabel,
+        ylabel=opts.ylabel, title = opts.title)
+    
+    if opts.plot_filename is not None:
+        plot.savefig(opts.plot_filename)
+    rr.display()
     plot.show()
     
 

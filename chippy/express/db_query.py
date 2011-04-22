@@ -29,7 +29,7 @@ def _get_sample(session, sample_name):
         sample = None
     return sample
 
-def _get_gene_expression_query(session, ensembl_release, sample_name,
+def get_gene_expression_query(session, ensembl_release, sample_name,
             data_path=None, test_run=False):
     """returns a query instance"""
     sample = _get_sample(session, sample_name)
@@ -103,7 +103,7 @@ def get_stable_id_genes_mapping(session, ensembl_release):
 
 def get_ranked_expression(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
     """returns all ranked genes from a sample"""
-    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+    query = get_gene_expression_query(session, ensembl_release, sample_name,
                     data_path=data_path, test_run=test_run)
     
     if biotype:
@@ -156,7 +156,7 @@ def get_external_genes(session, ensembl_release, external_gene_sample_name, test
 
 def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
-    query = _get_gene_expression_query(session, ensembl_release, sample_name,
+    query = get_gene_expression_query(session, ensembl_release, sample_name,
                                         data_path, test_run)
     if biotype:
         query = query.filter(Gene.biotype==biotype)

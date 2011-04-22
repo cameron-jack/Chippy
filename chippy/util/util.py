@@ -119,3 +119,16 @@ def safe_save_path(path):
     
     return os.path.join(DEFAULT_USER_DIR, path)
 
+def grouped_by_chrom(genes):
+    """returns dict with genes grouped into chromosome
+    
+    Assumes gene instances have a coord_name attribute corresponding to chrom"""
+    chrom_ordered = {}
+    for gene in genes:
+        try:
+            chrom_ordered[gene.coord_name].append(gene)
+        except KeyError:
+            chrom_ordered[gene.coord_name] = [gene]
+    
+    return chrom_ordered
+

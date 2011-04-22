@@ -197,6 +197,24 @@ class CollectionTests(TestCase):
         freqs = coll.asfreqs()
         c, r = freqs.transformed(counts_func=column_sum)
         self.assertEqual(c, [20./45., 25./45])
+    
+    def test_take(self):
+        """take returns subset with correct attributes"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+                info={'abcd': 'efg'}, labels=['0', '1', '2', '3', '4'])
+        coll = RegionCollection(**input)
+        sub = coll.take([0,1,2])
+        self.assertEqual(sub.info, input['info'])
+        self.assertEqual(sub.counts.tolist(), [[0,1], [2,3], [4,5]])
+        self.assertEqual(sub.labels.tolist(), ['0', '1', '2'])
+    
+    def test_str(self):
+        """correct string representation"""
+        input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+                info={'abcd': 'efg'}, labels=['0', '1', '2', '3', '4'])
+        coll = RegionCollection(**input)
+        self.assertEqual(str(coll),
+            'RegionCollection(num_records=5; has_ranks=False; has_labels=True)')
 
 if __name__ == '__main__':
     main()

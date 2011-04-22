@@ -110,7 +110,7 @@ def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
-    if opts.new_sample != default_new_sample:
+    if opts.new_sample not in (default_new_sample, None, ''):
         name, description = _get_name_description(opts.new_sample)
         rr = add_samples(session, [(name, description)])
     elif opts.sample is None:

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """creates the gene feature database"""
 import sys, os
 from optparse import make_option

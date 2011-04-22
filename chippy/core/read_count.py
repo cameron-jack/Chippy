@@ -177,7 +177,8 @@ def get_combined_counts(counts_dir, chrom_name, max_read_length, count_max_lengt
                     'chr%s.txt.gz' % chrom_name)
         print '\t%s' % chrom_counts_path
         counts = WholeChrom(chrom_counts_path,
-                            max_read_length=max_read_length)
+                            max_read_length=max_read_length,
+                            count_max_length=count_max_length)
         if chrom is None:
             chrom = counts
         else:

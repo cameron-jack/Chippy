@@ -7,6 +7,7 @@ from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
 from chippy.parse.fastq import FastqParser
+from chippy.util.run_record import RunRecord
 from chippy.util.util import create_path
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
@@ -101,7 +102,6 @@ script_info['optional_options'] = [\
                 ]
 
 def main():
-    from fastq_to_mapped import RunRecord
     run_record = RunRecord()
     start = time.time()
     parser, opts, args = parse_command_line_parameters(**script_info)

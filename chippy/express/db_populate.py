@@ -15,8 +15,7 @@ from chippy.express.db_schema import Gene, Exon, \
             Session, Base, make_session
 from chippy.express.db_query import  get_stable_id_genes_mapping
 from chippy.ref.util import chroms
-from chippy.express.util import single_gene, _one
-from chippy.parse.r_dump import RDumpToTable
+from chippy.express.util import _one
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL

@@ -31,7 +31,10 @@ def get_collection(session, sample_name, ensembl_release, counts_dir,
         data_collection = centred_counts_for_genes(session, sample_name,
                 'mouse', None, counts_dir, ensembl_release, max_read_length,
                 count_max_length, window_size, test_run)
-        data_collection.writeToFile(filename)
+        if data_collection is not None:
+            data_collection.writeToFile(filename)
+        else:
+            sys.stderr.write('No data_collection was returned!\n')
     else:
         data_collection = RegionCollection(filename=filename)
     

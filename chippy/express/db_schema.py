@@ -37,6 +37,9 @@ class Sample(Base):
     def __repr__(self):
         return "Sample('%s', '%s')" % (self.name, self.description)
     
+    def __str__(self):
+        return "%s : %s" % (self.name, self.description)
+    
 
 class ReferenceFile(Base):
     """original input source file name"""

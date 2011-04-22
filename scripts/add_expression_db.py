@@ -61,7 +61,7 @@ exp_scores = make_option('-o','--expression_heading',
         help='Column containing the expression scores')
 identifiers = [gene_id, probesets, exp_scores]
 
-_samples = ['%s : %s' % (s.name, s.description) for s in get_samples(session)]
+_samples = [str(s) for s in get_samples(session)]
 
 existing_sample = make_option('-s','--sample', type='choice',
         choices=_samples,
@@ -152,6 +152,8 @@ def main():
         raise NotImplementedError
     else:
         raise RuntimeError('Unknown sample type')
+    
+    rr.display()
     
     session.commit()
 

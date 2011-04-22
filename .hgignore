@@ -1,5 +1,6 @@
 syntax:glob
 .svn
+.coverage
 *.pyc
 *.pyo
 *.so
@@ -12,3 +13,4 @@ syntax:glob
 *.pdf
 _build/*
 build
+htmlcov*

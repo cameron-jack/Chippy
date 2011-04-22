@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 import sys, os
-
-for path in ['~gavin/DevRepos/ChipSeq', '~cggroup/repos/lab/ChipSeq']:
-    chippy_path = os.path.expanduser(path)
-    sys.path.append(chippy_path)
-
 from optparse import make_option
-from cogent.util.misc import parse_command_line_parameters
 
+from cogent.util.misc import parse_command_line_parameters
 from cogent import LoadTable
-from cogent.db.ensembl import HostAccount
 
 from chippy.express.db_query import get_samples
 from chippy.express.db_populate import add_ensembl_gene_data, \
@@ -37,11 +31,10 @@ session = make_session( "sqlite:///%s" % db_path)
 
 script_info = {}
 
+script_info['title'] = 'Add expression study'
 script_info['script_description'] = "Add an expression study from an R "\
                                     "export."
-script_info['version'] = '1.0'
-
-script_info['title'] = 'Add expression study'
+script_info['version'] = __version__
 
 script_info['required_options'] = [
  make_option('-e',
@@ -61,7 +54,11 @@ exp_scores = make_option('-o','--expression_heading',
         help='Column containing the expression scores')
 identifiers = [gene_id, probesets, exp_scores]
 
-_samples = [str(s) for s in get_samples(session)]
+_samples = get_samples(session)
+if _samples:
+    _samples = [str(s) for s in _samples]
+else:
+    _samples = [None]
 
 existing_sample = make_option('-s','--sample', type='choice',
         choices=_samples,
@@ -116,6 +113,8 @@ def main():
     if opts.new_sample != default_new_sample:
         name, description = _get_name_description(opts.new_sample)
         rr = add_samples(session, [(name, description)])
+    elif opts.sample is None:
+        raise RuntimeError('No sample specified')
     else:
         name, description = _get_name_description(opts.sample)
         rr = None

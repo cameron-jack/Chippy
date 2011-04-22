@@ -7,9 +7,17 @@ from cogent import LoadTable
 from cogent.db.ensembl import HostAccount
 from cogent.util.misc import parse_command_line_parameters
 
-
 from chippy.express.db_schema import make_session
 from chippy.express.db_populate import add_ensembl_gene_data
+
+__author__ = "Gavin Huttley"
+__copyright__ = "Copyright 2011"
+__credits__ = ["Gavin Huttley"]
+__license__ = "GPL"
+__version__ = "0.9.dev"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "Development"
 
 script_info = {}
 
@@ -30,11 +38,11 @@ script_info['required_options'] = [
 _mysql_msg = '(uses ENSEMBL_ACCOUNT if not provided)'
 script_info['optional_options'] = [
     make_option('--hostname', default=None,
-            help='hostname for MySQL Ensembl server %s' % _mysql_msg)
+            help='hostname for MySQL Ensembl server %s' % _mysql_msg),
     make_option('--username', default=None,
-            help='username MySQL Ensembl server %s' % _mysql_msg)
+            help='username MySQL Ensembl server %s' % _mysql_msg),
     make_option('--password', default=None,
-            help='password for MySQL Ensembl server %s' % _mysql_msg)
+            help='password for MySQL Ensembl server %s' % _mysql_msg),
     make_option('--port', default=None,
         help='Port for MySQL Ensembl server')
 ]

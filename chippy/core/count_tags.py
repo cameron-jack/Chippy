@@ -1,7 +1,7 @@
 """returns tag counts for a specified collection of genes"""
 from __future__ import division
 
-import os
+import os, sys
 
 from cogent.util.progress_display import display_wrap
 
@@ -10,6 +10,7 @@ from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
         get_ranked_genes_per_chrom
 from chippy.ref.util import chroms
+from chippy.util.util import grouped_by_chrom
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -24,12 +25,7 @@ __version__ = '0.1'
 def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read_length, count_max_length, window_size, ui=None):
     """decorates the Expression instances with a counts attribute, length=2*window_size"""
     # group the genes by chromosome
-    chrom_ordered = {}
-    for gene in ui.series(genes, noun='Grouping into chromosomes'):
-        try:
-            chrom_ordered[gene.coord_name].append(gene)
-        except KeyError:
-            chrom_ordered[gene.coord_name] = [gene]
+    chrom_ordered = grouped_by_chrom(genes)
     
     assert set(chrom_ordered.keys()) <= set(chrom_names), \
                     'Chromosome mismatch between study and species reference'
@@ -97,6 +93,9 @@ def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
         species, chrom, counts_dir, ensembl_release, max_read_length,
         count_max_length, window_size, test_run)
     total_expressed_genes = len(expressed)
+    if total_expressed_genes == 0:
+        sys.stderr.write("No expression data for '%s'\n" % sample_name)
+        return
     
     counts, ranks, ensembl_ids = get_counts_ranks_ensembl_ids(expressed)
     

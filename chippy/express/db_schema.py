@@ -279,7 +279,7 @@ class Expression(Base):
                 backref=backref('expression', order_by=expression_id))
     gene = relationship(Gene, backref=backref('expression'))
     
-    __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
+    __table_args__ = (UniqueConstraint('gene_id', 'sample_id', 'reffile_id',
                         name='unique'), {})
     
     def __init__(self, probesets, scores):

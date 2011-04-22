@@ -211,7 +211,7 @@ def main():
     else:
         grid = {'color': 'k'}
         vline_color = 'k'
-        bgcolor = '0.9'
+        bgcolor = '1.0'
     
     vline = dict(x=0, linewidth=opts.vline_width,
                    linestyle=opts.vline_style, color=vline_color)

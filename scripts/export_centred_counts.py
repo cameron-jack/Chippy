@@ -50,6 +50,8 @@ else:
 ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_samples(session)
+if not samples:
+    samples = [None]
 
 script_info = {}
 script_info['title'] = 'Saves TSS centred counts'
@@ -63,7 +65,7 @@ script_info['output_description']= 'Generates either a compressed file that can 
 # essential sample specification
 opt_sample = make_option('-c', '--sample', type='choice',
            help='Choose the expression study [default: %default]',
-           choices=['%s : %s' % (s.name, s.description) for s in samples])
+           choices=[str(s) for s in samples])
 
 # essential source files
 opt_counts_dir = make_option('-r', '--counts_dir',
@@ -108,6 +110,9 @@ script_info['optional_options_groups'] = [('Run control', run_opts),
 def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
+    
+    if opts.sample is None:
+        raise RuntimeError('No samples available')
     
     sample_name = opts.sample.split(' : ')[0]
     print 'Loading counts data'

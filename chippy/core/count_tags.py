@@ -33,7 +33,8 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
     n = 0
     total = len(genes)
     summed_counts = {}
-    for chrom_name in sorted(chrom_ordered):
+    chrom_names = [c for l, c in sorted([(len(c), c) for c in chrom_ordered])]
+    for chrom_name in chrom_names:
         print 'Making full counts array for chromosome %s' % chrom_name
         counts = get_combined_counts(counts_dir, chrom_name, max_read_length,
                                     count_max_length)

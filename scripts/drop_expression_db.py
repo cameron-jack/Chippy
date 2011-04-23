@@ -7,6 +7,9 @@ from cogent.util.misc import parse_command_line_parameters
 
 from chippy.express.db_schema import Expression, ReferenceFile, make_session
 from chippy.express.db_query import get_gene_expression_query, get_samples
+from chippy.util.run_record import RunRecord
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -36,15 +39,24 @@ script_info['version'] = __version__
 
 _samples = get_samples(session)
 choice_to_reffile = {}
+NO_FILES = 'No files'
+
 if _samples:
     choices = []
     for s in _samples:
         name = s.name
+        this_sample = []
         for reffile in s.reference_files:
             basename = os.path.basename(reffile.name)
             display = '%s - %s' % (name, basename)
-            choices.append(display)
+            this_sample.append(display)
             choice_to_reffile[display] = reffile
+        if not this_sample:
+            display = '%s - %s' % (name, NO_FILES)
+            this_sample = [display]
+            choice_to_reffile[display] = s
+        
+        choices.extend(this_sample)
 
 if not choice_to_reffile:
     choices = [None]
@@ -68,15 +80,33 @@ def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
-    reffile = choice_to_reffile[opts.sample_reffile]
-    records = session.query(Expression).join(ReferenceFile).filter(
-        and_(Expression.sample_id==reffile.sample_id,
-             Expression.reffile_id==reffile.reffile_id)).all()
-    for record in records:
-        session.delete(record)
-    session.delete(reffile)
+    rr = RunRecord()
+    object = choice_to_reffile[opts.sample_reffile]
+    if isinstance(object, ReferenceFile):
+        reffile = object
+        records = session.query(Expression).join(ReferenceFile).filter(
+            and_(Expression.sample_id==reffile.sample_id,
+                 Expression.reffile_id==reffile.reffile_id)).all()
+        rr.addMessage('drop_expression_db', LOG_INFO,
+            'No. dropped expression records', len(records))
+        for record in records:
+            session.delete(record)
+        # and if this is the last file with the sample, delete it
+        sample = reffile.sample
+        if len(sample.reference_files) < 2:
+            rr.addMessage('drop_expression_db', LOG_INFO,
+                'Dropped sample', str(sample))
+            session.delete(sample)
+        
+        session.delete(reffile)
+        rr.addMessage('drop_expression_db', LOG_INFO,
+            'Dropped reffile basename', os.path.basename(reffile.name))
+    else:
+        rr.addMessage('drop_expression_db', LOG_INFO,
+            'Dropped sample', str(object))
+        session.delete(object) # a sample
     session.commit()
-    
+    rr.display()
 
 if __name__ == "__main__":
     main()

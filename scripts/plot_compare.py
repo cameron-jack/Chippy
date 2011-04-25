@@ -163,7 +163,7 @@ script_info['optional_options_groups'] = [('Run control', run_opts),
 
 def plot_sample(plot, coll, calc_stat, x, title, xlabel, ylabel, color, label, stderr=False):
     if stderr:
-        print '\tJackknifing the mean and standard error'
+        print '\tJackknifing the statistic and standard error'
         jk = JackknifeStats(coll.N, calc_stat)
         y = jk.JackknifedStat
         stderr = jk.StandardError
@@ -176,8 +176,11 @@ def main():
     option_parser, opts, args =\
        parse_command_line_parameters(**script_info)
     
-    assert ',' in opts.ylim, 'ylim must be comma separated'
+    if ',' not in opts.ylim:
+        raise RuntimeError('ylim must be comma separated')
+    
     ylim = map(float, opts.ylim.strip().split(','))
+    
     print 'Loading counts data'
     data_collection1 = RegionCollection(filename=opts.collection1)
     window_size = data_collection1.info['args']['window_size']
@@ -236,6 +239,8 @@ def main():
     if opts.metric == 'Mean counts':
         stat = averaged
     else:
+        data_collection1 = data_collection1.asfreqs()
+        data_collection2 = data_collection2.asfreqs()
         stat = summed
     
     plot_sample(plot, data_collection1, stat_maker(stat, data_collection1), x,
@@ -247,8 +252,10 @@ def main():
     
     plot.legend()
     plot.show()
-    if opts.plot_filename:
+    if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename)
+    else:
+        print opts.plot_filename
     
 
 if __name__ == '__main__':

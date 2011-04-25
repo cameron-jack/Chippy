@@ -183,11 +183,24 @@ def main():
        parse_command_line_parameters(**script_info)
     
     rr = RunRecord()
-    assert ',' in opts.ylim, 'ylim must be comma separated'
+    if ',' not in opts.ylim:
+        raise RuntimeError('ylim must be comma separated')
+    
     ylim = map(float, opts.ylim.strip().split(','))
+    
     print 'Loading counts data'
     data_collection = RegionCollection(filename=opts.collection)
-    total_gene = data_collection.ranks.max()
+    total_gene = data_collection.ranks.max() # used to normalise colouring
+    
+    if opts.metric == 'Mean counts':
+        counts_func = column_mean
+    else:
+        # convert to freqs
+        counts_func = column_sum
+        data_collection = data_collection.asfreqs()
+    
+    rr.addMessage('plot_centred_counts', LOG_INFO,
+        'using metric', opts.metric)
     
     external_sample = get_sample_name(opts.external_sample)
     ensembl_release = data_collection.info['args']['ensembl_release']
@@ -227,18 +240,9 @@ def main():
     
     window_size = data_collection.info['args']['window_size']
     
-    if opts.metric == 'Mean counts':
-        counts_func = column_mean
-    else:
-        # convert to freqs
-        counts_func = column_sum
-        data_collection = data_collection.asfreqs()
-    
-    rr.addMessage('plot_centred_counts', LOG_INFO,
-        'using metric', opts.metric)
     # if we have a plot series, we need to create a directory to dump the
     # files into
-    if opts.plot_series:
+    if opts.plot_series and not opts.test_run:
         save_dir = dirname_or_default(opts.plot_filename)
         basename = os.path.basename(opts.plot_filename)
         plot_filename = os.path.join(save_dir, basename)
@@ -317,8 +321,11 @@ def main():
         alpha=opts.line_alpha, xlabel=opts.xlabel,
         ylabel=opts.ylabel, title = opts.title)
     
-    if opts.plot_filename is not None:
+    if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename)
+    else:
+        print opts.plot_filename
+    
     rr.display()
     plot.show()
     

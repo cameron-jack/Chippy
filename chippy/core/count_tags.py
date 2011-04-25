@@ -39,7 +39,7 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
         counts = get_combined_counts(counts_dir, chrom_name, max_read_length,
                                     count_max_length)
         summed_counts[chrom_name] = counts.counts.sum()
-        print '\tDecorating genes'
+        print '\tGetting read counts for genes'
         for gene in chrom_ordered[chrom_name]:
             start, end, strand = gene.getTssCentredCoords(window_size)
             # strand is being used here as a stride so if minus strand
@@ -48,7 +48,8 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names, max_read
             gene.counts = counts[start:end:strand].copy()
             n += 1
             if n % 10 == 0:
-                ui.display('Decorating genes [%d / %d]' % (n, total), n/total)
+                ui.display('Getting counts for gene [%d / %d]' % \
+                                                    (n, total), n/total)
         
         del counts
     

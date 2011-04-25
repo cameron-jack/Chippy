@@ -58,8 +58,8 @@ samples = db_query.get_external_sample(session)
 script_info = {}
 script_info['title'] = 'Plot read counts heat-mapped by gene expression'
 script_info['script_description'] = "Takes read counts that are centred on"\
-    " on gene TSS, sorted from high to low gene expression and makes a"\
-    " heat-mapped plot."
+    " on a gene TSS, sorted from high to low gene expression and makes a"\
+    " heat-map plot."
 script_info['version'] = __version__
 script_info['authors'] = __author__
 script_info['output_description']= "Generates either a single pdf figure or"\
@@ -69,8 +69,7 @@ script_info['output_description']= "Generates either a single pdf figure or"\
 
 # essential source files
 opt_collection = make_option('-s', '--collection',
-  help='path to the plottable data '\
-       +'(e.g. samplename-readsname-windowsize.gz)')
+  help='Path to the plottable data')
 
 opt_metric = make_option('-m', '--metric', type='choice',
         choices=['Mean counts', 'Frequency counts'],

@@ -154,13 +154,17 @@ def add_expression_study(session, sample_name, data_path, table,
     else:
         reffile = reffile[0]
     
-    # check we haven't already added expression data from this file
-    records = session.query(Expression).filter_by(
-                                reffile_id=reffile.reffile_id).all()
+    # check we haven't already added expression data from this file, for
+    # this sample
+    records = session.query(Expression).filter(
+            and_(Expression.reffile_id==reffile.reffile_id,
+                Expression.sample_id==sample.sample_id)).all()
     
     if len(records) > 0:
         run_record.addMessage('add_expression_study',
-            LOG_WARNING, 'Already added this expression file', data_path)
+            LOG_WARNING,
+            'Already added this data for this sample / file combo',
+            (sample.name, data_path))
         return run_record
     
     # get all gene ID data for the specified Ensembl release

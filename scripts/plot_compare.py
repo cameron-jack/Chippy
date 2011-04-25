@@ -76,8 +76,9 @@ opt_metric = make_option('-m', '--metric', type='choice',
         help='Select the metric (note you will need to change your ylim accordingly)')
 
 # sampling options
-opt_cutoff = make_option('-k', '--cutoff', type='float', default = 3,
-             help='Stdev limit [default: %default]')
+opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
+        help='Probability cutoff. Exclude genes if the probability of '\
+        'the observed tag count is at most this value [default: %default]')
 opt_top = make_option('-S', '--sample_top', type='int', default = None,
              help='Genes ranked to this number will be sampled (default is All)')
 opt_stderr = make_option('-e', '--plot_stderr',
@@ -182,9 +183,12 @@ def main():
     window_size = data_collection1.info['args']['window_size']
     data_collection2 = RegionCollection(filename=opts.collection2)
     
-    # normalise both
-    data_collection1 = data_collection1.filteredNormalised(opts.cutoff)
-    data_collection2 = data_collection2.filteredNormalised(opts.cutoff)
+    # filter both
+    if opts.cutoff < 0 or opts.cutoff > 1:
+        raise RuntimeError('The cutoff must be between 0 and 1')
+    
+    data_collection1 = data_collection1.filteredTchebysheffUpper(opts.cutoff)
+    data_collection2 = data_collection2.filteredTchebysheffUpper(opts.cutoff)
     
     # make sure each collection consists ot the same genes
     shared_labels = set(data_collection1.labels) & \

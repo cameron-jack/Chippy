@@ -5,7 +5,8 @@ import numpy
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
-from chippy.core.collection import RegionCollection, column_sum
+from chippy.core.collection import RegionCollection, column_sum, \
+        tchebysheff_upper
 
 class UtilityFuncTests(TestCase):
     def test_sum_column(self):
@@ -14,6 +15,12 @@ class UtilityFuncTests(TestCase):
         summed = column_sum(data)
         expect = numpy.array([4, 6, 8, 10])
         self.assertEqual(summed, expect)
+    
+    def test_tchebysheff_upper(self):
+        """correctly compute one-sided Tchebysehff inequality"""
+        p = 0.05
+        k = tchebysheff_upper(p)
+        self.assertFloatEqual(1.0/(1+k**2), p)
 
 class CollectionTests(TestCase):
     
@@ -69,7 +76,7 @@ class CollectionTests(TestCase):
         mat[5,9] = 500
         labels = map(str, range(10))
         coll = RegionCollection(counts=mat, labels=labels)
-        new = coll.filteredNormalised(cutoff=3.0)
+        new = coll.filteredTchebysheffUpper(p=0.1)
         expect_indices = [0,1,2,4,6,7,8,9]
         self.assertEqual(new.counts.shape[0], 8)
         for i, index in enumerate(expect_indices):

@@ -213,6 +213,9 @@ class RegionCollection(_GenericCollection):
     def filteredTchebysheffUpper(self, p=0.05, axis=None):
         """returns a new RegionCollection excluding records with excessive
         reads using a one-sided Tchebysheff's inequality"""
+        if not (0 <= p <= 1):
+            raise RuntimeError('Probability argument not a valid probability')
+        
         k = tchebysheff_upper(p)
         data = normalised_data(self.counts, axis=axis)
         func = lambda x: (x < k).all()

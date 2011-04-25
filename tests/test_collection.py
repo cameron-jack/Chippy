@@ -67,8 +67,8 @@ class CollectionTests(TestCase):
         self.assertEqual(grouped[1].tolist(), expect_counts_ranks)
         self.assertEqual(grouped[2].tolist(), expect_labels)
     
-    def test_filtered_normalised(self):
-        """filtered with normalised cutoff should work"""
+    def test_filtered_tchebysheff(self):
+        """filtered with Tchebysheff cutoff should work"""
         data = numpy.random.randint(0, 20, size=100)
         mat = data.reshape((10,10))
         # make two outlier sequences, the 3rd, the 5th
@@ -82,6 +82,13 @@ class CollectionTests(TestCase):
         for i, index in enumerate(expect_indices):
             self.assertEqual(new.counts[i], coll.counts[index])
             self.assertEqual(new.labels[i], coll.labels[index])
+    
+    def test_filtered_tchebysheff_raises(self):
+        """raises an exception if invalid cutoff provided"""
+        data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
+        coll = RegionCollection(**data)
+        self.assertRaises(RuntimeError, coll.filteredTchebysheffUpper, -0.1)
+        self.assertRaises(RuntimeError, coll.filteredTchebysheffUpper, 2.0)
     
     def test_filtered_data(self):
         """should correctly filter records"""

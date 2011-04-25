@@ -300,7 +300,7 @@ def add_expression_diff_study(session, data_path, table,
     return run_record
 
 def add_external_genes(session, sample_name, data_path, table, ensembl_release='58',
-        ensembl_id_label='ENSEMBL'):
+        ensembl_id_label='ENSEMBL', run_record=None):
     """adds Expression instances into the database from table
 
     Arguments:
@@ -309,6 +309,8 @@ def add_external_genes(session, sample_name, data_path, table, ensembl_release='
         - ensembl_release: the Ensembl release
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
     """
+    if run_record is None:
+        run_record = RunRecord()
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
@@ -331,6 +333,10 @@ def add_external_genes(session, sample_name, data_path, table, ensembl_release='
         external.reference_file = reffile
         external.sample = sample
         data.append(external)
-    
+    run_record.addMessage('add_external_genes', LOG_INFO,
+            'Added external genes from', data_path)
+    run_record.addMessage('add_external_genes', LOG_INFO,
+            'No. genes added', len(data))
     session.add_all(data)
     session.commit()
+    return run_record

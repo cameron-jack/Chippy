@@ -93,8 +93,9 @@ opt_grp_size = make_option('-g', '--group_size', type='choice', default='All',
    help='Number of genes to group to estimate statistic [default: %default]')
 
 # optional plotting information
-opt_cutoff = make_option('-k', '--cutoff', type='float', default = 3,
-             help='Stdev limit [default: %default]')
+opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
+             help='Probability cutoff. Exclude genes if the probability of '\
+             'the observed tag count is at most this value [default: %default]')
 opt_fig_height = make_option('-H', '--fig_height', type='float', default=2.5*6,
    help='Figure height (cm) [default: %default]')
 
@@ -204,16 +205,16 @@ def main():
         genes = db_query.get_genes(session, ensembl_release, opts.chrom)
         stable_ids = [g.ensembl_id for g in genes]
     
-    # exclude genes with a count > opts.cutoff std above mean
-    # x here will be a normalised statistic -- but only if the genes are not
-    # from an external_sample
+    # exclude outlier genes using one-sided Tchebysheff
+    if opts.cutoff < 0 or opts.cutoff > 1:
+        raise RuntimeError('The cutoff must be between 0 and 1')
+    
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'No. genes', data_collection.N)
     if external_sample is None:
-        data_collection = data_collection.\
-                                    filteredNormalised(cutoff=opts.cutoff)
+        data_collection = data_collection.filteredTchebysheffUpper(p=opts.cutoff)
         rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Used normalisation filter cutoff', opts.cutoff)
+            'Used Tchebysheff filter cutoff', opts.cutoff)
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'No. genes after normalisation filter', data_collection.N)
     

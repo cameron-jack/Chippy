@@ -29,6 +29,12 @@ def _make_std(axis):
         return data.std(axis=axis, ddof=1)
     return call
 
+def tchebysheff_upper(p):
+    """returns k such that the probability that a variable will be greater
+    than k standard deviations from its mean is <= p. This is Tchebysheff's
+    one-sided inequality."""
+    return numpy.sqrt(1/p - 1)
+
 def normalised_data(data, axis=None):
     """returns a new normalised array
     
@@ -204,17 +210,19 @@ class RegionCollection(_GenericCollection):
         indices = _get_keep_indices(self.counts, func)
         return self.take(indices)
     
-    def filteredNormalised(self, cutoff=3.0, axis=None):
-        """returns a new RegionCollection excluding records above cutoff"""
+    def filteredTchebysheffUpper(self, p=0.05, axis=None):
+        """returns a new RegionCollection excluding records with excessive
+        reads using a one-sided Tchebysheff's inequality"""
+        k = tchebysheff_upper(p)
         data = normalised_data(self.counts, axis=axis)
-        func = lambda x: (x < cutoff).all()
+        func = lambda x: (x < k).all()
         
         indices = _get_keep_indices(data, filtered=func)
         if self.info is None:
-            info = {'filteredNormalised': cutoff}
+            info = {'filteredTchebysheffUpper': p}
         else:
             info = self.info.copy()
-            info['filteredNormalised'] = cutoff
+            info['filteredTchebysheffUpper'] = p
         
         new = self.take(indices)
         if new.info:

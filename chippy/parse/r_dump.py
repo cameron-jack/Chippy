@@ -1,6 +1,9 @@
 """parses file dumped from R"""
 from cogent.parse.table import SeparatorFormatParser, ConvertFields
 from cogent import LoadTable
+from chippy.util.run_record import RunRecord
+from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
+    LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -52,7 +55,8 @@ def remove_probesets(row, probesets, probeset_index, exp_index):
     return row
 
 def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
-        exp_label='', allow_probeset_many_gene=False, validate=True):
+        exp_label='', allow_probeset_many_gene=False, validate=True,
+        run_record=None):
     """returns a cogent table object
     
     Handles case where probset id's and expressions scores are separated by
@@ -70,6 +74,9 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
           scores. Raises a RuntimeException if failure occurs for any
           of these checks.
     """
+    if run_record is None:
+        run_record = RunRecord()
+    
     # forces reading in as string
     converter = ConvertFields([])
     reader = SeparatorFormatParser(with_title=True, converter=converter,
@@ -97,18 +104,26 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
         if len(stable_ids) != table.Shape[0]:
             raise RuntimeError('Non unique stable IDs')
         
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+            'validation', 'genes were all unique')
         for row in table:
             if len(row[probeset_label]) != len(row[exp_label]):
                 gene_id = row[stable_id_label]
                 raise RuntimeError('Mismatched number of probesets and '\
                         'exp scores for %s' % gene_id)
             
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+            'validation', 'numbers of probesets matched expression records')
         
     
     # look for cases where a probeset maps to multiple genes
     if not allow_probeset_many_gene:
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+            'Probesets map to a single gene', '')
+        
         probeset_gene = {}
         gene_problem_probesets = {}
+        bad_probesets = set()
         for row in table:
             stable_id = row[stable_id_label]
             for probeset in row[probeset_label]:
@@ -118,7 +133,8 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
                         gene_problem_probesets[gene_id] = \
                                     gene_problem_probesets.get(gene_id, set())
                         gene_problem_probesets[gene_id].update([probeset])
-                
+                    
+                    bad_probesets.update([probeset])
                 except KeyError:
                     probeset_gene[probeset] = set([stable_id])
         
@@ -135,7 +151,12 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
             if row is not None:
                 rows.append(row)
         
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+            'No. dropped probesets', len(bad_probesets))
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+            'No. genes dropped in probeset filter', table.Shape[0]-len(rows))
         table = LoadTable(header=table.Header, rows=rows)
+        
     
-    return table
+    return table, run_record
 

@@ -40,7 +40,7 @@ script_info['required_options'] = [
  make_option('-e',
          '--expression_data',
           help='Path to the expression data file. Must be tab delimited.'),
- make_option('-allow_probeset_many_gene', action='store_true', default=False,
+ make_option('--allow_probeset_many_gene', action='store_true', default=False,
     help='Allow probesets that map to multiple genes')
 ]
 

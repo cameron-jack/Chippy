@@ -62,7 +62,7 @@ class ExcludingProbesets(TestCase):
         """parsing an rdump with no filtering returns same number of rows"""
         tmp_file = 'sample_rdump.txt'
         _sample_dump.writeToFile(tmp_file, sep='\t')
-        rdumped = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdumped, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
                 probeset_label='probeset', exp_label='exp',
                 allow_probeset_many_gene=True)
         self.assertEqual(rdumped.Shape[0], _sample_dump.Shape[0])
@@ -74,14 +74,16 @@ class ExcludingProbesets(TestCase):
         """filtered rdumps should exclude probesets that map to many genes"""
         tmp_file = 'sample_rdump.txt'
         _sample_dump.writeToFile(tmp_file, sep='\t')
-        rdumped = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdumped, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
                 probeset_label='probeset', exp_label='exp',
                 allow_probeset_many_gene=False)
         self.assertTrue(rdumped.Shape[0] < _sample_dump.Shape[0])
         redundant_probesets = set([1,3])
+        good_probesets = set(range(16)) - redundant_probesets
         probesets = [p for grp in rdumped.getRawData('probeset') for p in grp]
         probesets = set(probesets)
         self.assertEqual(probesets & redundant_probesets, set())
+        self.assertEqual(probesets, good_probesets)
         remove_files([tmp_file], error_on_missing=False)
     
     def test_rdump_parse_validate(self):
@@ -98,7 +100,7 @@ class ExcludingProbesets(TestCase):
                 stable_id_label='ENSEMBL', probeset_label='probeset',
                 exp_label='exp', validate=True)
         # but not when False
-        rdump = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdump, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
             probeset_label='probeset', exp_label='exp', validate=False)
         
         # a different number of probeset, exp values should cause an exception

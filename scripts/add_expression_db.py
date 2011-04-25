@@ -40,6 +40,8 @@ script_info['required_options'] = [
  make_option('-e',
          '--expression_data',
           help='Path to the expression data file. Must be tab delimited.'),
+ make_option('-allow_probeset_many_gene', action='store_true', default=False,
+    help='Allow probesets that map to multiple genes')
 ]
 
 
@@ -122,12 +124,13 @@ def main():
     sample_type = opts.sample_type
     
     if sample_type in (exp_absolute, exp_diff):
-        data = SimpleRdumpToTable(opts.expression_data,
+        data, rr = SimpleRdumpToTable(opts.expression_data,
                 stable_id_label=opts.gene_id_heading,
                 probeset_label=opts.probeset_heading,
-                exp_label=opts.expression_heading, validate=True)
+                exp_label=opts.expression_heading, validate=True,
+                run_record=rr)
     else:
-        raise NotImplementedError
+        data = LoadTable(opts.expression_data, sep='\t')
     
     # TODO seems I should define constants for the headers and do a conversion
     # on reading in. This would eliminate all the optional arguments for
@@ -148,7 +151,8 @@ def main():
             expression_label=opts.expression_heading,
             prob_label='rawp', sig_label='sig', run_record=rr)
     elif sample_type == external_genes:
-        raise NotImplementedError
+        rr = add_external_genes(session, name, opts.expression_data, data,
+                    ensembl_id_label=opts.gene_id_heading, run_record=rr)
     else:
         raise RuntimeError('Unknown sample type')
     

@@ -175,6 +175,19 @@ class TestGene(TestDbBase):
         for gene in genes:
             self.assertEqual(gene.ExonCoords, expect[gene.ensembl_id])
     
+    def test_get_gene_exon_coords_by_rank(self):
+        """return exon coordinates in correct exon.rank order"""
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+        
+        expect = {'PLUS-1': [(1050, 1950)],
+            'PLUS-3': [(1050, 1400),(1600, 1700),(1800, 1900)],
+            'MINUS-1': [(1050, 1950)],
+            'MINUS-3': [(1800, 1900),(1600, 1700),(1050, 1400)],}
+        
+        for gene in genes:
+            self.assertEqual(gene.ExonCoordsByRank, expect[gene.ensembl_id])
+    
     def test_get_gene_intron_coords(self):
         """Gene instances correctly derive coords for their intron"""
         add_all_gene_exons(self.session, self.genes)
@@ -185,6 +198,17 @@ class TestGene(TestDbBase):
             'MINUS-3': [(1400, 1600),(1700, 1800)],}
         for gene in genes:
             self.assertEqual(gene.IntronCoords, expect[gene.ensembl_id])
+    
+    def test_get_gene_intron_coords_by_rank(self):
+        """get intron coords by exon.rank"""
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+        expect = {'PLUS-1': [],
+            'PLUS-3': [(1400, 1600),(1700, 1800)],
+            'MINUS-1': [],
+            'MINUS-3': [(1700, 1800),(1400, 1600)],}
+        for gene in genes:
+            self.assertEqual(gene.IntronCoordsByRank, expect[gene.ensembl_id])
     
     def test_gene_tss(self):
         """return correct TSS coordinate"""

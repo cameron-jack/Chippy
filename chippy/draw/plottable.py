@@ -2,9 +2,12 @@ from __future__ import division
 import warnings
 
 from matplotlib import pyplot, rc, cm
+from matplotlib.mpl import colorbar
 from matplotlib.ticker import MultipleLocator
 
 from cogent.util.progress_display import display_wrap
+
+ColorbarBase = colorbar.ColorbarBase
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -21,7 +24,7 @@ class _Plottable(object):
                 xlim=None, xtick_space=None, ytick_space=None,
                 xtick_interval=None, ytick_interval=None, linewidth=2,
                 xlabel_fontsize=None, ylabel_fontsize=None, vline=None,
-                ioff=None):
+                ioff=None, colorbar=False):
         super(_Plottable, self).__init__()
         if ioff is not None:
             pyplot.ioff()
@@ -50,6 +53,8 @@ class _Plottable(object):
         self.ax = None
         self._legend_patches = []
         self._legend_labels = []
+        self._line_collection = []
+        self._colorbar = colorbar
     
     def _get_figure_axis(self, title=None, xlabel=None, ylabel=None):
         """returns the figure and axis ready for display"""
@@ -62,7 +67,12 @@ class _Plottable(object):
             rc('ytick', labelsize=self.ylabel_fontsize)
         
         fig = pyplot.figure(figsize=(self.width, self.height))
-        ax = pyplot.gca()
+        
+        if self._colorbar:
+            ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+        else:
+            ax = pyplot.gca()
+        
         ax_kwargs = {}
         if self.xlim is not None:
             ax_kwargs['xlim'] = self.xlim
@@ -177,8 +187,9 @@ class PlottableGroups(_Plottable):
     
     @display_wrap
     def __call__(self, x, y_series, color_series=None, alpha=None, 
-      series_labels=None, label_coords=None, cmap='RdBu', xlabel=None,
-      ylabel=None, title=None, filename_series=None, ui=None):
+      series_labels=None, label_coords=None, cmap='RdBu', colorbar=False,
+      xlabel=None, ylabel=None, title=None, filename_series=None, ui=None):
+        cmap_r = getattr(cm, '%s_r' % cmap)
         cmap = getattr(cm, cmap)
         bbox = dict(facecolor='b', alpha=0.5)
         
@@ -192,6 +203,15 @@ class PlottableGroups(_Plottable):
         
         fig, ax = self._get_figure_axis(title=title, xlabel=xlabel,
                                     ylabel=ylabel)
+        
+        if self._colorbar and colorbar:
+            # probably need to set a limit on how big this will be
+            ax2 = fig.add_axes([0.925, 0.1, 0.025, 0.8])
+            cb = ColorbarBase(ax2, ticks=[0.0, 1.0], cmap=cmap_r,
+                                        orientation='vertical')
+            cb.set_ticklabels(['Low', 'High'])
+            ax = fig.sca(ax) # need to make main axis the current axis again
+        
         num = len(y_series)
         ymaxs = []
         ymins = []
@@ -228,4 +248,5 @@ class PlottableGroups(_Plottable):
             elif min(ymins) > self.ylim[1]:
                 warnings.warn('ylimit may be too small, ymin=%s' % min(ymins),
                         UserWarning)
+        
     

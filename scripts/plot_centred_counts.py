@@ -103,6 +103,8 @@ opt_fig_width = make_option('-W', '--fig_width', type='float', default=2.5*12,
 opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
                help='Plot background color [default: %default]',
                choices=['black', 'white'])
+opt_colorbar = make_option('--colorbar',
+         action='store_true', help="Add colorbar to figure", default=False)
 opt_yrange = make_option('-y', '--ylim', default=None,
        help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
 opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
@@ -159,7 +161,7 @@ run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff]
 save_opts = [opts_plot_filename]
 series_opts = [opts_plotseries, opt_txt_coords]
-plot_labels = [opts_title, opts_ylabel, opts_xlabel]
+plot_labels = [opts_title, opts_ylabel, opts_xlabel, opt_colorbar]
 plot_dims = [opt_fig_height, opt_fig_width, opts_xgrid_locate,
             opts_ygrid_locate, opts_xlabel_interval, opts_ylabel_interval]
 plot_colors = [opt_bgcolor, opts_alpha, opts_vline_style, opts_vline_width,
@@ -312,14 +314,13 @@ def main():
         xtick_interval=opts.xlabel_interval,
         ytick_interval=opts.ylabel_interval,
         xlabel_fontsize=opts.xfontsize, ylabel_fontsize=opts.yfontsize,
-        vline=vline,
-        ioff=True)
+        vline=vline, ioff=True, colorbar=opts.colorbar)
     
     x = numpy.arange(-window_size, window_size)
     plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
         filename_series=filename_series, label_coords=label_coords,
         alpha=opts.line_alpha, xlabel=opts.xlabel,
-        ylabel=opts.ylabel, title = opts.title)
+        ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
     
     if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename)

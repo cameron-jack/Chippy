@@ -174,6 +174,15 @@ class Gene(Base):
         return self._intron_coords
     
     @property
+    def IntronCoordsByRank(self):
+        """returns intron coords in their rank order"""
+        if self.strand == MINUS_STRAND:
+            result = self.IntronCoords[::-1]
+        else:
+            result = self.IntronCoords
+        return result
+    
+    @property
     def ExonCoords(self):
         """returns list of exon coordinates"""
         if not hasattr(self, '_exon_coords'):
@@ -182,6 +191,15 @@ class Gene(Base):
         if self._exon_coords is None:
             self._exon_coords = sorted([(e.start, e.end) for e in self.exons])
         return self._exon_coords
+    
+    @property
+    def ExonCoordsByRank(self):
+        """returns exon coords in their rank order"""
+        if self.strand == MINUS_STRAND:
+            result = self.ExonCoords[::-1]
+        else:
+            result = self.ExonCoords
+        return result
     
     @property
     def Tss(self):

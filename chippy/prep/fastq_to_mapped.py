@@ -6,7 +6,7 @@
 - maps the clean sequences using bowtie
 """
 
-import os
+import os, re
 import time
 import numpy
 
@@ -31,7 +31,8 @@ __version__ = '0.1'
 def make_fastq_output_filename(input_file):
     """makes the fasta output filename from the fastq input name"""
     input_file = os.path.basename(input_file)
-    return input_file.replace('_sequence.txt', '.fasta')
+    input_file = re.sub('(_sequence\.txt|\.fastq)$', '.fasta', input_file)
+    return input_file
 
 script_info = fastq_to_fasta.script_info
 required = script_info['required_options']

@@ -219,16 +219,16 @@ def main():
         genes = db_query.get_genes(session, ensembl_release, opts.chrom)
         stable_ids = [g.ensembl_id for g in genes]
     
-    # exclude outlier genes using one-sided Tchebysheff
+    # exclude outlier genes using one-sided Chebyshev
     if opts.cutoff < 0 or opts.cutoff > 1:
         raise RuntimeError('The cutoff must be between 0 and 1')
     
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'No. genes', data_collection.N)
     if external_sample is None:
-        data_collection = data_collection.filteredTchebysheffUpper(p=opts.cutoff)
+        data_collection = data_collection.filteredChebyshevUpper(p=opts.cutoff)
         rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Used Tchebysheff filter cutoff', opts.cutoff)
+            'Used Chebyshev filter cutoff', opts.cutoff)
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'No. genes after normalisation filter', data_collection.N)
     

@@ -29,9 +29,9 @@ def _make_std(axis):
         return data.std(axis=axis, ddof=1)
     return call
 
-def tchebysheff_upper(p):
+def chebyshev_upper(p):
     """returns k such that the probability that a variable will be greater
-    than k standard deviations from its mean is <= p. This is Tchebysheff's
+    than k standard deviations from its mean is <= p. This is Chebyshev's
     one-sided inequality."""
     return numpy.sqrt(1/p - 1)
 
@@ -210,22 +210,22 @@ class RegionCollection(_GenericCollection):
         indices = _get_keep_indices(self.counts, func)
         return self.take(indices)
     
-    def filteredTchebysheffUpper(self, p=0.05, axis=None):
+    def filteredChebyshevUpper(self, p=0.05, axis=None):
         """returns a new RegionCollection excluding records with excessive
-        reads using a one-sided Tchebysheff's inequality"""
+        reads using a one-sided Chebyshev's inequality"""
         if not (0 <= p <= 1):
             raise RuntimeError('Probability argument not a valid probability')
         
-        k = tchebysheff_upper(p)
+        k = chebyshev_upper(p)
         data = normalised_data(self.counts, axis=axis)
         func = lambda x: (x < k).all()
         
         indices = _get_keep_indices(data, filtered=func)
         if self.info is None:
-            info = {'filteredTchebysheffUpper': p}
+            info = {'filteredChebyshevUpper': p}
         else:
             info = self.info.copy()
-            info['filteredTchebysheffUpper'] = p
+            info['filteredChebyshevUpper'] = p
         
         new = self.take(indices)
         if new.info:

@@ -190,8 +190,8 @@ def main():
     if opts.cutoff < 0 or opts.cutoff > 1:
         raise RuntimeError('The cutoff must be between 0 and 1')
     
-    data_collection1 = data_collection1.filteredTchebysheffUpper(opts.cutoff)
-    data_collection2 = data_collection2.filteredTchebysheffUpper(opts.cutoff)
+    data_collection1 = data_collection1.filteredChebyshevUpper(opts.cutoff)
+    data_collection2 = data_collection2.filteredChebyshevUpper(opts.cutoff)
     
     # make sure each collection consists ot the same genes
     shared_labels = set(data_collection1.labels) & \

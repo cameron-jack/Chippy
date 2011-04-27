@@ -6,7 +6,7 @@ from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
 from chippy.core.collection import RegionCollection, column_sum, \
-        tchebysheff_upper
+        chebyshev_upper
 
 class UtilityFuncTests(TestCase):
     def test_sum_column(self):
@@ -16,10 +16,10 @@ class UtilityFuncTests(TestCase):
         expect = numpy.array([4, 6, 8, 10])
         self.assertEqual(summed, expect)
     
-    def test_tchebysheff_upper(self):
+    def test_chebyshev_upper(self):
         """correctly compute one-sided Tchebysehff inequality"""
         p = 0.05
-        k = tchebysheff_upper(p)
+        k = chebyshev_upper(p)
         self.assertFloatEqual(1.0/(1+k**2), p)
 
 class CollectionTests(TestCase):
@@ -67,8 +67,8 @@ class CollectionTests(TestCase):
         self.assertEqual(grouped[1].tolist(), expect_counts_ranks)
         self.assertEqual(grouped[2].tolist(), expect_labels)
     
-    def test_filtered_tchebysheff(self):
-        """filtered with Tchebysheff cutoff should work"""
+    def test_filtered_chebyshev(self):
+        """filtered with Chebyshev cutoff should work"""
         data = numpy.random.randint(0, 20, size=100)
         mat = data.reshape((10,10))
         # make two outlier sequences, the 3rd, the 5th
@@ -76,19 +76,19 @@ class CollectionTests(TestCase):
         mat[5,9] = 500
         labels = map(str, range(10))
         coll = RegionCollection(counts=mat, labels=labels)
-        new = coll.filteredTchebysheffUpper(p=0.1)
+        new = coll.filteredChebyshevUpper(p=0.1)
         expect_indices = [0,1,2,4,6,7,8,9]
         self.assertEqual(new.counts.shape[0], 8)
         for i, index in enumerate(expect_indices):
             self.assertEqual(new.counts[i], coll.counts[index])
             self.assertEqual(new.labels[i], coll.labels[index])
     
-    def test_filtered_tchebysheff_raises(self):
+    def test_filtered_chebyshev_raises(self):
         """raises an exception if invalid cutoff provided"""
         data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
         coll = RegionCollection(**data)
-        self.assertRaises(RuntimeError, coll.filteredTchebysheffUpper, -0.1)
-        self.assertRaises(RuntimeError, coll.filteredTchebysheffUpper, 2.0)
+        self.assertRaises(RuntimeError, coll.filteredChebyshevUpper, -0.1)
+        self.assertRaises(RuntimeError, coll.filteredChebyshevUpper, 2.0)
     
     def test_filtered_data(self):
         """should correctly filter records"""

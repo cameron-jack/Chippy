@@ -1,9 +1,10 @@
 from __future__ import division
 import warnings
 
-from matplotlib import pyplot, rc, cm
+from matplotlib import pyplot, rc, cm, font_manager
 from matplotlib.mpl import colorbar
 from matplotlib.ticker import MultipleLocator
+
 
 from cogent.util.progress_display import display_wrap
 
@@ -118,10 +119,10 @@ class _Plottable(object):
             pyplot.title(title)
         
         if ylabel:
-            pyplot.ylabel(ylabel)
+            pyplot.ylabel(ylabel, fontsize=self.ylabel_fontsize+2)
         
         if xlabel:
-            pyplot.xlabel(xlabel)
+            pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize+2)
         
         ax.ticklabel_format(scilimits=(-3,4))
         self.fig = fig
@@ -139,7 +140,9 @@ class _Plottable(object):
     
     def legend(self):
         if self._legend_patches:
-            pyplot.legend(self._legend_patches, self._legend_labels)
+            prop = font_manager.FontProperties(size=self.xlabel_fontsize)
+            pyplot.legend(self._legend_patches, self._legend_labels,
+                            prop=prop)
     
 
 class PlottableSingle(_Plottable):

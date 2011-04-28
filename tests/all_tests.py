@@ -37,6 +37,7 @@ def suite():
         'test_reduce',
         'test_parse_fastq',
         'test_parse_rdump',
+        'test_parse_sam',
         'test_read_count',
         'test_syntax',
         'test_util'

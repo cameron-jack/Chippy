@@ -22,12 +22,26 @@ def _cigar_span(val):
         r = 0
     return r
 
+def get_strand(val):
+    """returns 1/-1 for strand from bitwise operation"""
+    v = int(val)
+    strand = [-1,1][v & 16 == 0]
+    return strand
+
+def zero_based(val):
+    """returns a zero-based integer"""
+    return int(val) - 1
+
 strict_converter = ConvertFields([(1, int),(3,int),(4,int),
                                     (5, _strict_cigar_span)])
 
-converter = ConvertFields([(3,int),(4,int), (5, _cigar_span)])
+converter = ConvertFields([(1, get_strand), (3, zero_based),(4,int), (5, _cigar_span)])
 
-def MinimalSamParser(data):
+def MinimalSamParser(data, converter=converter):
+    """returns records from a sam file
+    
+    NOTE: the default converter turns the 1-based numbering of POS into
+    0-based numbering"""
     # If given a filename for the data
     if type(data) == str:
         data = open(data)

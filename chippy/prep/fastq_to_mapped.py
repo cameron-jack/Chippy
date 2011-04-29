@@ -38,8 +38,11 @@ script_info = fastq_to_fasta.script_info
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
                             help='path to the Illumina adapters'))
-required.append(make_option('--bowtie_index',
-                            help='path to the bowtie genome index'))
+required.append(make_option('--index',
+                            help='path to the aligner genome index'))
+required.append(make_option('--aligner', type='choice',
+                            choices=['bwa', 'bowtie'],
+                            help='Choose the aligner program'))
 
 # output_file is required for fastq_to_fasta, but not as part of full chain
 # since we will automatically generate it
@@ -65,7 +68,11 @@ def main():
     pristine_fastq = trimmed_fastq.replace('_trimmed',
                                     '_trimmed_pristine')
     pristine_map = pristine_fastq.replace('.fastq', '.map')
+    pristine_sai = pristine_fastq.replace('.fastq', '.sai') # bwa intermediate
+    pristine_sam = pristine_fastq.replace('.fastq', '.sam')
     contaminated_fastq = pristine_fastq.replace('pristine', 'contaminated')
+    contaminated_sai = contaminated_fastq.replace('.fastq', '.sai')
+    contaminated_sam = contaminated_fastq.replace('.fastq', '.sam')
     contaminated_map = contaminated_fastq.replace('.fastq', '.map')
     combined_map = fasta_file.replace('.fasta', '.map')
     run_record_file_name = os.path.join(opts.save_dir, 'run_record.txt')
@@ -89,12 +96,36 @@ def main():
     run_record = pristine_seqs.main(psl_out, trimmed_fastq, run_record,
             opts.test_run)
     
-    print 'Mapping contaminated seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index,
-        contaminated_fastq, contaminated_map, run_record, opts.test_run)
-    print 'Mapping pristine seqs'
-    run_record = command_line.run_bowtie(opts.bowtie_index,
-        pristine_fastq, pristine_map, run_record, opts.test_run)
+    if opts.aligner.lower() == 'bowtie':
+        print 'Mapping contaminated seqs'
+        run_record = command_line.run_bowtie(opts.index,
+            contaminated_fastq, contaminated_map, run_record, opts.test_run)
+        print 'Mapping pristine seqs'
+        run_record = command_line.run_bowtie(opts.index,
+            pristine_fastq, pristine_map, run_record, opts.test_run)
+    elif opts.aligner.lower() == 'bwa':
+        print 'Aligning contaminated seqs'
+        run_record = command_line.run_bwa_aln(opts.index,
+            contaminated_fastq, contaminated_sai, run_record, opts.test_run)
+        print 'Finding contaminated chromosomal coordinates'
+        run_record = command_line.run_bwa_samse(opts.index, 
+            contaminated_sai, contaminated_fastq, contaminated_sam,
+            run_record, opts.test_run)
+        
+        print 'Aligning pristine seqs'
+        run_record = command_line.run_bwa_aln(opts.index,
+            pristine_fastq, pristine_sai, run_record, opts.test_run)
+        print 'Finding pristine chromosomal coordinates'
+        run_record = command_line.run_bwa_samse(opts.index,
+            pristine_sai, pristine_fastq, pristine_sam,
+            run_record, opts.test_run)
+        
+        run_record.display()
+        print '\n\nExiting prematurely as full support for BWA not yet'\
+                ' implemented'
+        exit()
+    else:
+        raise RuntimeError('Unknown aligner choice %s' % opts.aligner)
     
     # concatenate the pristine and contaminated files
     print 'Concatenating contaminated and pristine map files'

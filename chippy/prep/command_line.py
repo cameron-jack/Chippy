@@ -7,13 +7,14 @@ from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley", "Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
+
 
 def run_command(command, test):
     """executes a command"""
@@ -47,10 +48,10 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
         print ''.join(stderr)
     return run_record
 
-def run_bowtie(bowtie_index, fastq_filename, map_filename, run_record, test):
+def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
     """run bowtie"""
     command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 6 %s %s %s' % \
-        (bowtie_index, fastq_filename, map_filename)
+        (align_index, fastq_filename, map_filename)
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
@@ -67,7 +68,59 @@ def run_bowtie(bowtie_index, fastq_filename, map_filename, run_record, test):
             if not line.startswith('#'):
                 continue
             line = [element.strip() for element in line[2:].split(':')]
-            run_record.addMessage(program_name='bowtie',
+            run_record.addMessage(program_name=command,
+                    error_type=logmsg[pipe], message=line[0], value=line[1])
+    
+    return run_record
+
+def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, test):
+    """run bwa similarly to bowtie"""
+    # TODO threading? -t 6
+    command = 'bwa aln %s %s -t 6 > %s' % (align_index, fastq_filename,
+                                        out_filename)
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    
+    pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+    for pipe in pipes:
+        for line in pipes[pipe].splitlines():
+            print line
+            if not line.startswith('#'):
+                continue
+            line = [element.strip() for element in line[2:].split(':')]
+            run_record.addMessage(program_name=command,
+                    error_type=logmsg[pipe], message=line[0], value=line[1])
+    
+    return run_record
+
+def run_bwa_samse(align_index, sai_filename, fastq_filename,
+                    sam_filename, run_record, test):
+    """run bwa samse to convert internal coordinates to SAM format output"""
+    command = 'bwa samse -n 1 %s %s %s > %s' % (align_index, sai_filename,
+            fastq_filename, sam_filename)
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    
+    pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+    for pipe in pipes:
+        for line in pipes[pipe].splitlines():
+            print line
+            if not line.startswith('#'):
+                continue
+            line = [element.strip() for element in line[2:].split(':')]
+            run_record.addMessage(program_name=command,
                     error_type=logmsg[pipe], message=line[0], value=line[1])
     
     return run_record
@@ -95,6 +148,6 @@ def concatenate(pristine_path, contaminated_path, combined_path, run_record, tes
     concatenated.close()
     
     run_record.addMessage(program_name='concatenate',
-                error_type=LOG_INFO, message='Total lines', value=total_lines)
+            error_type=LOG_INFO, message='Total lines', value=total_lines)
     return run_record
 

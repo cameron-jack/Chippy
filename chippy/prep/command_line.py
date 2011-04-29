@@ -76,7 +76,7 @@ def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
 def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, test):
     """run bwa similarly to bowtie"""
     # TODO threading? -t 6
-    command = 'bwa aln %s %s -t 6 > %s' % (align_index, fastq_filename,
+    command = 'bwa aln -t 6 %s %s > %s' % (align_index, fastq_filename,
                                         out_filename)
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)

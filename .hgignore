@@ -1,0 +1,16 @@
+syntax:glob
+.svn
+.coverage
+*.pyc
+*.pyo
+*.so
+*.o
+*.DS_Store
+*.tmproj
+*.rej
+*.orig
+*.wpr
+*.pdf
+_build/*
+build
+htmlcov*

@@ -217,17 +217,40 @@ class RegionCollection(_GenericCollection):
             raise RuntimeError('Probability argument not a valid probability')
         
         k = chebyshev_upper(p)
-        data = normalised_data(self.counts, axis=axis)
-        func = lambda x: (x < k).all()
+        if axis is None:
+            # only bother computing normalised score for max of each
+            # row
+            data = self.counts.max(axis=1)
+            mean = self.counts.mean()
+            stdev = self.counts.std(ddof=1)
+            data -= mean
+            data /= stdev
+            indices = data < k
+            data = self.counts[indices]
+            if self.labels is not None:
+                labels = self.labels[indices]
+            else:
+                labels = None
+            
+            if self.ranks is not None:
+                ranks = self.ranks[indices]
+            else:
+                ranks = None
+            new = self.__class__(counts=data, ranks=ranks, labels=labels,
+                info=self.info)
+        else:
+            data = normalised_data(self.counts, axis=axis)
+            func = lambda x: (x < k).all()
+            indices = _get_keep_indices(data, filtered=func)
+            new = self.take(indices)
+            
         
-        indices = _get_keep_indices(data, filtered=func)
         if self.info is None:
             info = {'filteredChebyshevUpper': p}
         else:
             info = self.info.copy()
             info['filteredChebyshevUpper'] = p
         
-        new = self.take(indices)
         if new.info:
             new.info.update(info)
         else:

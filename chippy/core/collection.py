@@ -242,11 +242,19 @@ class RegionCollection(_GenericCollection):
         labels = self.labels
         if group_size > 1:
             # put into groups
-            counts = make_even_groups(self.counts, group_size)
+            num_groups, rmdr = divmod(self.N, group_size)
+            total = num_groups * group_size
+            num_positions = counts.shape[1]
+            
+            counts = counts[:total]
+            counts = counts.reshape(num_groups, group_size, num_positions)
             if ranks is not None:
-                ranks = make_even_groups(ranks, group_size)
+                ranks = ranks[:total]
+                ranks = ranks.reshape(num_groups, group_size)
+            
             if labels is not None:
-                labels = make_even_groups(labels, group_size)
+                labels = labels[:total]
+                labels = labels.reshape(num_groups, group_size)
         
         counts = numpy.array(counts)
         if ranks is not None:

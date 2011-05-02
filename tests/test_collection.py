@@ -55,16 +55,17 @@ class CollectionTests(TestCase):
     def test_grouping_data(self):
         """should correctly group data without a filter"""
         expect_two = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            ranks=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            labels=[['0','1'], ['2','3'], ['4','5'], ['6','7'], ['8','9']])
+            ranks=[0, 1, 2, 3, 4],
+            labels=['0','1', '2','3', '4'])
         
         coll = RegionCollection(**expect_two)
         
         grouped = coll.getGrouped(2)
-        expect_counts_ranks = [[[0,1], [2,3]], [[4,5], [6,7]]]
-        expect_labels = [[['0','1'], ['2','3']], [['4','5'], ['6','7']]]
-        self.assertEqual(grouped[0].tolist(), expect_counts_ranks)
-        self.assertEqual(grouped[1].tolist(), expect_counts_ranks)
+        expect_counts = [[[0,1], [2,3]], [[4,5], [6,7]]]
+        expect_ranks = [[0, 1], [2, 3]]
+        expect_labels = [['0','1'], ['2','3']]
+        self.assertEqual(grouped[0].tolist(), expect_counts)
+        self.assertEqual(grouped[1].tolist(), expect_ranks)
         self.assertEqual(grouped[2].tolist(), expect_labels)
     
     def test_filtered_chebyshev(self):
@@ -132,17 +133,19 @@ class CollectionTests(TestCase):
     def test_itergroups(self):
         """should correctly generate groups of counts, ranks etc .."""
         input_two = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            ranks=[[0,1], [2,3], [4,5], [6,7], [8,9]],
-            labels=[['0','1'], ['2','3'], ['4','5'], ['6','7'], ['8','9']])
+                         ranks=[0, 1, 2, 3, 4],
+                         labels=['0','1', '2','3', '4'])
         
         coll = RegionCollection(**input_two)
         
-        expected_labels = [[['0','1'], ['2','3']], [['4','5'], ['6','7']]]
+        expect_counts = [[[0,1], [2,3]], [[4,5], [6,7]]]
+        expect_ranks = [[0,1], [2,3]]
+        expect_labels = [['0','1'], ['2','3']]
         i = 0
         for c, r, l in coll.itergroups(group_size=2):
-            
-            self.assertEqual(c, r)
-            self.assertEqual(l, expected_labels[i])
+            self.assertEqual(c, expect_counts[i])
+            self.assertEqual(r, expect_ranks[i])
+            self.assertEqual(l, expect_labels[i])
             i += 1
         
     

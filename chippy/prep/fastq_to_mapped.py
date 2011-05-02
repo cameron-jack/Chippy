@@ -31,7 +31,12 @@ __version__ = '0.1'
 def make_fastq_output_filename(input_file):
     """makes the fasta output filename from the fastq input name"""
     input_file = os.path.basename(input_file)
-    input_file = re.sub('(_sequence\.txt|\.fastq)$', '.fasta', input_file)
+    pattern = '(_sequence\.txt|\.fastq|\.fq)$'
+    if not re.search(pattern, input_file):
+        raise RuntimeError(
+        "Input file name [%s] doesn't match expected convention" % input_file)
+    
+    input_file = re.sub(pattern, '.fasta', input_file)
     return input_file
 
 script_info = fastq_to_fasta.script_info
@@ -61,6 +66,7 @@ def main():
     
     # make the assorted filenames
     output_file = make_fastq_output_filename(opts.input_file)
+    
     working_dir = '%s-working' % (opts.save_dir)
     fasta_file = os.path.join(working_dir, output_file)
     psl_out = fasta_file.replace('.fasta', '.psl')

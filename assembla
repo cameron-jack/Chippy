@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+
+# This script enforces a protocol to prevent forking on the assembla shared
+# repo, plus pulls and then executes tests before pushing. It will rebase
+# any pull's, after popping any mercurial queues. Queues are not push back on.
+
+# written by Gavin Huttley, GPL, copyright 2011-
+
+set -e # exit if anything dies
+
+function pull_assembla
+{
+    echo 'Pulling'
+    # we pop any mercurial queues, rebase a pull (to minimse branching)
+    hg qpop -a && hg pull assembla --rebase
+}
+
+function push_assembla
+{
+    repo_dir=`pwd`
+    repo_name=`basename $repo_dir`
+    echo 'Running test suite'
+    # make a temp directory and clone the repo into that to run tests
+    TMPDIR=`mktemp -d /tmp/XXXXXX`
+    cd ..
+    hg clone $repo_name $TMPDIR/$repo_name
+    cd $TMPDIR/$repo_name
+    python run_tests.py
+    
+    # if that worked, then
+    cd $repo_dir
+    
+    echo 'Doing pull first'
+    pull_assembla
+    
+    echo 'Pushing'
+    hg qpop -a && hg push assembla
+}
+
+
+if [ "$1" = 'pull' ]; then
+    pull_assembla
+elif [ "$1" = 'push' ]; then
+    push_assembla
+else
+    echo "Unknown command: $1"
+    exit 1
+fi

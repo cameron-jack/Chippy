@@ -34,7 +34,7 @@ function push_assembla
     pull_assembla
     
     echo 'Pushing'
-    hg qpop -a && hg push assembla
+    hg push assembla
 }
 
 

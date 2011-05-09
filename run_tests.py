@@ -24,3 +24,5 @@ if returncode != 0:
         print 'ERROR stripping changset: "%s"\nNOTIFY GAVIN' % stderr
 else:
     print stdout
+
+exit(returncode)

@@ -26,7 +26,7 @@
 		</array>
 		<array>
 			<string>Db report</string>
-			<string>scripts/report_expression.py</string>
+			<string>scripts/db_summary.py</string>
 		</array>
 		<array>
 			<string>Export centred counts</string>

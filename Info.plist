@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Bundle help</key>
-	<string></string>
+	<string>doc/_build/html/index.html</string>
 	<key>Bundle identifier</key>
 	<string>org.chippy</string>
 	<key>Bundle name</key>

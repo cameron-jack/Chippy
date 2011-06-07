@@ -36,18 +36,18 @@ script_info['version'] = __version__
 script_info['authors'] = 'Gavin Huttley'
 
 script_info['required_options'] = [
-make_option('-s',
+ make_option('-s',
             '--species',
             type='choice', 
             help='Species to query [default: %default]',
             default='mouse',
             choices=['mouse', 'human']),
+ make_option('-r','--release',
+             help='The Ensembl release number [default: %default]',
+             default=None),
 ]
 
 script_info['optional_options'] = [
- make_option('-r','--release',
-             help='The Ensembl release number [default: %default]',
-             default='58'),
  make_option('-o','--outdir',
              help='Directory to write files to [default: %default]',
              default='.'),
@@ -77,11 +77,13 @@ def main():
         assert len(set((opts.hostname, opts.user, opts.passwd))) == 1,\
             'You must provide all MySQL options, or none at all.'
     
-    if 'ENSEMBL_ACCOUNT' not in os.environ:
-        account = None
-    else:
+    if opts.hostname is not None:
+        account = HostAccount(opts.hostname,opts.user,opts.passwd)
+    elif 'ENSEMBL_ACCOUNT' in os.environ:
         h, u, p = os.environ['ENSEMBL_ACCOUNT'].split()
         account = HostAccount(h,u,p)
+    else:
+        account = None
     
     if opts.test_run:
         print account

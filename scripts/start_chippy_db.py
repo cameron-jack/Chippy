@@ -56,6 +56,10 @@ def main():
     if opts.species != 'mouse':
         raise RuntimeError('Currently only support mouse, sorry!')
     
+    if not os.path.isdir(opts.save_db_path):
+        sys.stderr.write('The save_db_path must be a directory.\n')
+        return
+    
     db_path = os.path.join(opts.save_db_path, 'chippy.db')
     session = make_session("sqlite:///%s" % db_path)
     hostname = opts.hostname

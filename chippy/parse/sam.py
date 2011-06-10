@@ -44,34 +44,6 @@ complete_converter = ConvertFields([(0, str), (1, get_strand), (2, str), (3, zer
 
 def MinimalSamParser(data, converter=converter):
     """returns records from a sam file
-    
-    NOTE: the default converter turns the 1-based numbering of POS into
-    0-based numbering"""
-    # If given a filename for the data
-    if type(data) == str:
-        data = open(data)
-    
-    # get the lengths dict
-    lengths = {}
-    for row in data:
-        if not row.startswith('@'):
-            yield lengths
-            break
-        elif not row.startswith('@SQ'):
-            continue
-        line = row.split()[1:]
-        name = line[0].split(':')[1]
-        length = int(line[1].split(':')[1])
-        lengths[name] = length
-    
-    parser = SeparatorFormatParser(converter=converter, with_header=False,
-                                   sep="\t")
-    
-    for row in parser(data):
-        yield row
-
-def CompleteSamParser(data, converter=complete_converter):
-    """returns records from a sam file
 
     NOTE: the default converter turns the 1-based numbering of POS into
     0-based numbering"""
@@ -95,12 +67,13 @@ def CompleteSamParser(data, converter=complete_converter):
         length = int(line[1].split(':')[1])
         lengths[name] = length
 
+    # reset file pointer and move to first data line
     data.seek(0)
     for i, line in enumerate(data):
         if i == header_lines - 2:
             break
 
-    parser = SeparatorFormatParser(converter=complete_converter, with_header=False,
+    parser = SeparatorFormatParser(converter=converter, with_header=False,
                                    sep="\t")
 
     for row in parser(data):

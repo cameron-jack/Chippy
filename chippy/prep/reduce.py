@@ -14,7 +14,7 @@ from cogent.util.progress_display import display_wrap
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-from chippy.parse.sam import CompleteSamParser
+from chippy.parse.sam import MinimalSamParser
 from chippy.util.util import create_path
 from chippy.ref.util import chroms
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND, \
@@ -37,7 +37,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
     """From a SAM file and a chromosome name, generate
     a list of coordinates [(start, end, strand)]."""
     
-    parser = CompleteSamParser(samfile, converter=None)
+    parser = MinimalSamParser(samfile)
 
     header = parser.next()
     all_coords = None
@@ -60,7 +60,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
             chrom = record[2] # 3rd SAM field gives chromosome number
                     
             if aligner_chr_prefix is None:
-                aligner_chr_prefix = re.findall(r'\D+', chrom)[0]
+                aligner_chr_prefix = re.findall(r'^[^0-9xyXY]+', chrom)[0]
                 all_coords = dict(('%s%s' % (aligner_chr_prefix, chr), {})
                                 for chr in chroms)
 
@@ -76,7 +76,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
         else:
             count_skipped += 1
 
-        if (count_records + count_skipped) >= limit:
+        if count_records + count_skipped >= limit:
             break
     
     # make a dict with consistent chrom keys
@@ -119,7 +119,7 @@ def what_chromosomes(chrom_name, chroms=chroms):
 def run(infile_name, outdir, chroms, pval_cutoff, limit, run_record, dry_run, ui=None):
     print 'Starting SAM reduction'
 
-    if pval_cutoff > 1.0 or pval_cutoff < 0.0:
+    if not 0.0 <= pval_cutoff <= 1.0:
         raise RuntimeError("p-value cutoff for read mapping quality"\
                            " must be between 0 and 1: %d" % pval_cutoff)
 

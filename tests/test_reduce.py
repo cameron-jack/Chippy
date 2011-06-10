@@ -3,7 +3,7 @@ sys.path.extend(['..', '../src'])
 
 from cogent import LoadSeqs, DNA
 
-from chippy.parse.sam import MinimalSamParser, CompleteSamParser
+from chippy.parse.sam import MinimalSamParser
 
 from cogent.util.unit_test import TestCase, main
 from chippy.prep.reduce import mapped_coords, make_chrom_coord_table
@@ -11,7 +11,7 @@ from chippy.prep.reduce import mapped_coords, make_chrom_coord_table
 class ReadingAlignerOutput(TestCase):
     def test_mapped_seqs_match_known(self):
         """bwa/bowtie derived coordinates for brca2 should match those from ensembl"""
-        parser = CompleteSamParser('data/brca2-11.sam', converter=None)
+        parser = MinimalSamParser('data/brca2-11.sam')
         header = parser.next()
       
         mapped = dict([(row[0], row) for row in parser])

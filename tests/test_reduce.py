@@ -11,7 +11,7 @@ from chippy.prep.reduce import mapped_coords, make_chrom_coord_table
 class ReadingAlignerOutput(TestCase):
     def test_mapped_seqs_match_known(self):
         """bwa/bowtie derived coordinates for brca2 should match those from ensembl"""
-        parser = MinimalSamParser('data/brca2-11.sam')
+        parser = MinimalSamParser('data/brca2-11.sam', converter=None)
         header = parser.next()
 
         # The number offset for reading the output positions

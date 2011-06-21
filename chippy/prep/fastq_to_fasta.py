@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import time
+
 from os.path import basename, dirname, join
 
 from cogent.parse.fastq import MinimalFastqParser
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
+from chippy.prep.mapped_files import internal_instantiation
 from chippy.parse.fastq import FastqParser
 from chippy.util.run_record import RunRecord
 from chippy.util.util import create_path
@@ -21,20 +23,20 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, test_run):
+def run(input_fn, save_dn, output_fn, minimum_length, rewrite, run_record, test_run):
+    """receives a fastq file and outputs fasta and trimmed fastq files"""
+
+    # Any files not passed in as parameters can be accessed through this interface
+    mapped_files = internal_instantiation()
+
     if not test_run:
-        assert '/' not in output_file, \
-                'Do not put directory path in output_file'
-        
-        create_path(save_dir)
-        outfile_fasta = open(join(save_dir, output_file), 'w')
+        outfile_fasta_fn = open(output_fn, 'w')
         if rewrite:
-            outfile_fastq_fn = basename(output_file).split('.')[0] + '_trimmed.fastq'
-            outfile_fastq = open(join(save_dir, outfile_fastq_fn), 'w')
+            outfile_fastq_fn = open(mapped_files.trimmed_fn, 'w')
     
     i = 0
     num_too_small = 0
-    for seq in FastqParser(input_file):
+    for seq in FastqParser(input_fn):
         i += 1
         if len(seq) < minimum_length:
             num_too_small += 1
@@ -45,9 +47,9 @@ def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, 
             data_fastq = seq.toFastq() + '\n'
         
         if not test_run:
-            outfile_fasta.write(data_fasta)
+            outfile_fasta_fn.write(data_fasta)
             if rewrite:
-                outfile_fastq.write(data_fastq)
+                outfile_fastq_fn.write(data_fastq)
         else:
             print data_fasta
 
@@ -55,9 +57,9 @@ def run(input_file, save_dir, output_file, minimum_length, rewrite, run_record, 
             break
 
     if not test_run:
-        outfile_fasta.close()
+        outfile_fasta_fn.close()
         if rewrite:
-            outfile_fastq.close()
+            outfile_fastq_fn.close()
     
     run_record.addMessage(program_name='fastq_to_fasta',
                 error_type=LOG_INFO, message='Sequences read', value=i)

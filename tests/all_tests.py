@@ -34,6 +34,7 @@ def suite():
         'test_db',
         'test_inline_stats',
         'test_light_seq',
+        'test_mapped_files',
         'test_reduce',
         'test_parse_fastq',
         'test_parse_rdump',

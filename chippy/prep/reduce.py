@@ -6,7 +6,7 @@ import warnings
 import math
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
-from numpy import int32, int8, uint8, array, Inf
+from numpy import int32, int8, uint8, array, Inf, empty
 
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
@@ -98,6 +98,8 @@ def make_chrom_coord_table(all_coords, chrom):
     coords = all_coords[chrom]
     coords = array([key + (val,) for key, val in coords.items()])
     coords = coords.astype(int32)
+    if coords.shape[0] == 0:
+        coords = empty((0,len(header)))
     chrom_table = LoadTable(header=header, rows=coords)
     chrom_table = chrom_table.sorted()
     return chrom_table

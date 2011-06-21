@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-import os, re
 from cogent.parse.psl import MinimalPslParser
 from cogent.parse.fastq import MinimalFastqParser
 from chippy.parse.light_seq import LightSeq
+from chippy.prep.mapped_files import internal_instantiation
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
@@ -15,10 +15,10 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-file_end = re.compile(r'\.fastq$')
-
 def get_corrupt_seq_names(psl_name, test_run):
     psl_parser = MinimalPslParser(psl_name)
+
+    #skip the two header lines 
     psl_parser.next()
     psl_parser.next()
     
@@ -33,23 +33,28 @@ def get_corrupt_seq_names(psl_name, test_run):
             break
     return contaminated_info
 
-def write_pristine(fastq_name, not_pristine, run_record, test_run):
+def write_pristine(fastq_trimmed_fn, not_pristine, run_record, test_run):
     num = 0
     num_too_short = 0
     num_pristine = 0
     num_contaminated = 0
-    pristine_name = file_end.sub('_pristine.fastq', fastq_name)
-    contaminated_name = file_end.sub('_contaminated.fastq', fastq_name)
-    
+
+    # Any files not passed in as parameters can be accessed through this interface
+    mapped_files = internal_instantiation()
+
+    pristine_fn = mapped_files.pristine_fn
+    contaminated_fn = mapped_files.contaminated_fn
+
     if test_run:
-        print pristine_name
-        print contaminated_name
+        print pristine_fn
+        print contaminated_fn
     else:
-        outfile_pristine = open(pristine_name, 'w')
-        outfile_contaminated = open(contaminated_name, 'w')
-    
+        outfile_pristine = open(pristine_fn, 'w')
+        outfile_contaminated = open(contaminated_fn, 'w')
+
+    fastq_formatted = ""
     seq_object = LightSeq()
-    for name, seq, qual in MinimalFastqParser(open(fastq_name)):
+    for name, seq, qual in MinimalFastqParser(open(fastq_trimmed_fn)):
         num += 1
 
         seq_object(seq, name, qual)

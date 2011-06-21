@@ -48,14 +48,17 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
     if dry_run:
         limit = 100
 
-    unique_str = 'XT:A:U' # 'unique' mapping identifier
+    # 'unique' mapping identifiers
+    unique_str_bwa = 'XT:A:U'
+    unique_str_bowtie = 'XA:i:0'
 
     for record in parser:
 
         mapQ = record[4] # 5th SAM field gives mapping quality in Phred units
         optional_field = record[11] # 12th SAM field gives optional strings
 
-        if optional_field == unique_str and min_quality <= mapQ < 255:
+        if ((optional_field == unique_str_bowtie) or (optional_field == unique_str_bwa))\
+        and min_quality <= mapQ < 255:
             count_records += 1
             chrom = record[2] # 3rd SAM field gives chromosome number
                     
@@ -119,7 +122,6 @@ def what_chromosomes(chrom_name, chroms=chroms):
 
 @display_wrap
 def run(infile_name, outdir, chroms, pval_cutoff, limit, run_record, dry_run, ui=None):
-    print 'Starting SAM reduction'
 
     if not 0.0 <= pval_cutoff <= 1.0:
         raise RuntimeError("p-value cutoff for read mapping quality"\

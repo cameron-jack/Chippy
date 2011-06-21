@@ -13,6 +13,9 @@ class ReadingAlignerOutput(TestCase):
         """bwa/bowtie derived coordinates for brca2 should match those from ensembl"""
         parser = MinimalSamParser('data/brca2-11.sam')
         header = parser.next()
+
+        # The number offset for reading the output positions
+        sam_padding = 1
       
         mapped = dict([(row[0], row) for row in parser])
 
@@ -31,7 +34,7 @@ class ReadingAlignerOutput(TestCase):
 
             length = len(record[9]) # 10th SAM field is the sequence
             start = int(record[3]) # 4th SAM field is the starting position on the chromosome
-            rel_start = start - gene_start
+            rel_start = start - gene_start - sam_padding
             mapped_seq = record[9]
             expected_seq = fwd[rel_start: rel_start+length]
             self.assertEqual(str(mapped_seq), str(expected_seq)) # getting a failure because we're not reading properly

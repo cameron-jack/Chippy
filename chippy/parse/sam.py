@@ -22,6 +22,14 @@ def _cigar_span(val):
         r = 0
     return r
 
+# Required to avoid '*' causing errors
+def _int_str(val):
+    try:
+        val = int(val)
+    except ValueError:
+        pass
+    return val
+
 def get_strand(val):
     """returns 1/-1 for strand from bitwise operation"""
     v = int(val)
@@ -35,7 +43,7 @@ def zero_based(val):
 strict_converter = ConvertFields([(1, int),(3,int),(4,int),
                                     (5, _strict_cigar_span)])
 
-converter = ConvertFields([(1, get_strand), (3, zero_based),(4,int), (5, _cigar_span)])
+converter = ConvertFields([(1, get_strand), (3, zero_based),(4,_int_str), (5, _cigar_span)])
 
 # SAM fields: QNAME, FLAG, RNAME, POS, MAPQ, CIGAR, RNEXT, PNEXT, TLEN, SEQ, QUAL, OPT
 complete_converter = ConvertFields([(0, str), (1, get_strand), (2, str), (3, zero_based),

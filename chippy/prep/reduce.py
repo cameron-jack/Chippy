@@ -44,6 +44,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
     aligner_chr_prefix = None
     count_records = 0
     count_skipped = 0
+    count_unmapped = 0
     
     if dry_run:
         limit = 100
@@ -54,13 +55,19 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
 
     for record in parser:
 
+        chrom = record[2] # 3rd SAM field gives chromosome number
+        # Unmapped reads return *
+        if chrom == '*':
+            count_unmapped += 1
+            continue
+
         mapQ = record[4] # 5th SAM field gives mapping quality in Phred units
         optional_field = record[11] # 12th SAM field gives optional strings
 
         if ((optional_field == unique_str_bowtie) or (optional_field == unique_str_bwa))\
         and min_quality <= mapQ < 255:
             count_records += 1
-            chrom = record[2] # 3rd SAM field gives chromosome number
+
                     
             if aligner_chr_prefix is None:
                 aligner_chr_prefix = re.findall(r'^[^0-9xyXY]+', chrom)[0]
@@ -79,7 +86,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
         else:
             count_skipped += 1
 
-        if count_records + count_skipped >= limit:
+        if count_records + count_skipped + count_unmapped >= limit:
             break
     
     # make a dict with consistent chrom keys
@@ -92,6 +99,7 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
     if dry_run:
         print 'Total mapped reads: %d' % (count_records)
         print 'Total skipped reads: %i' % (count_skipped)
+        print 'Total unmapped reads: %i' % (count_unmapped)
 
     return all_consistent_keys
 

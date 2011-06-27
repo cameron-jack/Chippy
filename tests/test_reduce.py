@@ -13,6 +13,9 @@ class ReadingAlignerOutput(TestCase):
         """bwa/bowtie derived coordinates for brca2 should match those from ensembl"""
         parser = MinimalSamParser('data/brca2-11.sam', converter=None)
         header = parser.next()
+        # Skip deliberately dodgy sequence
+        header = parser.next()
+        header = parser.next()
 
         # The number offset for reading the output positions
         sam_padding = 1

@@ -48,7 +48,14 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     return run_record
 
 def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
-    """run bowtie, output SAM format"""
+    """run bowtie, output SAM format, add version to run_record"""
+    command = 'bowtie --version'
+    returncode, stdout, stderr = run_command(command, test)
+    for line_ in stdout.splitlines():
+        if line_.startswith('bowtie version'):
+            run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='bowtie version: %s' % line_, value=0)
+
     command = 'bowtie -q --solexa1.3-quals -S --mapq 37 -t -m 1 -p 6 %s %s %s' % \
         (align_index, fastq_filename, map_filename)
     start = time.time()
@@ -73,8 +80,14 @@ def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
     return run_record
 
 def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, test):
-    """run bwa similarly to bowtie"""
-    # TODO threading? -t 6
+    """run bwa and send version to run_record"""
+    command = 'bwa'
+    returncode, stdout, stderr = run_command(command, test)
+    for line in stderr.splitlines():
+        if line.startswith('Version'):
+            run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message=line, value=0)
+
     command = 'bwa aln -t 6 %s %s > %s' % (align_index, fastq_filename,
                                         out_filename)
     start = time.time()

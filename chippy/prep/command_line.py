@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import os, sys, re, time
 import subprocess
-from optparse import OptionParser
 
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
-__author__ = "Gavin Huttley"
+__author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley", "Cameron Jack"]
 __license__ = "GPL"
@@ -49,8 +48,15 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     return run_record
 
 def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
-    """run bowtie"""
-    command = 'bowtie -q --solexa1.3-quals -t -m 1 -p 6 %s %s %s' % \
+    """run bowtie, output SAM format, add version to run_record"""
+    command = 'bowtie --version'
+    returncode, stdout, stderr = run_command(command, test)
+    for line_ in stdout.splitlines():
+        if line_.startswith('bowtie version'):
+            run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='bowtie version: %s' % line_, value=0)
+
+    command = 'bowtie -q --solexa1.3-quals -S --mapq 37 -t -m 1 -p 6 %s %s %s' % \
         (align_index, fastq_filename, map_filename)
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
@@ -74,8 +80,14 @@ def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
     return run_record
 
 def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, test):
-    """run bwa similarly to bowtie"""
-    # TODO threading? -t 6
+    """run bwa and add version to run_record"""
+    command = 'bwa'
+    returncode, stdout, stderr = run_command(command, test)
+    for line in stderr.splitlines():
+        if line.startswith('Version'):
+            run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message=line, value=0) 
+
     command = 'bwa aln -t 6 %s %s > %s' % (align_index, fastq_filename,
                                         out_filename)
     start = time.time()

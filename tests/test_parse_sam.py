@@ -1,3 +1,6 @@
+import sys
+sys.path.extend(['..', '../src'])
+
 from cogent.util.unit_test import TestCase, main
 
 from chippy.parse.sam import MinimalSamParser

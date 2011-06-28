@@ -213,7 +213,7 @@ class CollectionTests(TestCase):
         self.assertEqual(c, [4,5])
         freqs = coll.asfreqs()
         c, r = freqs.transformed(counts_func=column_sum)
-        self.assertEqual(c, [20./45., 25./45])
+        self.assertFloatEqual(c, numpy.array([20./45., 25./45],dtype=c.dtype))
     
     def test_take(self):
         """take returns subset with correct attributes"""

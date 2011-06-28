@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Takes an R-dump file and populates DB - requires start_chippy_db has been run"""
+
 import sys, os
 from optparse import make_option
 
@@ -37,7 +39,7 @@ script_info['script_description'] = "Add an expression study from an R "\
 script_info['version'] = __version__
 
 script_info['required_options'] = [
- make_option('-e',
+ make_option('-e',input_fn, save_dn, output_fn, minimum_leng,
          '--expression_data',
           help='Path to the expression data file. Must be tab delimited.'),
  make_option('--allow_probeset_many_gene', action='store_true', default=False,

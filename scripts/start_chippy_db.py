@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""creates the gene feature database"""
+"""creates the gene feature database - must be run first"""
 import sys, os
 from optparse import make_option
 

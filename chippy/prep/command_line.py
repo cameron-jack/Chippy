@@ -81,6 +81,7 @@ def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
 
 def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, test):
     """run bwa and add version to run_record"""
+
     command = 'bwa'
     returncode, stdout, stderr = run_command(command, test)
     for line in stderr.splitlines():

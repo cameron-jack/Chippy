@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
 # This script enforces a protocol to prevent forking on the assembla shared
 # repo, plus pulls and then executes tests before pushing. It will rebase

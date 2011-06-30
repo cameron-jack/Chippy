@@ -41,10 +41,10 @@ script_info['version'] = __version__
 script_info['required_options'] = [
  make_option('-e', '--expression_data',
           help='Path to the expression data file. Must be tab delimited.'),
- make_option('--allow_probeset_many_gene', action='store_true', default=False,
-    help='Allow probesets that map to multiple genes')
 ]
 
+probeset_qc = make_option('--allow_probeset_many_gene', action='store_true',
+    default=False, help='Allow probesets that map to multiple genes')
 
 gene_id = make_option('-g','--gene_id_heading',
         default='ENSEMBL',
@@ -79,11 +79,12 @@ exp_diff = 'Expression data: difference in expression between samples'
 external_genes ='External gene list'
 
 sample_type = make_option('-y', '--sample_type', type='choice',
-        choices= [exp_absolute, exp_diff, external_genes],
-            help='Select whether the type of data you want entered')
+        choices=[exp_absolute, exp_diff, external_genes],
+            help='Select the type of data you want entered from %s' % \
+                str([exp_absolute, exp_diff, external_genes]))
 
 
-sample = [existing_sample, new_sample, sample_type]
+sample = [probeset_qc, existing_sample, new_sample, sample_type]
 related_file1 = make_option('--reffile1', default=None,
           help='Related file 1')
 related_file2 = make_option('--reffile2', default=None,

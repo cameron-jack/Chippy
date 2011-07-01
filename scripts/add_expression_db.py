@@ -139,7 +139,8 @@ def main():
     # column labels
     if sample_type == exp_absolute:
         rr = add_expression_study(session, name, opts.expression_data, data,
-                probeset_label=opts.probeset_heading, run_record=rr)
+            ensembl_release='62', probeset_label=opts.probeset_heading,
+            run_record=rr)
     elif sample_type == exp_diff:
         # diff between two files, check we got the related files
         assert opts.related_file1 is not None and \

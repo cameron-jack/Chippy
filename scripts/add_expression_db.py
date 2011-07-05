@@ -25,7 +25,6 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-# This should be an "option" like everything else.
 if 'CHIPPY_DB' in os.environ:
     db_path = os.environ['CHIPPY_DB']
 else:
@@ -41,7 +40,6 @@ script_info['script_description'] = "Add an expression study from an R "\
                                     "export."
 script_info['version'] = __version__
 
-# why is --allow_probeset_many_gene a required option? It even has a default
 script_info['required_options'] = [
  make_option('-e', '--expression_data',
           help='Path to the expression data file. Must be tab delimited.'),
@@ -67,7 +65,6 @@ if _samples:
 else:
     _samples = [None]
 
-# Why isn't this required?
 existing_sample = make_option('-s','--sample', type='choice',
         choices=_samples,
         help='Select an existing or use field below to add new',

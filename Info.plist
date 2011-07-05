@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Bundle help</key>
+	<string>doc/_build/html/index.html</string>
+	<key>Bundle identifier</key>
+	<string>org.chippy</string>
+	<key>Bundle name</key>
+	<string>ChipPy</string>
+	<key>Bundle version</key>
+	<string>0.1</string>
+	<key>Menu items</key>
+	<array>
+		<array>
+			<string>Initialise Db</string>
+			<string>scripts/start_chippy_db.py</string>
+		</array>
+		<array>
+			<string>Add expression data</string>
+			<string>scripts/add_expression_db.py</string>
+		</array>
+		<array>
+			<string>Delete expression data</string>
+			<string>scripts/drop_expression_db.py</string>
+		</array>
+		<array>
+			<string>Db report</string>
+			<string>scripts/db_summary.py</string>
+		</array>
+		<array>
+			<string>Export centred counts</string>
+			<string>scripts/export_centred_counts.py</string>
+		</array>
+		<array>
+			<string>Plot centred counts</string>
+			<string>scripts/plot_centred_counts.py</string>
+		</array>
+	</array>
+	<key>PYTHONPATH </key>
+	<string>&apos;.&apos;</string>
+</dict>
+</plist>

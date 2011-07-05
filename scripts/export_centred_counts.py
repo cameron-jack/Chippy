@@ -2,7 +2,7 @@
 from __future__ import division
 
 import os, sys, glob
-sys.path.extend(['../../src'])
+sys.path.extend(['..', '../src'])
 
 import numpy
 

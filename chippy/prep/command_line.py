@@ -55,7 +55,8 @@ def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, test
     line = file_in.readline()
     # get first sequence
     line = file_in.readline()
-    line.rstrip('\n')
+    line = line.rstrip('\n')
+    line = line.rstrip('\r')
     file_in.close()
 
     command = "fastx_clipper -a %s -i %s -o %s" % (line, fastq_in_fn, fastq_out_fn)

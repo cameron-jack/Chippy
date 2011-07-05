@@ -23,7 +23,7 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-def run(input_fn, save_dn, output_fn, minimum_length, rewrite, run_record, test_run):
+def run(input_fn, output_fn, minimum_length, rewrite, run_record, test_run):
     """receives a fastq file and outputs fasta and trimmed fastq files"""
 
     # Any files not passed in as parameters can be accessed through this interface

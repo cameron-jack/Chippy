@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """creates the gene feature database - must be run first"""
-import sys, os
+import sys
+sys.path.extend(['..', '../src'])
+
+import os
 from optparse import make_option
 
 from cogent import LoadTable

@@ -1,7 +1,7 @@
 from __future__ import division
 
 import os, sys
-sys.path.extend(['../../src'])
+sys.path.extend(['..', '../src'])
 
 import numpy
 

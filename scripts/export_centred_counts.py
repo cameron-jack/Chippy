@@ -62,6 +62,7 @@ script_info['output_description']= 'Generates either a compressed file that can 
 opt_sample = make_option('-c', '--sample', type='choice',
            help='Choose the expression study [default: %default]',
            choices=[str(s) for s in samples])
+# Ensembl release is now an option instead of being hard coded
 opt_ensembl_release = make_option('-e', '--ensembl_release', type='int',
                     help='Enter Ensembl release number e.g. 58')
 

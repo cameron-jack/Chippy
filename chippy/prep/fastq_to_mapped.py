@@ -35,7 +35,7 @@ optional.append(make_option('-p', '--pval_cutoff',
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
                             help='path to the Illumina adapters'))
-required.append(make_option('--adapter_clipping',
+required.append(make_option('--adapter_clipper',
                             choices=['blat','fastx'],
                             help='Choose adapter clipping program'))
 required.append(make_option('--index',

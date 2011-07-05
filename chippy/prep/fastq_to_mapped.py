@@ -85,7 +85,7 @@ def main():
         # this function call creates the save_dir path, if it doesn't already
         # exist. Rewrite fastq=true
         print 'Prepping for blat (fastq to fasta)'
-        run_record = fastq_to_fasta.run(fastq_fn,working_dn, fasta_fn,
+        run_record = fastq_to_fasta.run(fastq_fn, fasta_fn,
             opts.minimum_length, True, run_record, opts.test_run)
     
         print 'Running blat'

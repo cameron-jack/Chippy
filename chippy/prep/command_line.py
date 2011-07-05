@@ -26,7 +26,7 @@ def run_command(command, test):
     return returncode, stdout, stderr
 
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):
-    """run blat"""
+    """run blat to remove adapter sequences"""
     command = "blat %s %s %s" % (blat_adapters, query_file, psl_out)
     if test:
         print "=== The command ==="
@@ -42,6 +42,37 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
         print
         print ''.join(stdout)
     
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
+
+def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, test):
+    """run fastx_clipper to remove adapter sequences"""
+
+    file_in = open (blat_adapters)
+    # ignore header
+    line = file_in.readline()
+    # get first sequence
+    line = file_in.readline()
+    line.rstrip('\n')
+    file_in.close()
+
+    command = "fastx_clipper -a %s -i %s -o %s" % (line, fastq_in_fn, fastq_out_fn)
+    if test:
+        print "=== The command ==="
+        print command
+        return
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name='fastx_clipper',
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
     if stderr:
         print
         print ''.join(stderr)

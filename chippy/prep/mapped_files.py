@@ -73,8 +73,8 @@ class MappedFiles:
         self.run_record_fn = os.path.join(save_dname, 'run_record.txt')
 
 def mapped_file_handle(fastq_fname, save_dname):
-    """mapped_file_handle provides the safe way of creating an instance of MappedFiles
-    or returning THE existing instance of MappedFiles"""
+    """mapped_file_handle provides the safe way of creating an instance of
+    MappedFiles or returning THE existing instance of MappedFiles"""
     try:
         singleton = MappedFiles(fastq_fname, save_dname)
     except MappedFiles, m:
@@ -88,7 +88,7 @@ def test_instantiation():
     return mapped_files
 
 def internal_instantiation():
-    """used for testing distance vs local instantiation and for returniTEST_FILE_NAMEng
+    """used for testing distance vs local instantiation and for returning
     an instance after initial creation"""
     mapped_files = mapped_file_handle(TEST_FILE_NAME, TEST_DIR_NAME)
     if mapped_files.fastq_fn == TEST_FILE_NAME:   

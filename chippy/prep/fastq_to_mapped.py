@@ -35,6 +35,9 @@ optional.append(make_option('-p', '--pval_cutoff',
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
                             help='path to the Illumina adapters'))
+required.append(make_option('--adapter_clipping',
+                            choices=['blat','fastx'],
+                            help='Choose adapter clipping program'))
 required.append(make_option('--index',
                             help='path to the aligner genome index'))
 required.append(make_option('--aligner', type='choice',
@@ -77,26 +80,36 @@ def main():
     # completion of the entire workflow. Expected format is: program_name
     run_record = RunRecord()
 
-    # convert fastq to fasta so we can use blat to map the adapters
-    # this function call creates the save_dir path, if it doesn't already
-    # exist. Rewrite fastq=true
-    print 'Prepping for blat (fastq to fasta)'
-    run_record = fastq_to_fasta.run(fastq_fn,working_dn, fasta_fn,
-        opts.minimum_length, True, run_record, opts.test_run)
+    if opts.adapter_clipper.lower() == 'blat':
+        # convert fastq to fasta so we can use blat to map the adapters
+        # this function call creates the save_dir path, if it doesn't already
+        # exist. Rewrite fastq=true
+        print 'Prepping for blat (fastq to fasta)'
+        run_record = fastq_to_fasta.run(fastq_fn,working_dn, fasta_fn,
+            opts.minimum_length, True, run_record, opts.test_run)
     
-    print 'Running blat'
-    run_record = command_line.run_blat(opts.blat_adapters,
-            fasta_fn, psl_fn, run_record, opts.test_run)
+        print 'Running blat'
+        run_record = command_line.run_blat(opts.blat_adapters,
+                fasta_fn, psl_fn, run_record, opts.test_run)
     
-    print 'Writing seqs without adapters'
-    run_record = pristine_seqs.main(psl_fn, trimmed_fn, run_record,
-            opts.test_run)
+        print 'Writing seqs without adapters'
+        run_record = pristine_seqs.main(psl_fn, trimmed_fn, run_record,
+                opts.test_run)
 
-    # concatenate the pristine and contaminated fastq files
-    print 'Concatenating contaminated and pristine fastq files'
-    run_record = command_line.concatenate(pristine_fn, contaminated_fn,
-                combined_fn, run_record, opts.test_run)
-    
+        # concatenate the pristine and contaminated fastq files
+        print 'Concatenating contaminated and pristine fastq files'
+        run_record = command_line.concatenate(pristine_fn, contaminated_fn,
+                    combined_fn, run_record, opts.test_run)
+    elif opts.adapter_clipper.lower() == 'fastx':
+        # We aren't separating pristine and contaminated with fastx
+        # so write straight to 'combined' file
+        print 'Running fastx adapter clipping'
+        run_record = command_line.run_fastx_clipper(opts.blat_adapters,
+                    fastq_fn, combined_fn, run_record, opts.test_run)
+    else:
+        raise RuntimeError('Unknown adapter clipper choice %s' \
+                % opts.adapter_clipper)
+
     if opts.aligner.lower() == 'bowtie':
         print 'Mapping seqs with bowtie'
         run_record = command_line.run_bowtie(opts.index,

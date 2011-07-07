@@ -94,7 +94,7 @@ def main():
     
         print 'Writing seqs without adapters'
         run_record = pristine_seqs.main(psl_fn, trimmed_fn, run_record,
-                opts.test_run)
+                     opts.test_run)
 
         # concatenate the pristine and contaminated fastq files
         print 'Concatenating contaminated and pristine fastq files'
@@ -105,7 +105,9 @@ def main():
         # so write straight to 'combined' file
         print 'Running fastx adapter clipping'
         run_record = command_line.run_fastx_clipper(opts.blat_adapters,
-                    fastq_fn, combined_fn, run_record, opts.test_run)
+                    fastq_fn, trimmed_fn, run_record, opts.test_run)
+        run_record = command_line.run_fastq_qual_trim(trimmed_fn, combined_fn,
+                     run_record, opts.test_run)
     else:
         raise RuntimeError('Unknown adapter clipper choice %s' \
                 % opts.adapter_clipper)

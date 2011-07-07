@@ -59,7 +59,8 @@ def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, test
     line = line.rstrip('\r')
     file_in.close()
 
-    command = "fastx_clipper -a %s -i %s -o %s" % (line, fastq_in_fn, fastq_out_fn)
+    command = 'fastx_clipper -a %s -i %s -o %s' % \
+              (line, fastq_in_fn, fastq_out_fn)
     if test:
         print "=== The command ==="
         print command
@@ -68,6 +69,32 @@ def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, test
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     run_record.addMessage(program_name='fastx_clipper',
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
+
+def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, test):
+    """run fastq_quality_trimmer to remove adapter sequences. Note that
+       we are being reasonably conservative with the minimum length we
+       pass on for alignment"""
+
+    command = 'fastq_quality trimmer -t 3 -l 25 -i %s -o %s' \
+              % (fastq_in_fn, fastq_out_fn)
+    if test:
+        print "=== The command ==="
+        print command
+        return
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name='fastq_quality_trimmer',
             error_type=LOG_INFO, message='Time taken (mins)',
             value=((end-start)/60.))
     if stdout:

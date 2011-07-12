@@ -68,7 +68,7 @@ def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, test
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
-    run_record.addMessage(program_name='fastx_clipper',
+    run_record.addMessage(program_name=command,
             error_type=LOG_INFO, message='Time taken (mins)',
             value=((end-start)/60.))
     if stdout:
@@ -85,7 +85,7 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, test):
        we are being reasonably conservative with the minimum length we
        pass on for alignment"""
 
-    command = 'fastq_quality trimmer -t 3 -l 25 -i %s -o %s' \
+    command = 'fastq_quality_trimmer -t 3 -l 19 -i %s -o %s' \
               % (fastq_in_fn, fastq_out_fn)
     if test:
         print "=== The command ==="
@@ -94,7 +94,7 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, test):
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
-    run_record.addMessage(program_name='fastq_quality_trimmer',
+    run_record.addMessage(program_name=command,
             error_type=LOG_INFO, message='Time taken (mins)',
             value=((end-start)/60.))
     if stdout:

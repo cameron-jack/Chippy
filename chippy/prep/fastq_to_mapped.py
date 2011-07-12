@@ -5,6 +5,8 @@
 - produces trimmed sequences without adpaters
 - maps the clean sequences using bowtie
 """
+import sys
+sys.path.extend(['..', '../src'])
 
 import numpy
 
@@ -106,6 +108,8 @@ def main():
         print 'Running fastx adapter clipping'
         run_record = command_line.run_fastx_clipper(opts.blat_adapters,
                     fastq_fn, trimmed_fn, run_record, opts.test_run)
+
+        print 'Running fastq_quality_trimmer'
         run_record = command_line.run_fastq_qual_trim(trimmed_fn, combined_fn,
                      run_record, opts.test_run)
     else:

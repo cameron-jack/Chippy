@@ -5,6 +5,8 @@ import numpy
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
+from cogent import LoadTable
+
 from chippy.core.collection import RegionCollection, column_sum, \
         chebyshev_upper
 
@@ -32,12 +34,38 @@ class CollectionTests(TestCase):
             self.assertEqual(getattr(recovered, key), orig_data[key])
         
         remove_files(['test_data'], error_on_missing=False)
-    
+
+    def test_to_table(self):
+        """correctly generate a table"""
+        orig_data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+            ranks=[0, 1, 2, 3, 4],
+            labels=['0','1', '2','3', '4'])
+        coll = RegionCollection(**orig_data)
+        expect=[['0', 0.0, 0, 1], ['1', 1.0, 2, 3], ['2', 2.0, 4, 5], ['3', 3.0, 6, 7], ['4', 4.0, 8, 9]]
+
+        got= coll.toTable().getRawData()
+        self.assertEqual(got, expect)
+
     def test_save_load(self):
         """correctly save and reload a collection"""
-        orig_data = dict(counts=['abcd', 'efg'],
-                ranks=[0,1], labels=['A', 'B'], info={'args': 'some args'})
+        orig_data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+            ranks=[0, 1, 2, 3, 4],
+            labels=['0','1', '2','3', '4'])
+        # As numpy array
         self.check_write_load(orig_data)
+
+    def test_export_table(self):
+        """correctly generates table file"""
+        orig_data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]],
+            ranks=[0, 1, 2, 3, 4],
+            labels=['a','b', 'c','d', 'e'])
+        coll = RegionCollection(**orig_data)
+
+        expect= coll.toTable().getRawData()
+        coll.writeToFile('testdata', as_table=True)
+        got = LoadTable('testdata', sep='\t')
+        self.assertEqual(got.getRawData(), expect)
+        remove_files(['testdata'], error_on_missing=False)
     
     def test_consistency_check_on_create(self):
         """attributes need to have same number of elements"""

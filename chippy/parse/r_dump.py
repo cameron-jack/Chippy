@@ -19,6 +19,7 @@ def convert(to_float=False, strict=False):
     type_ = [int, float][to_float]
     def call(value):
         result = value.strip().split('|')
+
         try:
             result = map(type_, result)
         except ValueError:
@@ -54,6 +55,23 @@ def remove_probesets(row, probesets, probeset_index, exp_index):
     row[exp_index] = tuple(new_exp)
     return row
 
+def validate_exps(probeset_ids, probeset_exps):
+    new_ids = []
+    new_exps = []
+
+    # takes care of uneven probe/expr info
+    # breaks current test for unevenness
+    if len(probeset_ids) != len (probeset_exps):
+        raise RuntimeError('Different number of probesets to expression values')
+
+    for i in range (len(probeset_ids)):
+        if type(probeset_exps[i]) == str:
+            continue
+        new_ids.append(probeset_ids[i])
+        new_exps.append(probeset_exps[i])
+
+    return new_ids, new_exps
+
 def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
         exp_label='', allow_probeset_many_gene=False, validate=True,
         run_record=None):
@@ -73,6 +91,8 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
           for each row the number of probesets equals the number of expression
           scores. Raises a RuntimeException if failure occurs for any
           of these checks.
+
+    Needs to be able to ignore string entries in place of float/double
     """
     if run_record is None:
         run_record = RunRecord()
@@ -85,17 +105,33 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
     table = LoadTable(path, reader=reader)
     
     # convert '|' delimited probeset and expression fields to tuples of
-    # (ints / string) and int respectively
+    # (ints / string) and float respectively
     convert_probeset = convert(to_float=False)
     convert_exp = convert(to_float=True)
     probeset_index = table.Header.index(probeset_label)
     exp_index = table.Header.index(exp_label)
     rows = table.getRawData()
+
+    lost_probesets = 0
+    new_rows = []
     for row in rows:
-        row[probeset_index] = convert_probeset(row[probeset_index])
-        row[exp_index] = convert_exp(row[exp_index])
+        new_ids = convert_probeset(row[probeset_index])
+        new_exps = convert_exp(row[exp_index])
+        try:
+            new_ids, new_exps = validate_exps(new_ids, new_exps)
+        except RuntimeError:
+            lost_probesets += 1
+            continue
+        row[probeset_index] = new_ids
+        row[exp_index] = new_exps
+        if len(new_ids) == 0:
+            continue
+        new_rows.append(row)
     
-    table = LoadTable(header=table.Header, rows=rows)
+    table = LoadTable(header=table.Header, rows=new_rows)
+    if lost_probesets:
+        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
+                'probesets not matched to expression values', lost_probesets)
     
     if validate:
         assert probeset_label and exp_label and stable_id_label,\
@@ -106,11 +142,6 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
         
         run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
             'validation', 'genes were all unique')
-        for row in table:
-            if len(row[probeset_label]) != len(row[exp_label]):
-                gene_id = row[stable_id_label]
-                raise RuntimeError('Mismatched number of probesets and '\
-                        'exp scores for %s' % gene_id)
             
         run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
             'validation', 'numbers of probesets matched expression records')

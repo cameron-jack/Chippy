@@ -3,6 +3,8 @@
 import gzip
 import numpy
 
+from cogent import LoadTable
+
 from chippy.util.util import make_even_groups
 
 __author__ = "Gavin Huttley"
@@ -119,17 +121,51 @@ class RegionCollection(_GenericCollection):
                 % (len(self.counts), self.ranks is not None,
                                     self.labels is not None)
         return v
-    
-    def writeToFile(self, filename):
+
+    def toTable(self):
+        """builds a tab separated table for writeToFile"""
+        header = []
+
+        if self.labels is not None:
+            labels = self.labels.tolist()
+            header.append('gene')
+
+        if self.ranks is not None:
+            ranks = self.ranks.tolist()
+            header.append('rank')
+
+        save_data = self.counts.tolist()
+
+        n_cols = len(save_data[0])
+        window = n_cols/2
+        posn = range(-window, window)
+        header.extend(map(str, posn))
+
+        for i in range(len(save_data)):
+            if self.ranks is not None:
+                save_data[i].insert(0, ranks[i])
+
+            if self.labels is not None:
+                save_data[i].insert(0, labels[i])
+        
+        out_table = LoadTable(header=header, rows=save_data, sep='\t')
+        return out_table
+
+    def writeToFile(self, filename, as_table=False):
         """writes a gzipped .npy formatted data store"""
-        outfile = gzip.GzipFile(filename, 'w')
-        save_data = dict(counts=self.counts, ranks=self.ranks,
-                         labels=self.labels, info=self.info)
-        numpy.save(outfile, save_data)
-        outfile.close()
+        if as_table == False:
+            outfile = gzip.GzipFile(filename, 'w')
+            save_data = dict(counts=self.counts, ranks=self.ranks,
+                             labels=self.labels, info=self.info)
+            numpy.save(outfile, save_data)
+            outfile.close()
+        else:
+            out_table = self.toTable()
+            out_table.writeToFile(filename, sep='\t')
     
     def _load(self, filename):
-        """loads attributes from a gzipped, .npy data structure"""
+        """loads attributes from a gzipped, .npy data structure or a tab delimited
+        cogent table"""
         infile = gzip.GzipFile(filename, 'r')
         data = numpy.load(infile)
         infile.close()

@@ -103,15 +103,15 @@ class ExcludingProbesets(TestCase):
         rdump, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
             probeset_label='probeset', exp_label='exp', validate=False)
         
-        # a different number of probeset, exp values should cause an exception
+        # a different number of probeset, exp values should have less rows
         sub = LoadTable(header=['ENSEMBL', 'probeset', 'exp'],
                 rows=[['id1',"0|1|2","13.6|13.4|13.6"],
                 ['id2',"3|1","9.9|13.6"],
                 ['id3',"4|5","12.7"]])
         sub.writeToFile(tmp_file, sep='\t')
-        self.assertRaises(RuntimeError, SimpleRdumpToTable, tmp_file,
-                stable_id_label='ENSEMBL', probeset_label='probeset',
+        got, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL', probeset_label='probeset',
                 exp_label='exp', validate=True)
+        self.assertEquals(got.getRawData('ENSEMBL'), ['id1','id2'])
         remove_files([tmp_file], error_on_missing=False)
 
 if __name__ == '__main__':

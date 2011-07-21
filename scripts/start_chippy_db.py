@@ -9,6 +9,7 @@ from optparse import make_option
 from cogent import LoadTable
 from cogent.db.ensembl import HostAccount
 from cogent.util.misc import parse_command_line_parameters
+from chippy.util.util import create_path
 
 from chippy.express.db_schema import make_session
 from chippy.express.db_populate import add_ensembl_gene_data
@@ -58,7 +59,9 @@ def main():
     
     if opts.species != 'mouse':
         raise RuntimeError('Currently only support mouse, sorry!')
-    
+
+    create_path(opts.save_db_path)
+
     if not os.path.isdir(opts.save_db_path):
         sys.stderr.write('The save_db_path must be a directory.\n')
         return

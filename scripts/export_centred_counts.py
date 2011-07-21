@@ -33,7 +33,7 @@ def get_collection(session, sample_name, ensembl_release, counts_dir, max_read_l
                 'mouse', None, counts_dir, ensembl_release, max_read_length,
                 count_max_length, window_size, test_run)
         if data_collection is not None:
-            data_collection.writeToFile(filename, to_table=tab_delimited)
+            data_collection.writeToFile(filename, as_table=tab_delimited)
         else:
             sys.stderr.write('No data_collection was returned!\n')
     else:

@@ -107,6 +107,7 @@ opt_colorbar = make_option('--colorbar',
          action='store_true', help="Add colorbar to figure", default=False)
 opt_yrange = make_option('-y', '--ylim', default=None,
        help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
+# Important note, grid_lines are an absolute scale!
 opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
 opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = 0.5,
@@ -130,7 +131,7 @@ opts_vline_width = make_option('--vline_width', type='int',
     default = 2, 
     help='line width for centred vertical line [default: %default]')
 opts_ylabel = make_option('--ylabel',
-    default = 'Mean counts', help='Label for the y-axis [default: %default]')
+    default = 'Normalized counts', help='Label for the y-axis [default: %default]')
 opts_xlabel = make_option('--xlabel',
     default = 'Position relative to TSS',
     help='Label for the x-axis [default: %default]')

@@ -215,7 +215,7 @@ class PlottableGroups(_Plottable):
             cb.set_ticklabels(['Low', 'High'])
             ax = fig.sca(ax) # need to make main axis the current axis again
         
-        num = len(y_series)
+        num = len(y_series) # num = window_size when plotting top genes only
         ymaxs = []
         ymins = []
         for i in ui.series(range(num), noun='Applying lines to plot'):
@@ -228,19 +228,23 @@ class PlottableGroups(_Plottable):
                 # TODO remove hard-coded label font size
                 txt = ax.text(label_x, label_y, series_labels[i],
                         bbox=bbox, color='w', fontsize=14)
-            
-            y = y_series[i]
+
+            if color_series is not None:
+                y = y_series[i]
+            else:
+                y = y_series
+
             ymaxs.append(max(y))
             ymins.append(min(y))
+
+            pyplot.plot(x, y, color=color, linewidth=self.linewidth, alpha=alpha)
             
-            pyplot.plot(x, y, color=color, linewidth=self.linewidth,
-                    alpha=alpha)
             if filename_series is not None:
                 pyplot.savefig(filename_series[i])
             
             if series_labels is not None:
                 ax.texts.remove(txt)
-        
+
         if self.ylim is not None:
             if max(ymaxs) > self.ylim[1]:
                 warnings.warn('ylimit [%s] may be too small, ymax=%s' % \

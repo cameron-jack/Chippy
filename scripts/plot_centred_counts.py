@@ -91,6 +91,10 @@ opt_grp_size = make_option('-g', '--group_size', type='choice', default='All',
    choices=['All', '50', '100'],
    help='Number of genes to group to estimate statistic [default: %default]')
 
+# optional sample choice information
+opt_topgenes = make_option('--topgenes', action='store_true', default = False,
+                    help='Plot only top genes ranked by expressed chromatin')
+
 # optional plotting information
 opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
              help='Probability cutoff. Exclude genes if the probability of '\
@@ -159,7 +163,7 @@ opt_test_run = make_option('-t', '--test_run',
 script_info['required_options'] = [opt_collection, opt_metric, opt_yrange]
 
 run_opts = [opt_test_run]
-sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff]
+sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff, opt_topgenes]
 save_opts = [opts_plot_filename]
 series_opts = [opts_plotseries, opt_txt_coords]
 plot_labels = [opts_title, opts_ylabel, opts_xlabel, opt_colorbar]
@@ -283,6 +287,10 @@ def main():
         num_groups = len(counts)
         counts = list(reversed(counts))
         ranks = list(reversed(ranks))
+        if opts.topgenes == True:
+            num_groups = 1
+            counts = counts.pop()
+            ranks = None
     
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'Number of groups', num_groups)

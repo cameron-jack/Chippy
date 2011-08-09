@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# This script enforces a protocol to prevent forking on the assembla shared
+# repo, plus pulls and then executes tests before pushing. It will rebase
+# any pull's, after popping any mercurial queues. Queues are not push back on.
+
+# written by Gavin Huttley, GPL, copyright 2011-
+
+set -e # exit if anything dies
+
+cmnd=$1
+write_location=$2
+
+function pull_assembla
+{
+    echo 'Pulling'
+    # we pop any mercurial queues, rebase a pull (to minimse branching)
+    hg qpop -a && hg pull assembla --rebase
+}
+
+function push_assembla
+{
+    repo_dir=`pwd`
+    repo_name=`basename $repo_dir`
+    echo 'Running test suite'
+    # make a temp directory and clone the repo into that to run tests
+    TMPDIR=`mktemp -d /tmp/XXXXXX`
+    cd ..
+    hg clone $repo_name $TMPDIR/$repo_name
+    cd $TMPDIR/$repo_name
+    python run_tests.py
+    
+    # if that worked, then
+    cd $repo_dir
+    
+    echo 'Doing pull first'
+    pull_assembla
+    
+    echo 'Pushing'
+    hg push assembla
+}
+
+function bundle
+{
+    echo 'Making bundle for PyCogent.app'
+    write_path=$write_location/ChipPy.bundle
+    repo_dir=`pwd`
+    repo_name=`basename $repo_dir`
+    echo 'Running test suite'
+    # make a temp directory and clone the repo into that to run tests
+    TMPDIR=`mktemp -d /tmp/XXXXXX`
+    cd ..
+    hg clone $repo_name $TMPDIR/$repo_name
+    cd $TMPDIR/$repo_name
+    python run_tests.py
+    # if that worked, then
+    find . -name '*.pyc' -delete
+    cd doc
+    # make project html
+    make html
+    cd ../..
+    mv $repo_name "$write_path"
+    echo "Wrote bundle to $write_path"
+}
+
+if [ "$cmnd" = 'pull' ]; then
+    pull_assembla
+elif [ "$cmnd" = 'push' ]; then
+    push_assembla
+elif [ "$cmnd" = 'bundle' ]; then
+    bundle
+else
+    echo "Unknown command: $1"
+    exit 1
+fi

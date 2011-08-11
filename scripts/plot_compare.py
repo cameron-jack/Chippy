@@ -48,7 +48,6 @@ def averaged(data):
     c, r = data.transformed(counts_func=column_mean)
     return c
 
-ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_external_sample(session)
 

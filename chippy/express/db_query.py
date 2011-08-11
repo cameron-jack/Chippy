@@ -29,8 +29,7 @@ def _get_sample(session, sample_name):
         sample = None
     return sample
 
-def get_gene_expression_query(session, ensembl_release, sample_name,
-            data_path=None, test_run=False):
+def get_gene_expression_query(session, sample_name, data_path=None, test_run=False):
     """returns a query instance"""
     sample = _get_sample(session, sample_name)
     if sample is None:
@@ -46,14 +45,12 @@ def get_gene_expression_query(session, ensembl_release, sample_name,
     
     if data_path:
         query = session.query(Expression).join(Gene).filter(
-            and_(Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id,
+            and_(Expression.sample_id==sample.sample_id,
                  Expression.reffile_id==reffile_id)).\
                     options(contains_eager('gene'))
     else:
         query = session.query(Expression).join(Gene).filter(
-            and_(Gene.ensembl_release==ensembl_release,
-                 Expression.sample_id==sample.sample_id)).\
+            and_(Expression.sample_id==sample.sample_id)).\
                     options(contains_eager('gene'))
     
     return query
@@ -68,7 +65,7 @@ def get_external_sample(session):
     query = session.query(Sample).join(ExternalGene).distinct()
     return query.all()
 
-def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding', stable_ids=None):
+def get_genes(session, chrom=None, biotype='protein_coding', stable_ids=None):
     """returns the Gene's for the indicated release, chrom, biotype or ensembl stable ID.
     
     Note: if stable_ids provided, all arguments other are ignored.
@@ -77,33 +74,31 @@ def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding', st
         stable_ids = [stable_ids]
     
     if stable_ids:
-        condition = and_(Gene.ensembl_release==ensembl_release,
-                        Gene.ensembl_id.in_(stable_ids))
+        condition = Gene.ensembl_id.in_(stable_ids)
     elif chrom and biotype:
-        condition = and_(Gene.ensembl_release==ensembl_release,
-                        Gene.coord_name==str(chrom), Gene.biotype==biotype)
+        condition = and_(Gene.coord_name==str(chrom), Gene.biotype==biotype)
     elif chrom:
-        condition = and_(Gene.ensembl_release==ensembl_release,
-                        Gene.coord_name==str(chrom))
+        condition = Gene.coord_name==str(chrom)
     elif biotype:
-        condition = and_(Gene.ensembl_release==ensembl_release, 
-                        Gene.biotype==biotype)
+        condition = Gene.biotype==biotype
     else:
-        condition = Gene.ensembl_release==ensembl_release
+        condition = None
     
-    query = session.query(Gene).filter(condition)
+    query = session.query(Gene)
+    if condition is not None:
+        query = query.filter(condition)
+    
     return query
 
-def get_stable_id_genes_mapping(session, ensembl_release):
+def get_stable_id_genes_mapping(session):
     """get ensembl genes for a release"""
-    genes = session.query(Gene).filter_by(
-                ensembl_release=ensembl_release).all()
+    genes = session.query(Gene).all()
     ensembl_id_genes = dict([(g.ensembl_id, g) for g in genes])
     return ensembl_id_genes
 
-def get_ranked_expression(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
+def get_ranked_expression(session, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
     """returns all ranked genes from a sample"""
-    query = get_gene_expression_query(session, ensembl_release, sample_name,
+    query = get_gene_expression_query(session, sample_name,
                     data_path=data_path, test_run=test_run)
     
     if biotype:
@@ -133,16 +128,16 @@ def get_ranked_expression(session, ensembl_release, sample_name, biotype='protei
     
     return genes
 
-def get_ranked_genes_per_chrom(session, ensembl_release, sample_name, chrom, biotype='protein_coding', data_path=None, test_run=False):
+def get_ranked_genes_per_chrom(session, sample_name, chrom, biotype='protein_coding', data_path=None, test_run=False):
     """returns genes from a chromosome"""
     # TODO remove hardcoding for mouse!
     assert chrom in chroms['mouse']
-    genes = get_ranked_expression(session, ensembl_release, sample_name,
+    genes = get_ranked_expression(session, sample_name,
                     biotype=biotype, data_path=data_path, test_run=test_run)
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
-def get_external_genes(session, ensembl_release, external_gene_sample_name, test_run=False):
+def get_external_genes(session, external_gene_sample_name, test_run=False):
     """returns external genes, not ranked"""
     external_sample = _get_sample(session, external_gene_sample_name)
     if not external_sample:
@@ -150,13 +145,12 @@ def get_external_genes(session, ensembl_release, external_gene_sample_name, test
                         external_gene_sample_name)
     
     query = session.query(Gene).join(ExternalGene).\
-            filter(and_(ExternalGene.sample_id==external_sample.sample_id,
-            Gene.ensembl_release==ensembl_release))
+            filter(ExternalGene.sample_id==external_sample.sample_id)
     return query
 
-def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protein_coding', data_path=None, test_run=False):
+def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
-    query = get_gene_expression_query(session, ensembl_release, sample_name,
+    query = get_gene_expression_query(session, sample_name,
                                         data_path, test_run)
     if biotype:
         query = query.filter(Gene.biotype==biotype)
@@ -166,17 +160,17 @@ def get_total_gene_counts(session, ensembl_release, sample_name, biotype='protei
 
 @display_wrap
 def diff_expression_study(session, sample_name, data_path, table,
-            ensembl_release='58', ensembl_id_label='ENSEMBL', test_run=False,
+            ensembl_id_label='ENSEMBL', test_run=False,
             run_record=None, ui=None):
     """returns list of genes and why they're not present in an existing
     expression db"""
     if run_record is None:
         run_record = RunRecord()
     # query db for every gene linked to this expression study
-    records = get_ranked_expression(session, ensembl_release, sample_name,
+    records = get_ranked_expression(session, sample_name,
             data_path=data_path, test_run=test_run)
     # following dead
-    # transcript_to_gene = get_transcript_gene_mapping(session, ensembl_release)
+    # transcript_to_gene = get_transcript_gene_mapping(session)
     failures = []
     kept_gene_ids_probesets = []
     for record in ui.series(table, noun='Adding expression diffs'):

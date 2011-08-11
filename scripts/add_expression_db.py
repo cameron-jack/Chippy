@@ -140,10 +140,9 @@ def main():
     # on reading in. This would eliminate all the optional arguments for
     # column labels
 
-    # TODO ensembl release should not be hard coded
     if sample_type == exp_absolute:
         rr = add_expression_study(session, name, opts.expression_data, data,
-            ensembl_release='62', probeset_label=opts.probeset_heading,
+            probeset_label=opts.probeset_heading,
             ensembl_id_label=opts.gene_id_heading, run_record=rr)
     elif sample_type == exp_diff:
         # diff between two files, check we got the related files

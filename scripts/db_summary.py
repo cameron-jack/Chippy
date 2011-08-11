@@ -30,7 +30,6 @@ else:
     raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
                        'that indicates where to find the database')
 
-ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_samples(session)
 if not samples:

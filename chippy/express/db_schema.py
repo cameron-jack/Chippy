@@ -78,7 +78,6 @@ class Gene(Base):
     gene_id = Column(Integer, primary_key=True)
     
     ensembl_id = Column(String)
-    ensembl_release = Column(String)
     symbol = Column(String)
     biotype = Column(String)
     status = Column(String)
@@ -88,11 +87,9 @@ class Gene(Base):
     end = Column(Integer)
     strand = Column(Integer)
     
-    __table_args__ = (UniqueConstraint('ensembl_id', 'ensembl_release',
-                name='unique'), {})
+    __table_args__ = (UniqueConstraint('ensembl_id', name='unique'), {})
     
-    def __init__(self, ensembl_release, ensembl_id, symbol, biotype, description, status, coord_name, start, end, strand):
-        self.ensembl_release = ensembl_release
+    def __init__(self, ensembl_id, symbol, biotype, description, status, coord_name, start, end, strand):
         self.ensembl_id = ensembl_id
         
         self.symbol = symbol
@@ -255,7 +252,6 @@ class Exon(Base):
     rank = Column(Integer)
     start = Column(Integer)
     end = Column(Integer)
-    ensembl_release = Column(String)
     
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     gene = relationship(Gene,
@@ -265,13 +261,12 @@ class Exon(Base):
                         name='unique'), {})
     
     
-    def __init__(self, ensembl_id, rank, start, end, ensembl_release):
+    def __init__(self, ensembl_id, rank, start, end):
         super(Exon, self).__init__()
         self.ensembl_id = ensembl_id
         self.start = start
         self.end = end
         self.rank = rank
-        self.ensembl_release = ensembl_release
     
     def __repr__(self):
         return "Exon(gene=%s, start=%s, rank=%s, strand=%s)" % (

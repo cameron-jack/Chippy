@@ -51,7 +51,6 @@ else:
     raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
                        'that indicates where to find the database')
 
-ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_external_sample(session)
 
@@ -210,18 +209,16 @@ def main():
         'using metric', opts.metric)
     
     external_sample = get_sample_name(opts.external_sample)
-    ensembl_release = data_collection.info['args']['ensembl_release']
     stable_ids = None
     if external_sample is not None:
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'Using an external sample', external_sample)
-        genes = db_query.get_external_genes(session, ensembl_release,
-                                            external_sample)
+        genes = db_query.get_external_genes(session, external_sample)
         stable_ids = [g.ensembl_id for g in genes]
     elif opts.chrom != 'All':
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'Querying a single chromosome', opts.chrom)
-        genes = db_query.get_genes(session, ensembl_release, opts.chrom)
+        genes = db_query.get_genes(session, opts.chrom)
         stable_ids = [g.ensembl_id for g in genes]
     
     # exclude outlier genes using one-sided Chebyshev

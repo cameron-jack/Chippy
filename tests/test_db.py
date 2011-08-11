@@ -49,8 +49,6 @@ class TestDbBase(TestCase):
     def setUp(self):
         self.session = make_session("sqlite:///:memory:")
 
-ensembl_release = '58'
-
 class TestRefFiles(TestDbBase):
     a = 'reffile-a.txt'
     b = 'reffile-b.txt'
@@ -79,48 +77,36 @@ class TestRefFiles(TestDbBase):
 class TestGene(TestDbBase):
     """test gene properties"""
     plus_coords_one_exons = dict(gene=dict(ensembl_id='PLUS-1',
-        ensembl_release=ensembl_release,
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
         coord_name='1', start=1000, end=2000, strand=1),
-        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950,
-                    ensembl_release=ensembl_release)]
+        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950)]
         )
     
     plus_coords_many_exons = dict(gene=dict(ensembl_id='PLUS-3',
-        ensembl_release='58',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
         coord_name='2', start=1000, end=2000, strand=1), 
-        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1400,
-                    ensembl_release=ensembl_release),
-               dict(ensembl_id='exon-2', rank=2, start=1600, end=1700,
-                    ensembl_release=ensembl_release),
-               dict(ensembl_id='exon-3', rank=3, start=1800, end=1900,
-                    ensembl_release=ensembl_release)]
+        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1400),
+               dict(ensembl_id='exon-2', rank=2, start=1600, end=1700),
+               dict(ensembl_id='exon-3', rank=3, start=1800, end=1900)]
         )
     
     # 
     minus_coords_one_exons = dict(gene=dict(ensembl_id='MINUS-1',
-        ensembl_release=ensembl_release,
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
         coord_name='2', start=1000, end=2000, strand=-1),
-        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950,
-                    ensembl_release=ensembl_release)]
+        exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950)]
         )
     
     minus_coords_many_exons = dict(gene=dict(ensembl_id='MINUS-3',
-        ensembl_release=ensembl_release,
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
         coord_name='3', start=1000, end=2000, strand=-1), 
-        exons=[dict(ensembl_id='exon-3', rank=3, start=1050, end=1400,
-                    ensembl_release=ensembl_release),
-               dict(ensembl_id='exon-2', rank=2, start=1600, end=1700,
-                    ensembl_release=ensembl_release),
-               dict(ensembl_id='exon-1', rank=1, start=1800, end=1900,
-                    ensembl_release=ensembl_release)]
+        exons=[dict(ensembl_id='exon-3', rank=3, start=1050, end=1400),
+               dict(ensembl_id='exon-2', rank=2, start=1600, end=1700),
+               dict(ensembl_id='exon-1', rank=1, start=1800, end=1900)]
         )
     
     genes = [plus_coords_one_exons, plus_coords_many_exons,
@@ -406,20 +392,19 @@ class TestQueryFunctions(TestDbBase):
     def test_counting_genes(self):
         """correctly return number of genes for a sample"""
         # return correct number with/without filename
-        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
-            'sample 1'), 4)
-        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
-            'sample 1', data_path='file-1.txt'), 4)
+        self.assertEqual(get_total_gene_counts(self.session, 'sample 1'), 4)
+        self.assertEqual(get_total_gene_counts(self.session, 'sample 1', 
+            data_path='file-1.txt'), 4)
         # return correct number if no records, no file
-        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+        self.assertEqual(get_total_gene_counts(self.session,
             'sample 1', data_path='file-no-data.txt'), 0)
         # return correct number if no records, wrong biotype
-        self.assertEqual(get_total_gene_counts(self.session, ensembl_release,
+        self.assertEqual(get_total_gene_counts(self.session,
             'sample 1', biotype='miRNA'), 0)
     
     def test_get_expressed_genes_from_chrom(self):
         """should return the correct number of expressed genes from a chrom"""
-        ranked = get_ranked_genes_per_chrom(self.session, ensembl_release,
+        ranked = get_ranked_genes_per_chrom(self.session,
             'sample 1', '2')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
@@ -430,7 +415,7 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranks_scores(self):
         """return correct gene mean ranks and mean scores"""
         self.setUp(force=True, singleton=True)
-        genes = get_ranked_expression(self.session, ensembl_release,
+        genes = get_ranked_expression(self.session,
             'sample 1')
         expected_ranks = {'PLUS-1':4, 'PLUS-3':3, 'MINUS-1':2, 'MINUS-3':1}
         expected_scores = {'PLUS-1':21, 'PLUS-3':22, 'MINUS-1':23, 'MINUS-3':24}
@@ -443,7 +428,7 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranked_genes(self):
         """return correct gene order"""
         self.setUp(force=True, singleton=True)
-        ranked = get_ranked_expression(self.session, ensembl_release,
+        ranked = get_ranked_expression(self.session,
             'sample 1')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
@@ -451,18 +436,13 @@ class TestQueryFunctions(TestDbBase):
     
     def test_query_genes_release(self):
         """return correct genes for a release"""
-        genes = get_genes(self.session, '58') # returns all genes
+        genes = get_genes(self.session) # returns all genes
         self.assertEqual(len(genes.all()), 4)
-        genes = get_genes(self.session, '58', 2) # returns chrom2 genes
+        genes = get_genes(self.session, 2) # returns chrom2 genes
         self.assertEqual(len(genes.all()), 2)
-        genes = get_genes(self.session, '58', biotype='miRNA') # returns none
+        genes = get_genes(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes.all()), 0)
         
-
-
-
-# 
-# def get_genes(session, ensembl_release, chrom=None, biotype='protein_coding'):
 
 if __name__ == '__main__':
     main()

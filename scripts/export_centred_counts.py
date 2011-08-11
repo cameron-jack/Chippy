@@ -26,11 +26,11 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-def get_collection(session, sample_name, ensembl_release, counts_dir, max_read_length,
+def get_collection(session, sample_name, counts_dir, max_read_length,
         count_max_length, window_size, filename, overwrite, tab_delimited, test_run):
     if not os.path.exists(filename) or overwrite:
         data_collection = centred_counts_for_genes(session, sample_name,
-                'mouse', None, counts_dir, ensembl_release, max_read_length,
+                'mouse', None, counts_dir, max_read_length,
                 count_max_length, window_size, test_run)
         if data_collection is not None:
             data_collection.writeToFile(filename, as_table=tab_delimited)
@@ -66,9 +66,6 @@ script_info['output_description']= 'Generates either a compressed file that can 
 opt_sample = make_option('-c', '--sample', type='choice',
            help='Choose the expression study [default: %default]',
            choices=[str(s) for s in samples])
-# Ensembl release is now an option instead of being hard coded
-opt_ensembl_release = make_option('-e', '--ensembl_release', type='int',
-                    help='Enter Ensembl release number e.g. 58')
 
 # essential source files
 opt_counts_dir = make_option('-r', '--counts_dir',
@@ -103,8 +100,7 @@ opt_test_run = make_option('-t', '--test_run',
 
 # adding into the main script_info dictionary required for correct processing
 # via command-line or PyCogent.app
-script_info['required_options'] = [opt_sample, opt_counts_dir,
-                                   opt_ensembl_release, opt_save]
+script_info['required_options'] = [opt_sample, opt_counts_dir, opt_save]
 
 run_opts = [opt_overwrite, opt_tab_delimited, opt_test_run]
 sampling_opts = [opt_read_length, opt_count_max_length, opt_window]
@@ -130,7 +126,7 @@ def main():
     counts_dirs = [os.path.join(dirname, p) for p in glob.glob1(dirname,
                                                     basename)]
 
-    data_collection = get_collection(session, sample_name, opts.ensembl_release,
+    data_collection = get_collection(session, sample_name,
         counts_dirs , opts.max_read_length, opts.count_max_length, 
         opts.window_size, opts.collection, opts.overwrite, opts.tab_delimited, opts.test_run)
     session.close()

@@ -77,14 +77,12 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                 description=gene.Description, status=gene.Status,
                 coord_name=gene.Location.CoordName,
                 start=gene.Location.Start, end=gene.Location.End,
-                strand=gene.Location.Strand,
-                ensembl_release=ensembl_release)
+                strand=gene.Location.Strand)
             total_objects += 1
             data.append(db_gene)
             for exon in gene.CanonicalTranscript.Exons:
                 db_exon = Exon(exon.StableId, exon.Rank,
-                        exon.Location.Start, exon.Location.End,
-                        ensembl_release)
+                        exon.Location.Start, exon.Location.End)
                 db_exon.gene = db_gene
                 data.append(db_exon)
                 total_objects += 1
@@ -122,8 +120,8 @@ def add_samples(session, names_descriptions, run_record=None):
 
 @display_wrap
 def add_expression_study(session, sample_name, data_path, table,
-        ensembl_release='58', probeset_label='probeset',
-        ensembl_id_label='ENSEMBL', expression_label='exp', run_record=None,
+        probeset_label='probeset', ensembl_id_label='ENSEMBL',
+        expression_label='exp', run_record=None,
         ui=None):
     """adds Expression instances into the database from table
     
@@ -131,7 +129,6 @@ def add_expression_study(session, sample_name, data_path, table,
         - sample_name: the sample name to connect expression instances to
         - data_path: the reference file path
         - table: the actual expression data table
-        - ensembl_release: the Ensembl release
         - probeset_label: label of the column containing probset id
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
         - expression_label: label of the column containing absolute measure
@@ -168,7 +165,7 @@ def add_expression_study(session, sample_name, data_path, table,
         return run_record
     
     # get all gene ID data for the specified Ensembl release
-    ensembl_genes = get_stable_id_genes_mapping(session, ensembl_release)
+    ensembl_genes = get_stable_id_genes_mapping(session)
     if not successful_commit(session, data):
         pass
     
@@ -204,7 +201,7 @@ def add_expression_study(session, sample_name, data_path, table,
 @display_wrap
 def add_expression_diff_study(session, data_path, table,
             ref_a_path, ref_b_path,
-            ensembl_release='58', probeset_label='probeset',
+            probeset_label='probeset',
             ensembl_id_label='ENSEMBL', expression_label='exp',
             prob_label='rawp', sig_label='sig',
             run_record=None, ui=None):
@@ -217,7 +214,6 @@ def add_expression_diff_study(session, data_path, table,
           between file path a and file path b. This order is CRITICAL as it
           affects the inferences concerning gene expression being up / down
           in a sample.
-        - ensembl_release: the Ensembl release
         - probeset_label: label of the column containing probset id
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
         - expression_label: label of the column containing absolute measure
@@ -264,7 +260,7 @@ def add_expression_diff_study(session, data_path, table,
     if not successful_commit(session, data):
         session.rollback()
     
-    ensembl_genes = get_stable_id_genes_mapping(session, ensembl_release)
+    ensembl_genes = get_stable_id_genes_mapping(session)
     data = []
     unknown_ids = 0
     total = 0
@@ -299,14 +295,13 @@ def add_expression_diff_study(session, data_path, table,
     
     return run_record
 
-def add_external_genes(session, sample_name, data_path, table, ensembl_release='58',
+def add_external_genes(session, sample_name, data_path, table,
         ensembl_id_label='ENSEMBL', run_record=None):
     """adds Expression instances into the database from table
 
     Arguments:
         - data_path: the reference file path
         - table: the actual expression data table
-        - ensembl_release: the Ensembl release
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
     """
     if run_record is None:

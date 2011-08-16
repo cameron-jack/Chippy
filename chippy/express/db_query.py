@@ -148,6 +148,50 @@ def get_external_genes(session, external_gene_sample_name, test_run=False):
             filter(ExternalGene.sample_id==external_sample.sample_id)
     return query
 
+def get_expression_diff_genes(session, sample_name, biotype='protein_coding',
+        multitest_signif_val=None, test_run=False):
+    """returns the expression diff instances"""
+    sample = _get_sample(session, sample_name)
+    if not sample:
+        raise RuntimeError('No sample with name %s' % sample_name)
+    
+    query = session.query(ExpressionDiff).\
+            filter(ExpressionDiff.sample_id==sample.sample_id)
+    
+    query.filter(Gene.biotype==biotype)
+    if multitest_signif_val is not None:
+        query = query.filter(ExpressionDiff.multitest_signif==multitest_signif_val)
+    
+    return query
+
+def get_ranked_expression_diff(session, sample_name, biotype='protein_coding',
+    rank_by='mean', multitest_signif_val=None, test_run=False):
+    """return genes sampled by their expression difference ranked by their score"""
+    query = get_expression_diff_genes(session, sample_name, biotype=biotype,
+        multitest_signif_val=multitest_signif_val, test_run=test_run)
+    
+    genes = []
+    for diff in query:
+        gene = diff.gene
+        gene.Scores = diff.fold_changes
+        genes.append(gene)
+    
+    # set rank
+    if rank_by.lower() == 'mean':
+        scored = [(g.MeanScore, g) for g in genes]
+    elif rank_by.lower() == 'max':
+        scored = [(g.MaxScore, g) for g in genes]
+    else:
+        raise NotImplementedError
+    
+    scored = reversed(sorted(scored))
+    genes = []
+    for rank, (score, gene) in enumerate(scored):
+        gene.Rank = rank + 1
+        genes.append(gene)
+    
+    return genes
+
 def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
     query = get_gene_expression_query(session, sample_name,
@@ -156,7 +200,6 @@ def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_p
         query = query.filter(Gene.biotype==biotype)
     
     return query.distinct().count()
-
 
 @display_wrap
 def diff_expression_study(session, sample_name, data_path, table,

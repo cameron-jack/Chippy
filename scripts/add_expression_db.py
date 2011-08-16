@@ -146,12 +146,11 @@ def main():
             ensembl_id_label=opts.gene_id_heading, run_record=rr)
     elif sample_type == exp_diff:
         # diff between two files, check we got the related files
-        assert opts.related_file1 is not None and \
-            opts.related_file2 is not None, 'To enter differences in gene '\
-            'expression you must specify the 2 files that contain the '\
-            'absolute measures.'
+        assert opts.reffile1 is not None and opts.reffile2 is not None,\
+            'To enter differences in gene expression you must specify the 2'\
+            'files that contain the absolute measures.'
         rr = add_expression_diff_study(session, opts.expression_data, data,
-            opts.related_file1, opts.related_file2,
+            opts.reffile1, opts.reffile2,
             probeset_label=opts.probeset_heading,
             ensembl_id_label=opts.gene_id_heading,
             expression_label=opts.expression_heading,

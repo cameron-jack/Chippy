@@ -1,0 +1,5 @@
+gene	probeset	exp	sig	rawp
+PLUS-1	10600707	2.8	1	3.1e-09
+PLUS-3	10408081	2.4	1	7.6e-10
+MINUS-1	10494402	1.8	-1	1.9e-11
+MINUS-3	10408083	1.0	-1	1.9e-11

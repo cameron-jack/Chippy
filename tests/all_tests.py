@@ -30,6 +30,7 @@ def my_import(name):
 
 def suite():
     modules_to_test = [
+        'test_read_count',
         'test_collection',
         'test_db',
         'test_inline_stats',
@@ -39,7 +40,6 @@ def suite():
         'test_parse_fastq',
         'test_parse_rdump',
         'test_parse_sam',
-        'test_read_count',
         'test_syntax',
         'test_util'
         ]

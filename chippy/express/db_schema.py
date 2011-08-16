@@ -55,7 +55,7 @@ class ReferenceFile(Base):
     sample = relationship(Sample,
                 backref=backref('reference_files', order_by=reffile_id))
     
-    def __init__(self, name,date, ref_a_name=None, ref_b_name=None):
+    def __init__(self, name, date, ref_a_name=None, ref_b_name=None):
         super(ReferenceFile, self).__init__()
         self.name = name
         self.date = date
@@ -312,20 +312,17 @@ class ExpressionDiff(Base):
     
     expression_diff_id = Column(Integer, primary_key=True)
     
-    probesets = Column(Integer)
-    fold_changes = Column(Float)
+    probesets = Column(PickleType)
+    fold_changes = Column(PickleType)
     probability = Column(Float)
     multitest_signif = Column(Integer)
     
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    sample_a_id = Column(Integer, ForeignKey('sample.sample_id'))
-    sample_b_id = Column(Integer, ForeignKey('sample.sample_id'))
+    sample_id = Column(Integer, ForeignKey('sample.sample_id'))
     reffile_id = Column(Integer, ForeignKey('reference_file.reffile_id'))
     
-    sample_a = relationship(Sample,
-            primaryjoin = sample_a_id == Sample.sample_id)
-    sample_b = relationship(Sample,
-            primaryjoin = sample_b_id == Sample.sample_id)
+    sample = relationship(Sample,
+                backref=backref('expressiondiff', order_by=expression_diff_id))
     
     gene = relationship(Gene,
             backref=backref('expression_diffs', order_by=expression_diff_id))
@@ -336,17 +333,16 @@ class ExpressionDiff(Base):
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})
     
-    def __init__(self, probeset, fold_change, prob, signif):
+    def __init__(self, probesets, fold_changes, prob, signif):
         super(ExpressionDiff, self).__init__()
-        self.probeset = probeset
-        self.fold_change = fold_change
+        self.probesets = probesets
+        self.fold_changes = fold_changes
         self.probability = prob
         self.multitest_signif = signif
     
     def __repr__(self):
-        return 'ExpressionDiff(probeset=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
-            (self.probeset, self.sample_a.name,
-            self.sample_b.name, self.probability, self.multitest_signif)
+        return 'ExpressionDiff(probesets=%s, P=%s, Signif=%s)' %\
+            (self.probesets, self.probability, self.multitest_signif)
 
 
 class ExternalGene(Base):

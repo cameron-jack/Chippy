@@ -199,7 +199,7 @@ def add_expression_study(session, sample_name, data_path, table,
     return run_record
 
 @display_wrap
-def add_expression_diff_study(session, data_path, table,
+def add_expression_diff_study(session, sample_name, data_path, table,
             ref_a_path, ref_b_path,
             probeset_label='probeset',
             ensembl_id_label='ENSEMBL', expression_label='exp',
@@ -208,6 +208,7 @@ def add_expression_diff_study(session, data_path, table,
     """adds Expression instances into the database from table
     
     Arguments:
+        - sample_name: a description of this sample, e.g. "M-S"
         - data_path: the reference file path
         - table: the actual expression data table
         - ref_a_path, ref_b_path: the difference file contains measurements
@@ -230,6 +231,11 @@ def add_expression_diff_study(session, data_path, table,
     if run_record is None:
         run_record = RunRecord()
     
+    sample = _one(session.query(Sample).filter_by(name=sample_name))
+    if not sample:
+        session.rollback()
+        raise RuntimeError('error querying for a sample')
+    
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
         run_record.addMessage('add_expression_diff_study',
@@ -246,13 +252,11 @@ def add_expression_diff_study(session, data_path, table,
         run_record.display()
         raise RuntimeError('Reference files not added yet?')
     
-    sample_a = ref_a.sample
-    sample_b = ref_b.sample
-    
     data = []
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
-        reffile = ReferenceFile(data_path, today)
+        reffile = ReferenceFile(data_path, today, ref_a_name=ref_a_path,
+        ref_b_name=ref_b_path)
         data.append(reffile)
     else:
         reffile = reffile[0]
@@ -275,13 +279,13 @@ def add_expression_diff_study(session, data_path, table,
         probeset = record[probeset_label]
         scores = record[expression_label]
         fold_change = record[expression_label]
-        prob = record[prob_label]
-        signif = record[sig_label]
-        diff = ExpressionDiff(probeset, fold_change=fold_change,
+        prob = float(record[prob_label])
+        signif = int(record[sig_label])
+        diff = ExpressionDiff(probeset, fold_changes=fold_change,
                     prob=prob, signif=signif)
         diff.reffile_id = reffile.reffile_id
-        diff.sample_a = sample_a
-        diff.sample_b = sample_b
+        diff.sample = sample
+        diff.gene = gene
         data.append(diff)
         total += 1
     

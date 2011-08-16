@@ -16,7 +16,11 @@ from chippy.express.db_schema import Gene, Exon, \
             ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             make_session
 from chippy.express.db_query import get_total_gene_counts, \
-        get_ranked_expression, get_ranked_genes_per_chrom, get_genes
+        get_ranked_expression, get_ranked_genes_per_chrom, get_genes,\
+        get_expression_diff_genes, get_ranked_expression_diff
+
+from chippy.express.db_populate import add_expression_diff_study, add_samples
+from chippy.parse.r_dump import SimpleRdumpToTable
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -442,7 +446,97 @@ class TestQueryFunctions(TestDbBase):
         self.assertEqual(len(genes.all()), 2)
         genes = get_genes(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes.all()), 0)
+    
+    
+class TestQueryFunctionsExpDiff(TestDbBase):
+    """test the db querying functions"""
+    reffiles = [('file-1.txt', today),
+                ('file-2.txt', today)]
+    
+    samples = [('sample 1', 'fake sample 1'),
+               ('sample 2', 'fake sample 2')]
+    
+    dpath = 'data/expression-diff-sample.txt'
+    sample = ('sample1', 'blah')
+    reffile_path1 = 'sample1.txt'
+    reffile_path2 = 'sample2.txt'
+    
+    def populate_db(self, **kwargs):
+        # setting up some starting values
+        reffile1 = ReferenceFile(self.reffile_path1, today)
+        reffile2 = ReferenceFile(self.reffile_path2, today)
+        rr = add_samples(self.session, [self.sample])
+        self.session.add_all([reffile1, reffile2])
+        self.session.commit()
+        table, rr = SimpleRdumpToTable(self.dpath, stable_id_label='gene',
+                        probeset_label='probeset', exp_label='exp')
+        rr = add_expression_diff_study(self.session, 'sample1', self.dpath, table,
+            self.reffile_path1, self.reffile_path2, ensembl_id_label='gene',
+            run_record=rr, show_progress=False)
+    
+    def setUp(self):
+        """docstring for add_files_samples"""
+        super(TestQueryFunctionsExpDiff, self).setUp()
+        add_all_gene_exons(self.session, TestGene.genes)
+        self.populate_db()
+    
+    def test_add_expression_diff_data(self):
+        """correctly add expression difference data"""
+        # add the expression diff data
+        # do we get it back?
+        query = get_expression_diff_genes(self.session, self.sample[0])
+        expect = dict([('PLUS-1', [10600707]),
+                  ('PLUS-3', [10408081]),
+                  ('MINUS-1', [10494402]),
+                  ('MINUS-3', [10408083])])
         
+        express_diffs = query.all()
+        self.assertTrue(len(express_diffs) > 0)
+        for diff in express_diffs:
+            expect_probeset = expect[diff.gene.ensembl_id]
+            self.assertEqual(diff.probesets, expect_probeset)
+    
+    def test_query_exp_diff(self):
+        """return correct records from query when filtered"""
+        name_start = {-1: 'MINUS', 1: 'PLUS'}
+        for multitest_signif_val in [-1, 1]:
+            query = get_expression_diff_genes(self.session, self.sample[0],
+                multitest_signif_val=multitest_signif_val)
+            
+            records = query.all()
+            self.assertEqual(len(records), 2)
+            # should only get records with the correct test significance
+            # direction
+            for record in records:
+                self.assertEqual(record.multitest_signif,
+                    multitest_signif_val)
+                # gene names designed to match the test significance
+                self.assertTrue(record.gene.ensembl_id.startswith(
+                    name_start[multitest_signif_val]))
+    
+    def test_query_exp_diff_genes(self):
+        """return genes ranked by foldchange"""
+        genes = get_ranked_expression_diff(self.session, self.sample[0])
+        self.assertTrue(len(genes) == 4)
+        for i in range(3):
+            self.assertTrue(genes[i].Rank < genes[i+1].Rank)
+        
+        # sample up genes
+        genes = get_ranked_expression_diff(self.session, self.sample[0],
+            multitest_signif_val=1)
+        self.assertTrue(len(genes) == 2)
+        expect_order = ['PLUS-1', 'PLUS-3']
+        for i in range(2):
+            self.assertEqual(genes[i].ensembl_id, expect_order[i])
+        
+        # sample down genes
+        genes = get_ranked_expression_diff(self.session, self.sample[0],
+            multitest_signif_val=-1)
+        self.assertTrue(len(genes) == 2)
+        expect_order = ['MINUS-1', 'MINUS-3']
+        for i in range(2):
+            self.assertEqual(genes[i].ensembl_id, expect_order[i])
+    
 
 if __name__ == '__main__':
     main()

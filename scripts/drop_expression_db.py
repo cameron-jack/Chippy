@@ -5,7 +5,8 @@ from optparse import make_option
 from sqlalchemy import and_
 from cogent.util.misc import parse_command_line_parameters
 
-from chippy.express.db_schema import Expression, ReferenceFile, make_session
+from chippy.express.db_schema import Expression, ExpressionDiff, ReferenceFile, \
+    make_session
 from chippy.express.db_query import get_gene_expression_query, get_samples
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -87,6 +88,10 @@ def main():
         records = session.query(Expression).join(ReferenceFile).filter(
             and_(Expression.sample_id==reffile.sample_id,
                  Expression.reffile_id==reffile.reffile_id)).all()
+        if len(records) == 0:
+            records = session.query(ExpressionDiff).join(ReferenceFile).filter(
+            and_(ExpressionDiff.sample_id==reffile.sample_id,
+                 ExpressionDiff.reffile_id==reffile.reffile_id)).all()
         rr.addMessage('drop_expression_db', LOG_INFO,
             'No. dropped expression records', len(records))
         for record in records:

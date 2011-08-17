@@ -257,6 +257,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     if len(reffile) == 0:
         reffile = ReferenceFile(data_path, today, ref_a_name=ref_a_path,
         ref_b_name=ref_b_path)
+        reffile.sample = sample
         data.append(reffile)
     else:
         reffile = reffile[0]

@@ -149,8 +149,8 @@ def main():
         assert opts.reffile1 is not None and opts.reffile2 is not None,\
             'To enter differences in gene expression you must specify the 2'\
             'files that contain the absolute measures.'
-        rr = add_expression_diff_study(session, opts.expression_data, data,
-            opts.reffile1, opts.reffile2,
+        rr = add_expression_diff_study(session, opts.new_sample,
+            opts.expression_data, data, opts.reffile1, opts.reffile2,
             probeset_label=opts.probeset_heading,
             ensembl_id_label=opts.gene_id_heading,
             expression_label=opts.expression_heading,

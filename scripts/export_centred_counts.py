@@ -119,7 +119,7 @@ def main():
         raise RuntimeError('No samples available')
     
     sample_name = opts.sample.split(' : ')[0]
-    print 'Loading counts data'
+    print "Loading counts data for '%s'" % sample_name
     counts_dirs = opts.counts_dir
     dirname = os.path.dirname(counts_dirs)
     basename = os.path.basename(counts_dirs)

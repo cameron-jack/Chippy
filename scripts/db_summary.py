@@ -43,7 +43,7 @@ script_info['script_description'] = "Prints a table showing what files have"\
 script_info['version'] = __version__
 
 script_info['required_options'] = [
-make_option('-c', '--sample', type='choice',
+make_option('-s', '--sample', type='choice',
            help='Choose the expression study [default: %default]',
            choices=[str(s) for s in samples]),
 ]
@@ -59,7 +59,7 @@ def main():
     option_parser, opts, args =\
     parse_command_line_parameters(**script_info)
     if opts.sample is None:
-        raise RuntimError('No samples available')
+        raise RuntimeError('No samples available')
     
     sample = _samples_name(opts.sample)
     reffiles = session.query(db_schema.ReferenceFile).join(db_schema.Sample).\

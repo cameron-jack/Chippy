@@ -260,6 +260,19 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         data.append(reffile)
     else:
         reffile = reffile[0]
+
+    # check we haven't already added expression data from this file, for
+    # this sample
+    records = session.query(ExpressionDiff).filter(
+            and_(ExpressionDiff.reffile_id==reffile.reffile_id,
+                ExpressionDiff.sample_id==sample.sample_id)).all()
+
+    if len(records) > 0:
+        run_record.addMessage('add_expression_diff_study',
+            LOG_WARNING,
+            'Already added this data for this sample / file combo',
+            (sample.name, data_path))
+        return run_record
     
     if not successful_commit(session, data):
         session.rollback()
@@ -277,7 +290,6 @@ def add_expression_diff_study(session, sample_name, data_path, table,
             continue
         
         probeset = record[probeset_label]
-        scores = record[expression_label]
         fold_change = record[expression_label]
         prob = float(record[prob_label])
         signif = int(record[sig_label])

@@ -21,9 +21,9 @@ from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
@@ -282,6 +282,8 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     data = []
     unknown_ids = 0
     total = 0
+    signif_up_total = 0
+    signif_down_total = 0
     for record in ui.series(table, noun='Adding expression diffs'):
         ensembl_id = record[ensembl_id_label]
         try:
@@ -301,12 +303,20 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         diff.gene = gene
         data.append(diff)
         total += 1
+        if signif == 1:
+            signif_up_total += 1
+        elif signif == -1:
+            signif_down_total += 1
     
     session.add_all(data)
     session.commit()
     
     run_record.addMessage('add_expression_diff_study',
         LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
+    run_record.addMessage('add_expression_diff_study',
+        LOG_INFO, 'Total significantly up-regulated genes', signif_up_total)
+    run_record.addMessage('add_expression_diff_study',
+        LOG_INFO, 'Total significantly down-regulated genes', signif_down_total)
     run_record.addMessage('add_expression_diff_study',
         LOG_INFO, 'Total genes', total)
     

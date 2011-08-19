@@ -21,9 +21,9 @@ from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
 from chippy.util.util import create_path, make_cl_command, just_filename, \
                     dirname_or_default
 
-__author__ = 'Gavin Huttley'
-__copyright__ = 'Copyright 2011, Gavin Huttley'
-__credits__ = ['Gavin Huttley']
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
+__credits__ = ['Gavin Huttley, Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Gavin Huttley'
 __email__ = 'Gavin.Huttley@anu.edu.au'

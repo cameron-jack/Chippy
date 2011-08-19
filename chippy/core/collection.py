@@ -8,7 +8,7 @@ from cogent import LoadTable
 from chippy.util.util import make_even_groups
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"

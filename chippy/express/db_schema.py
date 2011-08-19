@@ -8,9 +8,9 @@ from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
 from cogent.util.misc import flatten
 from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"

@@ -13,9 +13,9 @@ from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
 from chippy.express.util import single_gene, _one
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
@@ -53,6 +53,45 @@ def get_gene_expression_query(session, sample_name, data_path=None, test_run=Fal
             and_(Expression.sample_id==sample.sample_id)).\
                     options(contains_eager('gene'))
     
+    return query
+
+def get_gene_expression_diff_query(session, sample_name, data_path=None, multitest_signif_val=None, test_run=False):
+    """returns a query instance for expression difference"""
+    sample = _get_sample(session, sample_name)
+    if sample is None:
+        raise RuntimeError('Unknown sample name: %s' % sample_name)
+
+    if data_path is not None:
+        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
+                            filter(ReferenceFile.name==data_path))
+        if not data_path:
+            raise RuntimeError('Unknown data_path %s' % data_path)
+
+        reffile_id = reffile_id[0]
+
+    if data_path:
+        if multitest_signif_val == None:
+            query = session.query(ExpressionDiff).join(Gene).filter(
+                and_(ExpressionDiff.sample_id==sample.sample_id,
+                    ExpressionDiff.reffile_id==reffile_id)).\
+                    options(contains_eager('gene'))
+        else:
+            query = session.query(ExpressionDiff).join(Gene).filter(
+                and_(ExpressionDiff.sample_id==sample.sample_id,
+                    ExpressionDiff.multitest_signif==multitest_signif_val,
+                    ExpressionDiff.reffile_id==reffile_id)).\
+                    options(contains_eager('gene'))
+    else:
+        if multitest_signif_val == None:
+            query = session.query(ExpressionDiff).join(Gene).filter(
+                and_(ExpressionDiff.sample_id==sample.sample_id)).\
+                    options(contains_eager('gene'))
+        else:
+            query = session.query(ExpressionDiff).join(Gene).filter(
+                and_(ExpressionDiff.sample_id==sample.sample_id,
+                    ExpressionDiff.multitest_signif==multitest_signif_val)).\
+                    options(contains_eager('gene'))
+
     return query
 
 def get_samples(session):
@@ -128,12 +167,55 @@ def get_ranked_expression(session, sample_name, biotype='protein_coding', data_p
     
     return genes
 
+def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
+    """returns all ranked genes from a sample difference experiment"""
+    query = get_gene_expression_diff_query(session, sample_name,
+            data_path=data_path,multitest_signif_val=multitest_signif_val,
+            test_run=test_run)
+
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+
+    records = query.all()
+
+    genes = []
+    for expressed_diff in records:
+        gene = expressed_diff.gene
+        gene.Scores = expressed_diff.fold_changes
+        genes.append(gene)
+
+    # set rank
+    if rank_by.lower() == 'mean':
+        scored = [(g.MeanScore, g) for g in genes]
+    elif rank_by.lower() == 'max':
+        scored = [(g.MaxScore, g) for g in genes]
+    else:
+        raise NotImplementedError
+
+    scored = reversed(sorted(scored))
+    genes = []
+    for rank, (score, gene) in enumerate(scored):
+        gene.Rank = rank + 1
+        genes.append(gene)
+
+    return genes
+
 def get_ranked_genes_per_chrom(session, sample_name, chrom, biotype='protein_coding', data_path=None, test_run=False):
     """returns genes from a chromosome"""
     # TODO remove hardcoding for mouse!
     assert chrom in chroms['mouse']
     genes = get_ranked_expression(session, sample_name,
                     biotype=biotype, data_path=data_path, test_run=test_run)
+    genes = (g for g in genes if g.coord_name==chrom)
+    return tuple(genes)
+
+def get_diff_ranked_genes_per_chrom(session, sample_name, multitest_signif_val, chrom, biotype='protein_coding', data_path=None, test_run=False):
+    """returns difference experiment genes from a chromosome"""
+    # TODO remove hardcoding for mouse!
+    assert chrom in chroms['mouse']
+    genes = get_ranked_expression_diff(session, sample_name,
+            multitest_signif_val, biotype=biotype, data_path=data_path,
+            test_run=test_run)
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
@@ -151,46 +233,20 @@ def get_external_genes(session, external_gene_sample_name, test_run=False):
 def get_expression_diff_genes(session, sample_name, biotype='protein_coding',
         multitest_signif_val=None, test_run=False):
     """returns the expression diff instances"""
+
     sample = _get_sample(session, sample_name)
+
     if not sample:
         raise RuntimeError('No sample with name %s' % sample_name)
-    
+
     query = session.query(ExpressionDiff).\
             filter(ExpressionDiff.sample_id==sample.sample_id)
-    
+
     query.filter(Gene.biotype==biotype)
     if multitest_signif_val is not None:
         query = query.filter(ExpressionDiff.multitest_signif==multitest_signif_val)
-    
-    return query
 
-def get_ranked_expression_diff(session, sample_name, biotype='protein_coding',
-    rank_by='mean', multitest_signif_val=None, test_run=False):
-    """return genes sampled by their expression difference ranked by their score"""
-    query = get_expression_diff_genes(session, sample_name, biotype=biotype,
-        multitest_signif_val=multitest_signif_val, test_run=test_run)
-    
-    genes = []
-    for diff in query:
-        gene = diff.gene
-        gene.Scores = diff.fold_changes
-        genes.append(gene)
-    
-    # set rank
-    if rank_by.lower() == 'mean':
-        scored = [(g.MeanScore, g) for g in genes]
-    elif rank_by.lower() == 'max':
-        scored = [(g.MaxScore, g) for g in genes]
-    else:
-        raise NotImplementedError
-    
-    scored = reversed(sorted(scored))
-    genes = []
-    for rank, (score, gene) in enumerate(scored):
-        gene.Rank = rank + 1
-        genes.append(gene)
-    
-    return genes
+    return query
 
 def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
@@ -201,6 +257,16 @@ def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_p
     
     return query.distinct().count()
 
+def get_total_diff_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
+    """docstring for get_total_gene_counts"""
+    query = get_gene_expression_diff_query(session, sample_name,
+                                        data_path, test_run)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+
+    return query.distinct().count()
+
+# TODO: This appears to be an orphaned function
 @display_wrap
 def diff_expression_study(session, sample_name, data_path, table,
             ensembl_id_label='ENSEMBL', test_run=False,

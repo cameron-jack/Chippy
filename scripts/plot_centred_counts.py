@@ -159,14 +159,14 @@ opt_test_run = make_option('-t', '--test_run',
              action='store_true', help="Test run, don't write output",
              default=False)
 
-script_info['required_options'] = [opt_collection, opt_metric, opt_yrange]
+script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff, opt_topgenes]
 save_opts = [opts_plot_filename]
 series_opts = [opts_plotseries, opt_txt_coords]
 plot_labels = [opts_title, opts_ylabel, opts_xlabel, opt_colorbar]
-plot_dims = [opt_fig_height, opt_fig_width, opts_xgrid_locate,
+plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opts_xgrid_locate,
             opts_ygrid_locate, opts_xlabel_interval, opts_ylabel_interval]
 plot_colors = [opt_bgcolor, opts_alpha, opts_vline_style, opts_vline_width,
         opts_xlabel_font, opts_ylabel_font]
@@ -189,10 +189,14 @@ def main():
        parse_command_line_parameters(**script_info)
     
     rr = RunRecord()
-    if ',' not in opts.ylim:
-        raise RuntimeError('ylim must be comma separated')
+
+    ylim = None
+    if opts.ylim is not None:
+        if ',' not in opts.ylim:
+            raise RuntimeError('ylim must be comma separated')
     
-    ylim = map(float, opts.ylim.strip().split(','))
+        ylim = map(float, opts.ylim.strip().split(','))
+
     
     print 'Loading counts data'
     data_collection = RegionCollection(filename=opts.collection)
@@ -311,7 +315,22 @@ def main():
     
     vline = dict(x=0, linewidth=opts.vline_width,
                    linestyle=opts.vline_style, color=vline_color)
-    
+
+    if ylim is None:
+        num = len(counts)
+        ymaxs = []
+        ymins = []
+        for i in range(num):
+            if ranks is not None:
+                y = counts[i]
+            else:
+                y = counts
+
+            ymaxs.append(max(y))
+            ymins.append(min(y))
+
+        ylim=(min(ymins), max(ymaxs))
+
     plot = PlottableGroups(height=opts.fig_height/2.5,
         width=opts.fig_width/2.5,
         bgcolor=bgcolor, grid=grid,

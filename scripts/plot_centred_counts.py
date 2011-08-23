@@ -1,4 +1,5 @@
 from __future__ import division
+from math import log10, floor
 
 import os, sys
 sys.path.extend(['..', '../src'])
@@ -316,6 +317,7 @@ def main():
     vline = dict(x=0, linewidth=opts.vline_width,
                    linestyle=opts.vline_style, color=vline_color)
 
+    # auto-calculate y-min & y-max if not provided as well as y-tick-space
     if ylim is None:
         num = len(counts)
         ymaxs = []
@@ -329,7 +331,20 @@ def main():
             ymaxs.append(max(y))
             ymins.append(min(y))
 
-        ylim=(min(ymins), max(ymaxs))
+        ymax = max(ymaxs)
+        ymin = min(ymins)
+        rounding_places = 1
+        # For fractional counts then scale the rounding appropriately
+        ypower = log10(ymax)
+        if ypower < 0:
+            rounding_places = 0 - int(floor(ypower))
+            #print "Y-max exponent: -%d" % rounding_places
+            print "Y-max: %f, Y-min: %f" % (ymax, ymin)
+
+        # set limits to give 10% above and below plot for clarity
+        ylim=(round(ymin-(ymax*0.1), rounding_places), round(ymax*1.1, rounding_places))
+        opts.ygrid_lines = round(max(ylim)/10.0, rounding_places)
+        print "Y-grid-line spacing: %f" % opts.ygrid_lines
 
     plot = PlottableGroups(height=opts.fig_height/2.5,
         width=opts.fig_width/2.5,

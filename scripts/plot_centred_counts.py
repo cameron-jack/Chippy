@@ -1,5 +1,5 @@
 from __future__ import division
-from math import log10, floor
+from math import log10, floor, ceil
 
 import os, sys
 sys.path.extend(['..', '../src'])
@@ -333,18 +333,37 @@ def main():
 
         ymax = max(ymaxs)
         ymin = min(ymins)
+
+        ylim=(ymin, ymax)
+
         rounding_places = 1
         # For fractional counts then scale the rounding appropriately
-        ypower = log10(ymax)
-        if ypower < 0:
-            rounding_places = 0 - int(floor(ypower))
-            #print "Y-max exponent: -%d" % rounding_places
-            print "Y-max: %f, Y-min: %f" % (ymax, ymin)
+        if ymax > 0:
+            ypower = log10(ymax)
+            if ypower < 0:
+                rounding_places = 0 - int(floor(ypower))
+                y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
+                y_floor = float(floor(ymin*(10**rounding_places))/(10**rounding_places))
+                grid_lines = y_ceiling/10.0
+                ylim=(y_floor, y_ceiling)
+            else:
+                y_ceiling = ceil(ymax)
+                y_floor = floor(ymin)
+                if y_ceiling < 10:
+                    grid_lines = round(y_ceiling/10.0, 1)
+                else:
+                    grid_lines = y_ceiling/10.0
+                ylim=(y_floor,y_ceiling)
+        elif ymax == 0:
+            ylim(0,1)
+            grid_lines = 0.1
+        else:
+            raise RuntimeError('Exiting: Maximum y-axis value somehow negative!?')
+        
+        print "Y-max: %e, Y-min: %e" % (ymax, ymin)
 
-        # set limits to give 10% above and below plot for clarity
-        ylim=(round(ymin-(ymax*0.1), rounding_places), round(ymax*1.1, rounding_places))
-        opts.ygrid_lines = round(max(ylim)/10.0, rounding_places)
-        print "Y-grid-line spacing: %f" % opts.ygrid_lines
+        opts.ygrid_lines = grid_lines
+        print "Y-grid-line spacing: %e" % opts.ygrid_lines
 
     plot = PlottableGroups(height=opts.fig_height/2.5,
         width=opts.fig_width/2.5,

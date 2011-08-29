@@ -46,6 +46,82 @@ def get_sample_name(sample):
         sample = None
     return sample
 
+def _auto_grid_lines(ylim):
+    """returns a float that is a 'round' looking number to use for the
+            grid lines"""
+    ymax = max(ylim)
+
+    if ymax > 0:
+        ypower = log10(ymax)
+
+        if ypower < 0:
+            rounding_places = 0 - int(floor(ypower))
+            y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
+            grid_lines = y_ceiling/10.0
+        else:
+            y_ceiling = ceil(ymax)
+            if y_ceiling < 10:
+                grid_lines = round(y_ceiling/10.0, 1)
+            else:
+                grid_lines = y_ceiling/10.0
+
+    else:
+        raise RuntimeError('Exiting: Maximum y-axis value meaningless: %e' % ymax)
+    
+    print 'Setting Y-grid-line spacing: %e' % grid_lines
+    return grid_lines
+
+def _auto_yaxis(counts, ranks):
+    """returns a list length 2 of y-axis limits, and matching grid_line value
+    with 'round'-appearing numbers to make plots look pretty"""
+    num_range = len(counts)
+    ymaxs = []
+    ymins = []
+    for i in range(num_range):
+        if ranks is not None:
+            y = counts[i]
+        else:
+            y = counts
+
+        ymaxs.append(max(y))
+        ymins.append(min(y))
+
+    ymax = max(ymaxs)
+    ymin = min(ymins)
+
+    ylim=(ymin, ymax)
+
+    rounding_places = 1
+    # For fractional counts then scale the rounding appropriately
+    if ymax > 0:
+        ypower = log10(ymax)
+        if ypower < 0:
+            rounding_places = 0 - int(floor(ypower))
+            y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
+            y_floor = float(floor(ymin*(10**rounding_places))/(10**rounding_places))
+            grid_lines = y_ceiling/10.0
+            ylim=(y_floor, y_ceiling)
+        else:
+            y_ceiling = ceil(ymax)
+            y_floor = floor(ymin)
+            if y_ceiling < 10:
+                grid_lines = round(y_ceiling/10.0, 1)
+            else:
+                grid_lines = y_ceiling/10.0
+                ylim=(y_floor,y_ceiling)
+    elif ymax == 0:
+        ylim(0,1)
+        grid_lines = 0.1
+    else:
+        raise RuntimeError('Exiting: Maximum y-axis value somehow negative: %e' % ymax)
+
+    print 'Y-max: %e, Y-min: %e' % (ymax, ymin)
+    print 'Setting plot limits at Y-max: %e, Y-,min: %e' % (max(ylim), min(ylim))
+    print 'Setting Y-grid-line spacing: %e' % grid_lines
+    return ylim, grid_lines
+
+
+
 if 'CHIPPY_DB' in os.environ:
     db_path = os.environ['CHIPPY_DB']
 else:
@@ -114,7 +190,7 @@ opt_yrange = make_option('-y', '--ylim', default=None,
 # Important note, grid_lines are an absolute scale!
 opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
-opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = 0.5,
+opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
                  help='major grid-line spacing on y-axis [default: %default]')
 opts_xlabel_interval = make_option('--xlabel_interval', type='int',
         default = 2,
@@ -317,53 +393,12 @@ def main():
     vline = dict(x=0, linewidth=opts.vline_width,
                    linestyle=opts.vline_style, color=vline_color)
 
-    # auto-calculate y-min & y-max if not provided as well as y-tick-space
+    # auto-calculate y-min & y-max and/or y-tick-space, if required
     if ylim is None:
-        num = len(counts)
-        ymaxs = []
-        ymins = []
-        for i in range(num):
-            if ranks is not None:
-                y = counts[i]
-            else:
-                y = counts
-
-            ymaxs.append(max(y))
-            ymins.append(min(y))
-
-        ymax = max(ymaxs)
-        ymin = min(ymins)
-
-        ylim=(ymin, ymax)
-
-        rounding_places = 1
-        # For fractional counts then scale the rounding appropriately
-        if ymax > 0:
-            ypower = log10(ymax)
-            if ypower < 0:
-                rounding_places = 0 - int(floor(ypower))
-                y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
-                y_floor = float(floor(ymin*(10**rounding_places))/(10**rounding_places))
-                grid_lines = y_ceiling/10.0
-                ylim=(y_floor, y_ceiling)
-            else:
-                y_ceiling = ceil(ymax)
-                y_floor = floor(ymin)
-                if y_ceiling < 10:
-                    grid_lines = round(y_ceiling/10.0, 1)
-                else:
-                    grid_lines = y_ceiling/10.0
-                ylim=(y_floor,y_ceiling)
-        elif ymax == 0:
-            ylim(0,1)
-            grid_lines = 0.1
-        else:
-            raise RuntimeError('Exiting: Maximum y-axis value somehow negative!?')
-        
-        print "Y-max: %e, Y-min: %e" % (ymax, ymin)
-
-        opts.ygrid_lines = grid_lines
-        print "Y-grid-line spacing: %e" % opts.ygrid_lines
+        ylim, opts.ygrid_lines = _auto_yaxis(counts, ranks)
+    else:
+        if opts.ygrid_lines is None:
+            opts.ygrid_lines = _auto_grid_lines(ylim)
 
     plot = PlottableGroups(height=opts.fig_height/2.5,
         width=opts.fig_width/2.5,

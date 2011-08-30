@@ -363,8 +363,16 @@ def main():
                 labels.append('Group %d' % index)
         
         num_groups = len(counts)
-        counts = list(reversed(counts))
-        ranks = list(reversed(ranks))
+        if num_groups == 0:
+            counts, ranks = data_collection.transformed(counts_func=counts_func)
+            num_groups = 1
+            counts = [counts]
+            ranks = [ranks]
+            rr.addMessage('plot_centred_counts', LOG_WARNING, 'Not enough genes '\
+                'for group, defaulting to all genes in one group', num_groups)
+        else:
+            counts = list(reversed(counts))
+            ranks = list(reversed(ranks))
         if opts.topgenes == True:
             num_groups = 1
             counts = counts.pop()

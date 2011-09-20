@@ -223,6 +223,8 @@ class PlottableGroups(_Plottable):
                 color = 'b'
             elif type(color_series[i]) != str:
                 color = cmap(color_series[i])
+            elif type(color_series[i]) == str:
+                color = color_series[i]
             
             if series_labels is not None:
                 # TODO remove hard-coded label font size

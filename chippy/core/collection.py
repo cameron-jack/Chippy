@@ -211,6 +211,8 @@ class RegionCollection(_GenericCollection):
     def transformed(self, rank_func=rank_mean, counts_func=column_mean):
         """transforms all counts and ranks"""
         c = counts_func(self.counts)
+        if counts_func == column_stdev:
+            c = c - numpy.mean(c, axis=0)
         if self.ranks is not None:
             r = rank_func(self.ranks)
         else:
@@ -350,6 +352,8 @@ class RegionCollection(_GenericCollection):
                     counts_func=column_mean):
         for counts, ranks, labels in self.itergroups(group_size):
             c = counts_func(counts)
+            if counts_func == column_stdev:
+                c = c - numpy.mean(c, axis=0)
             r = rank_func(ranks)
             yield c, r, labels
     

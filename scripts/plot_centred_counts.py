@@ -11,7 +11,7 @@ from cogent.util.misc import parse_command_line_parameters
 
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_counts_external_genes
-from chippy.core.collection import RegionCollection, column_sum, column_mean
+from chippy.core.collection import RegionCollection, column_sum, column_mean, column_stdev
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
 from chippy.ref.util import chroms
@@ -212,9 +212,10 @@ opt_collection = make_option('-s', '--collection',
   help='Path to the plottable data')
 
 opt_metric = make_option('-m', '--metric', type='choice',
-        choices=['Mean counts', 'Frequency counts'],
+        choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
         default='Frequency counts',
-        help='Select the metric (note you will need to change your ylim accordingly)')
+        help='Select the metric (note you will need to change your ylim '\
+            'accordingly if providing via --ylim')
 # chrom choice
 opt_chroms = make_option('-C', '--chrom', type='choice', default='All',
                help='Choose a chromosome [default: %default]',
@@ -396,8 +397,8 @@ def main():
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
             
-    else: #Convert to frequency counts
-        print 'Calculating normalized counts'
+    elif opts.metric == 'Frequency counts':
+        print 'Calculating normalized frequency counts'
         counts_func = column_sum
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
@@ -408,6 +409,23 @@ def main():
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
+
+    elif opts.metric == 'Standard deviation':
+        print 'Calculating standard deviations of counts'
+        counts_func = column_stdev
+        for collection_file in collection_file_names:
+            data_collection = RegionCollection(filename=collection_file)
+            # Filter genes for outliers and stableIDs
+            data_collection, window_size, rr = _filter_collection(data_collection,
+                    cutoff=opts.cutoff, external_sample=external_sample,
+                    stable_ids=stable_ids, rr=rr)
+            data_collection_set.append(data_collection)
+            window_size_set.append(window_size)
+
+    else:
+        print "--metric needs to be one of: 'Mean counts', 'Frequency counts', "\
+              "or 'Standard deviation'"
+        raise RuntimeError('Invalid metric choice')
 
     window_size = max(window_size_set)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Max window size', window_size)
@@ -440,8 +458,6 @@ def main():
             series_template = 'plot-%%.%sd.pdf' % len(str(len(counts)))
             filename_series = [os.path.join(plot_series_dir, series_template % i)
                             for i in range(len(series_labels))]
-
-    rr.display()
     
     print 'Prepping for plot'
     if opts.bgcolor == 'black':
@@ -470,7 +486,7 @@ def main():
                 min_Ymin = min(ylim)
         ylim = (min_Ymin, max_Ymax)
         opts.ygrid_lines = max_Ygrid_line
-    else: # ylim can only accept a single value from command-line
+    else:
         if opts.ygrid_lines is None:
             opts.ygrid_lines = _auto_grid_lines(ylim, opts.test_run)
 
@@ -509,9 +525,10 @@ def main():
         all_ranks = ranks
         all_counts = counts
 
-    print len(all_counts)
-    if all_ranks is not None:
-        print len(all_ranks)
+    if opts.test_run:
+        print 'Number of count sets: %d' % len(all_counts)
+        if all_ranks is not None:
+            print 'Number of rank sets: %d' % len(all_ranks)
 
     plot(x, y_series=all_counts, color_series=all_ranks, series_labels=series_labels,
         filename_series=filename_series, label_coords=label_coords,
@@ -525,7 +542,7 @@ def main():
     
     rr.display()
     plot.show()
-    
+
 
 if __name__ == '__main__':
     main()

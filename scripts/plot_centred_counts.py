@@ -163,6 +163,9 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
                             group_size=group_size, counts_func=counts_func)):
             counts.append(c)
             ranks.append(r)
+            if topgenes:
+                num_groups = 1
+                return counts, ranks, num_groups, labels, rr
             if plot_series:
                 labels.append('Group %d' % index)
 
@@ -175,11 +178,6 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
             rr.addMessage('plot_centred_counts._group_genes', LOG_WARNING,
                 'Defaulting to all genes. Not enough genes for group of size',
                 group_size)
-
-    if topgenes == True:
-        num_groups = 1
-        counts = list(counts.pop())
-        ranks = None
 
     rr.addMessage('plot_centred_counts._group_genes', LOG_INFO,
         'Number of groups', num_groups)

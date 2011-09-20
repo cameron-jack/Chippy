@@ -530,10 +530,42 @@ def main():
         if all_ranks is not None:
             print 'Number of rank sets: %d' % len(all_ranks)
 
-    plot(x, y_series=all_counts, color_series=all_ranks, series_labels=series_labels,
-        filename_series=filename_series, label_coords=label_coords,
-        alpha=opts.line_alpha, xlabel=opts.xlabel,
-        ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
+    if len(data_collection_set) > 1:
+        # spread colours almost evenly throughout the 256^3 colour-space
+        colour_range = []
+        halfway = floor(len(all_counts)/2)
+        for i in range(len(all_counts)):
+            if i < halfway:
+                b = int(255 - ((255/halfway)*i))
+                g = int(i * 255 / halfway)
+                r = 0
+
+            elif i == halfway:
+                r = 0
+                g = 255
+                b = 0
+
+            else:
+                b = 0
+                g = 255 - int((255/(halfway)) * (i-halfway))
+                r = int((i-halfway)*(255/halfway))
+
+            colour = '#%02x%02x%02x' % (r, g, b)
+            if opts.test_run:
+                print 'Count colour for set %d is:' % i
+                print colour
+
+            colour_range.append((colour))
+
+        plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
+            filename_series=filename_series, label_coords=label_coords,
+            alpha=opts.line_alpha, xlabel=opts.xlabel,
+            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
+    else:
+        plot(x, y_series=all_counts, color_series=all_ranks, series_labels=series_labels,
+            filename_series=filename_series, label_coords=label_coords,
+            alpha=opts.line_alpha, xlabel=opts.xlabel,
+            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
     
     if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename)

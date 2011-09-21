@@ -154,20 +154,25 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
         num_groups = 1
         counts = [counts]
         ranks = [ranks]
+        labels_set = [labels]
     else:
         counts = []
         ranks = []
+        labels_set = []
         group_size = group_size
         group_size = int(group_size)
         for index, (c,r,l) in enumerate(data_collection.iterTransformedGroups(
                             group_size=group_size, counts_func=counts_func)):
             counts.append(c)
             ranks.append(r)
+            labels_set.append(labels)
+
             if topgenes:
                 num_groups = 1
-                return counts, ranks, num_groups, labels, rr
+                return counts, ranks, num_groups, labels_set, rr
+
             if plot_series:
-                labels.append('Group %d' % index)
+                labels_set.append('Group %d' % index)
 
         num_groups = len(counts)
         if num_groups == 0:
@@ -175,6 +180,7 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
             num_groups = 1
             counts = [counts]
             ranks = [ranks]
+            labels_set = [labels]
             rr.addMessage('plot_centred_counts._group_genes', LOG_WARNING,
                 'Defaulting to all genes. Not enough genes for group of size',
                 group_size)
@@ -182,7 +188,7 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
     rr.addMessage('plot_centred_counts._group_genes', LOG_INFO,
         'Number of groups', num_groups)
 
-    return counts, ranks, num_groups, labels, rr
+    return counts, ranks, num_groups, labels_set, rr
 
 if 'CHIPPY_DB' in os.environ:
     db_path = os.environ['CHIPPY_DB']
@@ -243,6 +249,11 @@ opt_fig_height = make_option('-H', '--fig_height', type='float', default=2.5*6,
 
 opt_fig_width = make_option('-W', '--fig_width', type='float', default=2.5*12,
    help='Figure width (cm) [default: %default]')
+opt_legend = make_option('-l', '--legend', action='store_true', default=False,
+        help='Automatically generate a figure legend. '\
+             '[default: %default')
+opt_legend_size = make_option('--legend_size', type='int', default=12,
+        help='Point size for legend characters [default: %default]')
 opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
                help='Plot background color [default: %default]',
                choices=['black', 'white'])
@@ -251,42 +262,42 @@ opt_colorbar = make_option('--colorbar',
 opt_yrange = make_option('-y', '--ylim', default=None,
        help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
 # Important note, grid_lines are an absolute scale!
-opts_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
+opt_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
-opts_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
+opt_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
                  help='major grid-line spacing on y-axis [default: %default]')
-opts_xlabel_interval = make_option('--xlabel_interval', type='int',
+opt_xlabel_interval = make_option('--xlabel_interval', type='int',
         default = 2,
         help='number of blank ticks between labels [default: %default]')
-opts_ylabel_interval = make_option('--ylabel_interval', type='int',
+opt_ylabel_interval = make_option('--ylabel_interval', type='int',
     default = 2,
     help='number of blank ticks between labels [default: %default]')
-opts_xlabel_font = make_option('--xfontsize', type='int',
+opt_xlabel_font = make_option('--xfontsize', type='int',
     default = 12,
     help='font size for x label [default: %default]')
-opts_ylabel_font = make_option('--yfontsize', type='int',
+opt_ylabel_font = make_option('--yfontsize', type='int',
     default = 12,
     help='font size for y label [default: %default]')
-opts_vline_style = make_option('--vline_style', type='choice',
+opt_vline_style = make_option('--vline_style', type='choice',
     default = '-.', choices=['-.', '-', '.'],
     help='line style for centred vertical line [default: %default]')
-opts_vline_width = make_option('--vline_width', type='int',
+opt_vline_width = make_option('--vline_width', type='int',
     default = 2, 
     help='line width for centred vertical line [default: %default]')
-opts_ylabel = make_option('--ylabel',
+opt_ylabel = make_option('--ylabel',
     default = 'Normalized counts', help='Label for the y-axis [default: %default]')
-opts_xlabel = make_option('--xlabel',
+opt_xlabel = make_option('--xlabel',
     default = 'Position relative to TSS',
     help='Label for the x-axis [default: %default]')
-opts_title = make_option('--title', help='Plot title [default: %default]')
-opts_alpha = make_option('--line_alpha', type='float', default=1.0,
+opt_title = make_option('--title', help='Plot title [default: %default]')
+opt_alpha = make_option('--line_alpha', type='float', default=1.0,
                  help='Opacity of lines [default: %default]')
-opts_plot_filename = make_option('--plot_filename',
+opt_plot_filename = make_option('--plot_filename',
     default = None,
     help='Name of final plot file (must end with .pdf) [default: %default]')
 
 # 
-opts_plotseries = make_option('-p', '--plot_series',
+opt_plotseries = make_option('-p', '--plot_series',
                  action='store_true', default=False,
      help='Plot series of figures. A directory called plot_filename-series'\
           +' will be created. Requires plot_filename be defined.')
@@ -303,13 +314,14 @@ script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff, opt_topgenes]
-save_opts = [opts_plot_filename]
-series_opts = [opts_plotseries, opt_txt_coords]
-plot_labels = [opts_title, opts_ylabel, opts_xlabel, opt_colorbar]
-plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opts_xgrid_locate,
-            opts_ygrid_locate, opts_xlabel_interval, opts_ylabel_interval]
-plot_colors = [opt_bgcolor, opts_alpha, opts_vline_style, opts_vline_width,
-        opts_xlabel_font, opts_ylabel_font]
+save_opts = [opt_plot_filename]
+series_opts = [opt_plotseries, opt_txt_coords]
+plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
+               opt_legend_size]
+plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opt_xgrid_locate,
+            opt_ygrid_locate, opt_xlabel_interval, opt_ylabel_interval]
+plot_colors = [opt_bgcolor, opt_alpha, opt_vline_style, opt_vline_width,
+        opt_xlabel_font, opt_ylabel_font]
 
 script_info['optional_options'] = run_opts+sampling_opts+save_opts+\
         series_opts+plot_labels+plot_dims+plot_colors
@@ -358,8 +370,6 @@ def main():
     if opts.plot_series and not opts.test_run:
         save_dir = dirname_or_default(opts.plot_filename)
         basename = os.path.basename(opts.plot_filename)
-        # Should this be opts.plot_filename: ?
-        #plot_filename = os.path.join(save_dir, basename)
 
         plot_series_dir = os.path.join(save_dir,
                         '%s-series' % basename[:basename.rfind('.')])
@@ -369,17 +379,28 @@ def main():
         labels = []
         filename_series = []
     else:
-        labels = None
+        if opts.legend:
+            labels = []
+        else:
+            labels = None
         filename_series = None
         series_labels = None
         label_coords = None
 
+    filenames_set = []
     print 'Loading counts data'
     collection_files = opts.collection
     dir_name = os.path.dirname(collection_files)
     base_name = os.path.basename(collection_files)
     collection_file_names = [os.path.join(dir_name,
                 p) for p in glob.glob1(dir_name, base_name)]
+    if opts.legend:
+        for file in collection_file_names:
+            file_parts = file.split('/')
+            file = file_parts[-1]
+            file = file.rstrip('.gz')
+            file = file.replace('_', ' ')
+            filenames_set.append(file)
 
     window_size_set = []
     data_collection_set = []
@@ -435,15 +456,18 @@ def main():
     rank_set = []
     labels_set = []
     plottable_lines = 0 # total # of plotted lines
+    iteration = 0
     for data_collection in data_collection_set:
         counts, ranks, num_groups, labels, rr = _group_genes(data_collection,
-                group_size=opts.group_size, labels=labels,
+                group_size=opts.group_size, labels=filenames_set[iteration],
                 counts_func=counts_func, topgenes=opts.topgenes,
                 plot_series=opts.plot_series, rr=rr)
         count_set.append(counts)
         rank_set.append(ranks)
         plottable_lines += num_groups
-        labels_set.append(labels)
+        for label in labels:
+            labels_set.append(label)
+        iteration += 1
 
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'Total number of plottable lines', plottable_lines)
@@ -497,6 +521,10 @@ def main():
                     minY_str)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-grid-line spacing',
                     ygrid_line_str)
+
+    # Rather than have everything that follows simply dump into
+    # PlottableGroups, it might be better to have multiple calls
+    # to PlottableSingle
     
     plot = PlottableGroups(height=opts.fig_height/2.5,
         width=opts.fig_width/2.5,
@@ -558,12 +586,14 @@ def main():
         plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
             alpha=opts.line_alpha, xlabel=opts.xlabel,
-            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
+            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
+            labels=labels_set, labels_size=opts.legend_size)
     else:
         plot(x, y_series=all_counts, color_series=all_ranks, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
             alpha=opts.line_alpha, xlabel=opts.xlabel,
-            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar)
+            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
+            labels=labels_set, labels_size=opts.legend_size)
     
     if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename)

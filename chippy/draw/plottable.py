@@ -138,9 +138,12 @@ class _Plottable(object):
     def savefig(self, filename):
         pyplot.savefig(filename)
     
-    def legend(self):
+    def legend(self, fontsize=None):
         if self._legend_patches:
-            prop = font_manager.FontProperties(size=self.xlabel_fontsize)
+            if fontsize is None:
+                prop = font_manager.FontProperties(size=self.xlabel_fontsize)
+            else:
+                prop = font_manager.FontProperties(size=fontsize)
             pyplot.legend(self._legend_patches, self._legend_labels,
                             prop=prop)
     
@@ -191,7 +194,8 @@ class PlottableGroups(_Plottable):
     @display_wrap
     def __call__(self, x, y_series, color_series=None, alpha=None, 
       series_labels=None, label_coords=None, cmap='RdBu', colorbar=False,
-      xlabel=None, ylabel=None, title=None, filename_series=None, ui=None):
+      xlabel=None, ylabel=None, title=None, filename_series=None, labels=None,
+      labels_size=None, ui=None):
         cmap_r = getattr(cm, '%s_r' % cmap)
         cmap = getattr(cm, cmap)
         bbox = dict(facecolor='b', alpha=0.5)
@@ -239,8 +243,15 @@ class PlottableGroups(_Plottable):
             ymaxs.append(max(y))
             ymins.append(min(y))
 
+            if labels is not None:
+                self._legend_labels.append(labels[i])
+                patches = pyplot.plot(x, y, color=color,
+                          linewidth=self.linewidth, label=labels[i])
+                self._legend_patches.append(patches)
+                self.legend(labels_size)
+
             pyplot.plot(x, y, color=color, linewidth=self.linewidth, alpha=alpha)
-            
+
             if filename_series is not None:
                 pyplot.savefig(filename_series[i])
             

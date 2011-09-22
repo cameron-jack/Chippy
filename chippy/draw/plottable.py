@@ -218,8 +218,8 @@ class PlottableGroups(_Plottable):
                                         orientation='vertical')
             cb.set_ticklabels(['Low', 'High'])
             ax = fig.sca(ax) # need to make main axis the current axis again
-        
-        num = len(y_series) # num = window_size when plotting top genes only
+
+        num = len(y_series)
         ymaxs = []
         ymins = []
         for i in ui.series(range(num), noun='Applying lines to plot'):

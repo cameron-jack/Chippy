@@ -376,31 +376,26 @@ def main():
         create_path(plot_series_dir)
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'Plotting as a series to', plot_series_dir)
-        labels = []
         filename_series = []
     else:
-        if opts.legend:
-            labels = []
-        else:
-            labels = None
         filename_series = None
         series_labels = None
         label_coords = None
 
-    filenames_set = []
+
     print 'Loading counts data'
     collection_files = opts.collection
     dir_name = os.path.dirname(collection_files)
     base_name = os.path.basename(collection_files)
     collection_file_names = [os.path.join(dir_name,
                 p) for p in glob.glob1(dir_name, base_name)]
-    if opts.legend:
-        for file in collection_file_names:
-            file_parts = file.split('/')
-            file = file_parts[-1]
-            file = file.rstrip('.gz')
-            file = file.replace('_', ' ')
-            filenames_set.append(file)
+    filenames_set = []
+    for file in collection_file_names:
+        file_parts = file.split('/')
+        file = file_parts[-1]
+        file = file.rstrip('.gz')
+        file = file.replace('_', ' ')
+        filenames_set.append(file)
 
     window_size_set = []
     data_collection_set = []
@@ -548,8 +543,8 @@ def main():
         all_ranks = list(all_ranks)
         all_counts= list(reversed(all_counts))
     else:
-        all_ranks = ranks
-        all_counts = counts
+        counts = list(reversed(counts))
+        ranks = list(reversed(ranks))
 
     if opts.test_run:
         print 'Number of count sets: %d' % len(all_counts)
@@ -583,13 +578,18 @@ def main():
 
             colour_range.append((colour))
 
+        if not opts.legend:
+            labels_set = None
         plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
             alpha=opts.line_alpha, xlabel=opts.xlabel,
             ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
             labels=labels_set, labels_size=opts.legend_size)
     else:
-        plot(x, y_series=all_counts, color_series=all_ranks, series_labels=series_labels,
+        if not opts.legend:
+            labels_set = None
+
+        plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
             alpha=opts.line_alpha, xlabel=opts.xlabel,
             ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,

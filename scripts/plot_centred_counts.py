@@ -441,6 +441,9 @@ def main():
               "or 'Standard deviation'"
         raise RuntimeError('Invalid metric choice')
 
+    if len(window_size_set) == 0:
+        raise RuntimeError('No valid data files loaded')
+
     window_size = max(window_size_set)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Max window size', window_size)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Total data collections',
@@ -540,7 +543,7 @@ def main():
         for counts in count_set:
             for count in counts:
                 all_counts.append(count)
-        all_ranks = list(all_ranks)
+        all_ranks = list(reversed(all_ranks))
         all_counts= list(reversed(all_counts))
     else:
         counts = list(reversed(counts))

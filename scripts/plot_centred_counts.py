@@ -389,6 +389,7 @@ def main():
     base_name = os.path.basename(collection_files)
     collection_file_names = [os.path.join(dir_name,
                 p) for p in glob.glob1(dir_name, base_name)]
+    collection_file_names.sort()
     filenames_set = []
     for file in collection_file_names:
         file_parts = file.split('/')
@@ -542,9 +543,10 @@ def main():
         all_ranks = range(plottable_lines)
         for counts in count_set:
             for count in counts:
+                counts = list(reversed(counts))
                 all_counts.append(count)
-        all_ranks = list(reversed(all_ranks))
-        all_counts= list(reversed(all_counts))
+        all_ranks = list(all_ranks)
+        all_counts= list(all_counts)
     else:
         counts = list(reversed(counts))
         ranks = list(reversed(ranks))

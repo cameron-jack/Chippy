@@ -51,6 +51,8 @@ script_info['optional_options'] = [
  make_option('-o','--outdir',
              help='Directory to write files to [default: %default]',
              default='.'),
+ make_option('-c','--by_chrom', action='store_true', default=False,
+             help='Write separate files for each chromosome [default: %default]'),
  make_option('-H','--hostname',
              help='MySQL server hostname. Will look for ENSEMBL_ACCOUNT by default.',
              default=None),
@@ -93,20 +95,34 @@ def main():
         print 'FAIL: %s directory does not exist' % outdir
         exit(-1)
     
+    if not opts.by_chrom:
+        outfile_name = os.path.join(outdir, '%s-%s.fasta' % (opts.species, opts.release))
+        if not opts.test_run:
+            outfile = open(outfile_name, 'w')
+    
     if opts.test_run:
         print 'Will write to: %s' % outdir
+        if not opts.by_chrom:
+            print outfile_name
     
     for chrom in get_chrom_seqs(opts.species, opts.release, account,
                                 debug=opts.test_run):
         fasta = chrom.toFasta()
-        outfile_name = os.path.join(outdir, '%s.fasta' % chrom.Name)
+        
+        if opts.by_chrom:
+            outfile_name = os.path.join(outdir, '%s.fasta' % chrom.Name)
+        
         if opts.test_run:
-            print outfile_name
+            print 'Will write to: %s' % outfile_name
             break
         
-        outfile = open(outfile_name, 'w')
+        if opts.by_chrom:
+            outfile = open(outfile_name, 'w')
+        
         outfile.write(fasta+'\n')
-        outfile.close()
+        
+        if opts.by_chrom:
+            outfile.close()
 
 
 if __name__ == "__main__":

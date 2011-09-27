@@ -15,7 +15,7 @@ __status__ = "alpha"
 __version__ = '0.1'
 
 
-def run_command(command, test):
+def run_command(command, test=None):
     """executes a command"""
     PIPE = subprocess.PIPE
     r = subprocess.Popen(command, shell=True, universal_newlines=True,

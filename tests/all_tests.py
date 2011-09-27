@@ -33,6 +33,7 @@ def suite():
         'test_read_count',
         'test_collection',
         'test_db',
+        'test_fastq_pipe',
         'test_inline_stats',
         'test_light_seq',
         'test_mapped_files',

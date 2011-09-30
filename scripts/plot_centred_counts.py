@@ -14,6 +14,7 @@ from chippy.core.count_tags import centred_counts_for_genes,\
 from chippy.core.collection import RegionCollection, column_sum, column_mean, column_stdev
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
+from chippy.draw.util import smooth
 from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -239,6 +240,9 @@ opt_grp_size = make_option('-g', '--group_size', type='choice', default='All',
 # optional sample choice information
 opt_topgenes = make_option('--topgenes', action='store_true', default = False,
                     help='Plot only top genes ranked by expressed chromatin')
+opt_smoothing = make_option('--smoothing', type='int', default = 0,
+                help='Window size for smoothing of plot data default: '\
+                     '[default]')
 
 # optional plotting information
 opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
@@ -262,6 +266,8 @@ opt_colorbar = make_option('--colorbar',
 opt_yrange = make_option('-y', '--ylim', default=None,
        help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
 # Important note, grid_lines are an absolute scale!
+opt_grid_off = make_option('--grid_off', action='store_true', default=False,
+                           help='Turn grid lines off')
 opt_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
                  help='major grid-line spacing on x-axis [default: %default]')
 opt_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
@@ -313,7 +319,8 @@ opt_test_run = make_option('-t', '--test_run',
 script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
-sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff, opt_topgenes]
+sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff,
+                 opt_topgenes, opt_smoothing]
 save_opts = [opt_plot_filename]
 series_opts = [opt_plotseries, opt_txt_coords]
 plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
@@ -321,7 +328,7 @@ plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
 plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opt_xgrid_locate,
             opt_ygrid_locate, opt_xlabel_interval, opt_ylabel_interval]
 plot_colors = [opt_bgcolor, opt_alpha, opt_vline_style, opt_vline_width,
-        opt_xlabel_font, opt_ylabel_font]
+        opt_xlabel_font, opt_ylabel_font, opt_grid_off]
 
 script_info['optional_options'] = run_opts+sampling_opts+save_opts+\
         series_opts+plot_labels+plot_dims+plot_colors
@@ -461,6 +468,14 @@ def main():
                 group_size=opts.group_size, labels=filenames_set[iteration],
                 counts_func=counts_func, topgenes=opts.topgenes,
                 plot_series=opts.plot_series, rr=rr)
+
+        if opts.smoothing > 0:
+            smoothed_counts = []
+            for c in counts:
+                c = smooth(c, opts.smoothing)              
+                smoothed_counts.append(c)
+            counts = smoothed_counts
+
         count_set.append(counts)
         rank_set.append(ranks)
         plottable_lines += num_groups
@@ -482,12 +497,20 @@ def main():
     
     print 'Prepping for plot'
     if opts.bgcolor == 'black':
-        grid={'color': 'w'}
+        if opts.grid_off is True:
+            grid={'color': 'k'}
+            vline_color='k'
+        else:
+            grid={'color': 'w'}
+            vline_color='w'
         bgcolor='0.1'
-        vline_color='w'
     else:
-        grid={'color': 'k'}
-        vline_color='k'
+        if opts.grid_off is True:
+            grid={'color': 'w'}
+            vline_color='w'
+        else:
+            grid={'color': 'k'}
+            vline_color='k'
         bgcolor='1.0'
     
     vline = dict(x=0, linewidth=opts.vline_width,
@@ -556,7 +579,42 @@ def main():
         if all_ranks is not None:
             print 'Number of rank sets: %d' % len(all_ranks)
 
-    if len(data_collection_set) > 1:
+    # Hack time: this is just for David's Cell-cycle plots
+    if len(data_collection_set) == 3:
+        colour_range = []
+        # We're going to use black/white, green and orange, for G1, S, M
+        if opts.bgcolor == 'black':
+            r = 255
+            g = 255
+            b = 255
+        else:
+            r = 0
+            g = 0
+            b = 0
+        colour = '#%02x%02x%02x' % (r, g, b)
+        colour_range.append((colour))
+        # green for M
+        r = 0
+        g = 130
+        b = 0
+        colour = '#%02x%02x%02x' % (r, g, b)
+        colour_range.append((colour))
+        # Magenta for S
+        r = 255
+        g = 0
+        b = 255
+        colour = '#%02x%02x%02x' % (r, g, b)
+        colour_range.append((colour))
+
+        if not opts.legend:
+            labels_set = None
+        plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
+            filename_series=filename_series, label_coords=label_coords,
+            alpha=opts.line_alpha, xlabel=opts.xlabel,
+            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
+            labels=labels_set, labels_size=opts.legend_size)
+        
+    elif len(data_collection_set) > 1:
         # spread colours almost evenly throughout the 256^3 colour-space
         colour_range = []
         halfway = floor(len(all_counts)/2)

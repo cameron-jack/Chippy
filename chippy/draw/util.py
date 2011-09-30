@@ -16,7 +16,7 @@ def smoothed(x, num_bins, window_len):
     min_x, max_x = min(x), max(x)
     diff = max_x - min_x
     step = diff/num_bins
-    h, b = numpy.histogram(x, bins=numpy.arange(min_x, max_x, step), normed=True, new=True)
+    h, b = numpy.histogram(x, bins=numpy.arange(min_x, max_x, step), normed=True)
     x = [(b[i-1]+b[i])/2 for i in range(1, len(b),1)]
     return x, smooth(h, window_len)
 
@@ -26,8 +26,8 @@ def smooth(x, window_len=8, window='hanning'):
     This method is based on the convolution of a scaled window with the signal.
     The signal is prepared by introducing reflected copies of the signal
     (with the window size) in both ends so that transient parts are minimized
-    in the begining and end part of the output signal.
-    
+    in the beginning and end part of the output signal.
+
     input:
         x: the input signal
         window_len: the dimension of the smoothing window

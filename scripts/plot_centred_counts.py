@@ -261,6 +261,9 @@ opt_legend_size = make_option('--legend_size', type='int', default=12,
 opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
                help='Plot background color [default: %default]',
                choices=['black', 'white'])
+opt_clean_plot = make_option('--clean_plot', action='store_true', default=False,
+                help='Remove tick marks and top and right borders '\
+                     '[default: %default]')
 opt_colorbar = make_option('--colorbar',
          action='store_true', help="Add colorbar to figure", default=False)
 opt_yrange = make_option('-y', '--ylim', default=None,
@@ -328,7 +331,7 @@ plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
 plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opt_xgrid_locate,
             opt_ygrid_locate, opt_xlabel_interval, opt_ylabel_interval]
 plot_colors = [opt_bgcolor, opt_alpha, opt_vline_style, opt_vline_width,
-        opt_xlabel_font, opt_ylabel_font, opt_grid_off]
+        opt_xlabel_font, opt_ylabel_font, opt_grid_off, opt_clean_plot]
 
 script_info['optional_options'] = run_opts+sampling_opts+save_opts+\
         series_opts+plot_labels+plot_dims+plot_colors
@@ -556,7 +559,7 @@ def main():
         xtick_interval=opts.xlabel_interval,
         ytick_interval=opts.ylabel_interval,
         xlabel_fontsize=opts.xfontsize, ylabel_fontsize=opts.yfontsize,
-        vline=vline, ioff=True, colorbar=opts.colorbar)
+        vline=vline, ioff=True, colorbar=opts.colorbar, clean=opts.clean_plot)
     
     x = numpy.arange(-window_size, window_size)
 

@@ -124,8 +124,9 @@ class _Plottable(object):
         
         if xlabel:
             pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize+2)
-        
-        ax.ticklabel_format(scilimits=(-4,5))
+
+        ax.ticklabel_format(scilimits=(-2,4), axis='y')
+        ax.ticklabel_format(scilimits=(-5,5), axis='x')
         self.fig = fig
 
         if self.clean is True:

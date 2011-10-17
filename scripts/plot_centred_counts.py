@@ -9,9 +9,7 @@ import numpy
 from optparse import make_option
 from cogent.util.misc import parse_command_line_parameters
 
-from chippy.core.count_tags import centred_counts_for_genes,\
-            centred_counts_external_genes
-from chippy.core.collection import RegionCollection, column_sum, column_mean, column_stdev
+from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
 from chippy.draw.util import smooth
@@ -20,8 +18,7 @@ from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
-from chippy.util.util import create_path, make_cl_command, just_filename, \
-                    dirname_or_default
+from chippy.util.util import create_path, dirname_or_default
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
@@ -437,7 +434,7 @@ def main():
 
     elif opts.metric == 'Standard deviation':
         print 'Calculating standard deviations of counts'
-        counts_func = column_stdev
+        counts_func = stdev
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
             # Filter genes for outliers and stableIDs
@@ -501,7 +498,7 @@ def main():
     print 'Prepping for plot'
     if opts.bgcolor == 'black':
         if opts.grid_off is True:
-            grid={'color': 'k'}
+            grid=False
             vline_color='k'
         else:
             grid={'color': 'w'}
@@ -509,7 +506,7 @@ def main():
         bgcolor='0.1'
     else:
         if opts.grid_off is True:
-            grid={'color': 'w'}
+            grid=False
             vline_color='w'
         else:
             grid={'color': 'k'}

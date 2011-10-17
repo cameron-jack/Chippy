@@ -125,15 +125,15 @@ class _Plottable(object):
         if xlabel:
             pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize+2)
         
-        ax.ticklabel_format(scilimits=(-3,4))
+        ax.ticklabel_format(scilimits=(-4,5))
         self.fig = fig
 
         if self.clean is True:
             for loc, spine in ax.spines.iteritems():
                 if loc in ['right','top']:
                     spine.set_color('none') # don't draw spine
-            ax.xaxis.set_ticks_position('none')
-            ax.yaxis.set_ticks_position('none')
+            ax.xaxis.set_ticks_position('bottom')
+            ax.yaxis.set_ticks_position('left')
 
         self.ax = ax
 

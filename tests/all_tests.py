@@ -13,6 +13,7 @@ sys.path.append(os.path.expanduser('~cggroup/repos/PyCogent-trunk'))
 os.chdir(os.path.join(p, 'tests'))
 
 import doctest, cogent.util.unit_test as unittest, sys, os
+from cogent.util.misc import app_path
 
 def my_import(name):
     """Imports a module, possibly qualified with periods. Returns the module.
@@ -33,7 +34,6 @@ def suite():
         'test_read_count',
         'test_collection',
         'test_db',
-        'test_fastq_pipe',
         'test_inline_stats',
         'test_light_seq',
         'test_mapped_files',
@@ -44,6 +44,16 @@ def suite():
         'test_syntax',
         'test_util'
         ]
+    
+    # CAUTION: dodgy hack ahead .. !
+    # dodgy because more than one app required
+    apps = [('bwa', 'test_fastq_pipe')]
+    for app, test_name in apps:
+        if app_path(app):
+            modules_to_test.append(test_name)
+        else:
+            print >> sys.stderr, "Can't find %s executable: skipping test" % app
+    
 
     alltests = unittest.TestSuite()
 

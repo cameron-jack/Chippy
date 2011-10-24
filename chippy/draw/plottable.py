@@ -25,7 +25,7 @@ class _Plottable(object):
                 xlim=None, xtick_space=None, ytick_space=None,
                 xtick_interval=None, ytick_interval=None, linewidth=2,
                 xlabel_fontsize=None, ylabel_fontsize=None, vline=None,
-                ioff=None, colorbar=False):
+                ioff=None, colorbar=False, clean=False):
         super(_Plottable, self).__init__()
         if ioff is not None:
             pyplot.ioff()
@@ -56,6 +56,7 @@ class _Plottable(object):
         self._legend_labels = []
         self._line_collection = []
         self._colorbar = colorbar
+        self.clean = clean
     
     def _get_figure_axis(self, title=None, xlabel=None, ylabel=None):
         """returns the figure and axis ready for display"""
@@ -123,10 +124,20 @@ class _Plottable(object):
         
         if xlabel:
             pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize+2)
-        
-        ax.ticklabel_format(scilimits=(-3,4))
+
+        ax.ticklabel_format(scilimits=(-2,4), axis='y')
+        ax.ticklabel_format(scilimits=(-5,5), axis='x')
         self.fig = fig
+
+        if self.clean is True:
+            for loc, spine in ax.spines.iteritems():
+                if loc in ['right','top']:
+                    spine.set_color('none') # don't draw spine
+            ax.xaxis.set_ticks_position('bottom')
+            ax.yaxis.set_ticks_position('left')
+
         self.ax = ax
+
         return self.fig, self.ax
     
     def ion(self):
@@ -138,9 +149,12 @@ class _Plottable(object):
     def savefig(self, filename):
         pyplot.savefig(filename)
     
-    def legend(self):
+    def legend(self, fontsize=None):
         if self._legend_patches:
-            prop = font_manager.FontProperties(size=self.xlabel_fontsize)
+            if fontsize is None:
+                prop = font_manager.FontProperties(size=self.xlabel_fontsize)
+            else:
+                prop = font_manager.FontProperties(size=fontsize)
             pyplot.legend(self._legend_patches, self._legend_labels,
                             prop=prop)
     
@@ -191,7 +205,8 @@ class PlottableGroups(_Plottable):
     @display_wrap
     def __call__(self, x, y_series, color_series=None, alpha=None, 
       series_labels=None, label_coords=None, cmap='RdBu', colorbar=False,
-      xlabel=None, ylabel=None, title=None, filename_series=None, ui=None):
+      clean=False, xlabel=None, ylabel=None, title=None, filename_series=None,
+      labels=None, labels_size=None, ui=None):
         cmap_r = getattr(cm, '%s_r' % cmap)
         cmap = getattr(cm, cmap)
         bbox = dict(facecolor='b', alpha=0.5)
@@ -206,7 +221,9 @@ class PlottableGroups(_Plottable):
         
         fig, ax = self._get_figure_axis(title=title, xlabel=xlabel,
                                     ylabel=ylabel)
-        
+
+        self.clean=clean
+
         if self._colorbar and colorbar:
             # probably need to set a limit on how big this will be
             ax2 = fig.add_axes([0.925, 0.1, 0.025, 0.8])
@@ -214,8 +231,8 @@ class PlottableGroups(_Plottable):
                                         orientation='vertical')
             cb.set_ticklabels(['Low', 'High'])
             ax = fig.sca(ax) # need to make main axis the current axis again
-        
-        num = len(y_series) # num = window_size when plotting top genes only
+
+        num = len(y_series)
         ymaxs = []
         ymins = []
         for i in ui.series(range(num), noun='Applying lines to plot'):
@@ -223,6 +240,8 @@ class PlottableGroups(_Plottable):
                 color = 'b'
             elif type(color_series[i]) != str:
                 color = cmap(color_series[i])
+            elif type(color_series[i]) == str:
+                color = color_series[i]
             
             if series_labels is not None:
                 # TODO remove hard-coded label font size
@@ -237,8 +256,15 @@ class PlottableGroups(_Plottable):
             ymaxs.append(max(y))
             ymins.append(min(y))
 
+            if labels is not None:
+                self._legend_labels.append(labels[i])
+                patches = pyplot.plot(x, y, color=color,
+                          linewidth=self.linewidth, label=labels[i])
+                self._legend_patches.append(patches)
+                self.legend(labels_size)
+
             pyplot.plot(x, y, color=color, linewidth=self.linewidth, alpha=alpha)
-            
+
             if filename_series is not None:
                 pyplot.savefig(filename_series[i])
             

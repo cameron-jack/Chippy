@@ -16,9 +16,9 @@ from chippy.express.db_populate import add_ensembl_gene_data, \
 from chippy.express.db_schema import make_session
 from chippy.parse.r_dump import SimpleRdumpToTable
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
@@ -140,19 +140,17 @@ def main():
     # on reading in. This would eliminate all the optional arguments for
     # column labels
 
-    # TODO ensembl release should not be hard coded
     if sample_type == exp_absolute:
         rr = add_expression_study(session, name, opts.expression_data, data,
-            ensembl_release='62', probeset_label=opts.probeset_heading,
+            probeset_label=opts.probeset_heading,
             ensembl_id_label=opts.gene_id_heading, run_record=rr)
     elif sample_type == exp_diff:
         # diff between two files, check we got the related files
-        assert opts.related_file1 is not None and \
-            opts.related_file2 is not None, 'To enter differences in gene '\
-            'expression you must specify the 2 files that contain the '\
-            'absolute measures.'
-        rr = add_expression_diff_study(session, opts.expression_data, data,
-            opts.related_file1, opts.related_file2,
+        assert opts.reffile1 is not None and opts.reffile2 is not None,\
+            'To enter differences in gene expression you must specify the 2'\
+            'files that contain the absolute measures.'
+        rr = add_expression_diff_study(session, name,
+            opts.expression_data, data, opts.reffile1, opts.reffile2,
             probeset_label=opts.probeset_heading,
             ensembl_id_label=opts.gene_id_heading,
             expression_label=opts.expression_heading,

@@ -8,9 +8,9 @@ from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
 from cogent.util.misc import flatten
 from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
 __email__ = "Gavin.Huttley@anu.edu.au"
@@ -55,7 +55,7 @@ class ReferenceFile(Base):
     sample = relationship(Sample,
                 backref=backref('reference_files', order_by=reffile_id))
     
-    def __init__(self, name,date, ref_a_name=None, ref_b_name=None):
+    def __init__(self, name, date, ref_a_name=None, ref_b_name=None):
         super(ReferenceFile, self).__init__()
         self.name = name
         self.date = date
@@ -78,7 +78,6 @@ class Gene(Base):
     gene_id = Column(Integer, primary_key=True)
     
     ensembl_id = Column(String)
-    ensembl_release = Column(String)
     symbol = Column(String)
     biotype = Column(String)
     status = Column(String)
@@ -88,11 +87,9 @@ class Gene(Base):
     end = Column(Integer)
     strand = Column(Integer)
     
-    __table_args__ = (UniqueConstraint('ensembl_id', 'ensembl_release',
-                name='unique'), {})
+    __table_args__ = (UniqueConstraint('ensembl_id', name='unique'), {})
     
-    def __init__(self, ensembl_release, ensembl_id, symbol, biotype, description, status, coord_name, start, end, strand):
-        self.ensembl_release = ensembl_release
+    def __init__(self, ensembl_id, symbol, biotype, description, status, coord_name, start, end, strand):
         self.ensembl_id = ensembl_id
         
         self.symbol = symbol
@@ -255,7 +252,6 @@ class Exon(Base):
     rank = Column(Integer)
     start = Column(Integer)
     end = Column(Integer)
-    ensembl_release = Column(String)
     
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
     gene = relationship(Gene,
@@ -265,13 +261,12 @@ class Exon(Base):
                         name='unique'), {})
     
     
-    def __init__(self, ensembl_id, rank, start, end, ensembl_release):
+    def __init__(self, ensembl_id, rank, start, end):
         super(Exon, self).__init__()
         self.ensembl_id = ensembl_id
         self.start = start
         self.end = end
         self.rank = rank
-        self.ensembl_release = ensembl_release
     
     def __repr__(self):
         return "Exon(gene=%s, start=%s, rank=%s, strand=%s)" % (
@@ -317,20 +312,17 @@ class ExpressionDiff(Base):
     
     expression_diff_id = Column(Integer, primary_key=True)
     
-    probesets = Column(Integer)
-    fold_changes = Column(Float)
+    probesets = Column(PickleType)
+    fold_changes = Column(PickleType)
     probability = Column(Float)
     multitest_signif = Column(Integer)
     
     gene_id = Column(Integer, ForeignKey('gene.gene_id'))
-    sample_a_id = Column(Integer, ForeignKey('sample.sample_id'))
-    sample_b_id = Column(Integer, ForeignKey('sample.sample_id'))
+    sample_id = Column(Integer, ForeignKey('sample.sample_id'))
     reffile_id = Column(Integer, ForeignKey('reference_file.reffile_id'))
     
-    sample_a = relationship(Sample,
-            primaryjoin = sample_a_id == Sample.sample_id)
-    sample_b = relationship(Sample,
-            primaryjoin = sample_b_id == Sample.sample_id)
+    sample = relationship(Sample,
+                backref=backref('expressiondiff', order_by=expression_diff_id))
     
     gene = relationship(Gene,
             backref=backref('expression_diffs', order_by=expression_diff_id))
@@ -341,17 +333,16 @@ class ExpressionDiff(Base):
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})
     
-    def __init__(self, probeset, fold_change, prob, signif):
+    def __init__(self, probesets, fold_changes, prob, signif):
         super(ExpressionDiff, self).__init__()
-        self.probeset = probeset
-        self.fold_change = fold_change
+        self.probesets = probesets
+        self.fold_changes = fold_changes
         self.probability = prob
         self.multitest_signif = signif
     
     def __repr__(self):
-        return 'ExpressionDiff(probeset=%s, A=%s, B=%s, P=%s, Signif=%s)' %\
-            (self.probeset, self.sample_a.name,
-            self.sample_b.name, self.probability, self.multitest_signif)
+        return 'ExpressionDiff(probesets=%s, P=%s, Signif=%s)' %\
+            (self.probesets, self.probability, self.multitest_signif)
 
 
 class ExternalGene(Base):

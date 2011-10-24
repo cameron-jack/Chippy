@@ -32,7 +32,7 @@ script_info['version'] = __version__
 script_info['required_options'] = [
     make_option('-S','--save_db_path',
         help='path to directory where chippy.db will be saved.'),
-    make_option('-R','--ensembl_release',
+    make_option('-R','--ensembl_release', type='int',
         help='Ensembl release to use.'),
     make_option('-s','--species', type='choice', default='mouse',
         choices=['mouse', 'human'],
@@ -65,8 +65,9 @@ def main():
     if not os.path.isdir(opts.save_db_path):
         sys.stderr.write('The save_db_path must be a directory.\n')
         return
-    
-    db_path = os.path.join(opts.save_db_path, 'chippy.db')
+
+    chippy_db_name = 'chippy_%d_%s.db' % (opts.ensembl_release, opts.species)
+    db_path = os.path.join(opts.save_db_path, chippy_db_name)
     session = make_session("sqlite:///%s" % db_path)
     hostname = opts.hostname
     username = opts.username 
@@ -82,7 +83,8 @@ def main():
     account = HostAccount(hostname, username, password, port=opts.port)
     add_ensembl_gene_data(session, opts.species,
             ensembl_release=opts.ensembl_release, account=account)
-    
+
+    print "Chippy DB written to: %s" % db_path
 
 if __name__ == "__main__":
     main()

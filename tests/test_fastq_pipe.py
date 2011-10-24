@@ -22,11 +22,14 @@ class FastqPipe(TestCase):
                     '--aligner bwa'
 
         returncode, stdout, stderr = run_command(call_string)
-
+        if returncode != 0:
+            raise RuntimeError('command line app exited with an error')
         # Generate md5 checksums of result files
         call_string = 'md5sum test_pipe_dir *.gz > test_pipe_dir/results.md5'
         returncode, stdout, stderr = run_command(call_string)
-
+        if returncode != 0:
+            raise RuntimeError('command line app exited with an error')
+        
         # Compare values. Note: this could fail with user altered parameters
         resulting_md5 = open ('test_pipe_dir/results.md5')
         expected_md5 = open ('data/expected_seq_results.md5')

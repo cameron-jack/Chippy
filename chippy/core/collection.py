@@ -8,7 +8,7 @@ from cogent import LoadTable
 from chippy.util.util import make_even_groups
 
 __author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley"]
 __license__ = "GPL"
 __maintainer__ = "Gavin Huttley"
@@ -18,6 +18,11 @@ __version__ = '0.1'
 
 def column_sum(data):
     """returns the column sums"""
+    assert len(data.shape) == 2
+    return data.sum(axis=0)
+
+def stdev(data):
+    """returns the column sums for the purpose of creating stdevs"""
     assert len(data.shape) == 2
     return data.sum(axis=0)
 
@@ -211,6 +216,10 @@ class RegionCollection(_GenericCollection):
     def transformed(self, rank_func=rank_mean, counts_func=column_mean):
         """transforms all counts and ranks"""
         c = counts_func(self.counts)
+        if counts_func == stdev:
+            mean = c.mean()
+            stdev_ = c.std(ddof=1)
+            c = (c - mean)/stdev_
         if self.ranks is not None:
             r = rank_func(self.ranks)
         else:
@@ -258,9 +267,9 @@ class RegionCollection(_GenericCollection):
             # row
             data = self.counts.max(axis=1)
             mean = self.counts.mean()
-            stdev = self.counts.std(ddof=1)
+            stdev_ = self.counts.std(ddof=1)
             data -= mean
-            data /= stdev
+            data /= stdev_
             indices = data < k
             data = self.counts[indices]
             if self.labels is not None:
@@ -350,6 +359,10 @@ class RegionCollection(_GenericCollection):
                     counts_func=column_mean):
         for counts, ranks, labels in self.itergroups(group_size):
             c = counts_func(counts)
+            if counts_func == stdev:
+                mean = c.mean()
+                stdev_ = c.std(ddof=1)
+                c = (c - mean)/stdev_
             r = rank_func(ranks)
             yield c, r, labels
     

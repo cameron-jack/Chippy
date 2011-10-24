@@ -33,7 +33,6 @@ else:
     raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
                        'that indicates where to find the database')
 
-ensembl_release='58'
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_samples(session)
 if not samples:
@@ -199,7 +198,7 @@ def main():
     rr.addMessage('export_feature_counts', LOG_INFO,
         'pseudo_count', opts.pseudo_count)
     
-    genes = db_query.get_ranked_expression(session, ensembl_release,
+    genes = db_query.get_ranked_expression(session,
                 sample_name, biotype='protein_coding', rank_by='mean',
                 test_run=opts.test_run)
     genes = genes[:opts.sample_top]

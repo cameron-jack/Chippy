@@ -26,10 +26,18 @@ class FastqPipe(TestCase):
         if returncode != 0:
             raise RuntimeError('command line app exited with an error: %s' % stderr)
         # Generate md5 checksums of result files
-        call_string = 'md5sum test_pipe_dir *.gz > test_pipe_dir/results.md5'
+        call_string = 'gunzip test_pipe_dir/*.gz'
+        
         returncode, stdout, stderr = run_command(call_string)
         if returncode != 0:
             raise RuntimeError('command line app exited with an error: %s' % stderr)
+        
+        call_string = 'md5sum test_pipe_dir/*.txt > test_pipe_dir/results.md5'
+        
+        returncode, stdout, stderr = run_command(call_string)
+        if returncode != 0:
+            raise RuntimeError('command line app exited with an error: %s' % stderr)
+
         
         # Compare values. Note: this could fail with user altered parameters
         resulting_md5 = open ('test_pipe_dir/results.md5')

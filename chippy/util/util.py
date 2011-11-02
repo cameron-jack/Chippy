@@ -1,6 +1,7 @@
 from __future__ import division
 
 import os
+from fnmatch import fnmatch, filter as fn_filter
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -22,6 +23,21 @@ DEFAULT_USER_DIR = os.path.expanduser('~/Desktop')
 
 import sys
 sys.path.append(src_dir)
+
+class DummyFile(object):
+    """matches basic API of a file object, when you don't actually want one"""
+    def __init__(self, filename, **kwargs):
+        super(DummyFile, self).__init__()
+        self.filename = filename
+    
+    def close(self):
+        pass
+    
+    def write(self, data, display=True):
+        """displays to stdout"""
+        if display:
+            print data
+    
 
 def make_even_groups(data, num_per_group, limit=None):
     """returns data split into groups of size num_per_group"""
@@ -131,4 +147,18 @@ def grouped_by_chrom(genes):
             chrom_ordered[gene.coord_name] = [gene]
     
     return chrom_ordered
+
+
+def find_files_matching(root_dir, filename_pattern):
+    """returns list of paths matching a suffix by walking directory from
+    root_dir"""
+    paths = []
+    for path, dirnames, fnames in os.walk(root_dir):
+        matched = filter(fnames, filename_pattern)
+        if not matched:
+            continue
+        for fn in matched:
+            paths.append(os.path.join(path, fn))
+    
+    return paths
 

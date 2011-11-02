@@ -18,6 +18,15 @@ class RunRecord(object):
         """add a message about an execution"""
         self.records.append([program_name, error_type, message, value])
     
+    def addInfo(self, program_name, message, value):
+        self.addMessage(program_name, 'info', message, value)
+    
+    def addWarning(self, program_name, message, value):
+        self.addMessage(program_name, 'warning', message, value)
+    
+    def addError(self, program_name, message, value):
+        self.addMessage(program_name, 'error', message, value)
+    
     def getMessageTable(self):
         """docstring for display"""
         if not self.records:

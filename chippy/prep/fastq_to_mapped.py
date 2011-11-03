@@ -29,10 +29,13 @@ __version__ = '0.1'
 script_info = fastq_to_fasta.script_info
 
 optional = script_info['optional_options']
-optional.append(make_option('-p', '--pval_cutoff',
+optional.extend([make_option('-p', '--pval_cutoff',
                 type='float', default=0.001,
-                help='Minimum p-value for mapping quality of reads\
-                [default: %default]'))
+                help='Minimum p-value for mapping quality of reads '\
+                '[default: %default]'),
+                make_option('-w','--work_dir', type='string', default = '',
+                help='specify temporary working directory '\
+                '[default: %default]')])
 
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
@@ -62,7 +65,7 @@ def main():
        parse_command_line_parameters(**script_info)
     
     # make the assorted filenames
-    mapped_files = MappedFiles(opts.input_file, opts.save_dir)
+    mapped_files = MappedFiles(opts.input_file, opts.save_dir, opts.work_dir)
     fastq_fn = mapped_files.fastq_fn
     fasta_fn = mapped_files.fasta_fn
     working_dn = mapped_files.working_dn

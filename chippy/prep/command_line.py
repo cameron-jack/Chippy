@@ -72,6 +72,7 @@ def run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_
         return run_record
     
     start = time.time()
+    
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     run_record.addMessage(program_name=command,
@@ -102,6 +103,7 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test
         return run_record
     
     start = time.time()
+    
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
     run_record.addMessage(program_name=command,

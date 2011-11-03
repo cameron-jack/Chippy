@@ -13,30 +13,31 @@ class FastqPipe(TestCase):
         """Pipeline changes should produce same results as original pipeline"""
 
         # Check that we're not going to nuke something we shouldn't
-        if os.path.exists('test_pipe_dir'):
-            remove_files(['test_pipe_dir'], error_on_missing=False)
+        if os.path.exists('test_pipe_dir') or os.path.exists('test_pipe_dir-working'):
+            remove_files(['test_pipe_dir', 'test_pipe_dir-working'], error_on_missing=False)
 
         # Run pipeline with known fastq file
-        call_string = '../chippy/prep/fastq_to_mapped.py -i data/known_sequence.fq '\
+        call_string = '../chippy/prep/fastq_to_mapped.py -i data/known_sequence.fq.gz '\
                     '-S test_pipe_dir --blat_adapters $ADAPTERS '\
                     '--adapter_clipper fastx --index $BWA_62_mouse_INDEX '\
-                    '--aligner bwa'
-
+                    '--aligner bwa' # -t flag not fully implemented yet, raises a different bug
+        
         returncode, stdout, stderr = run_command(call_string)
+
         if returncode != 0:
-            raise RuntimeError('command line app exited with an error: %s' % stderr)
+            raise RuntimeError('fastq_to_mapped exited with error: %s' % stderr)
         # Generate md5 checksums of result files
         call_string = 'gunzip test_pipe_dir/*.gz'
         
         returncode, stdout, stderr = run_command(call_string)
         if returncode != 0:
-            raise RuntimeError('command line app exited with an error: %s' % stderr)
+            raise RuntimeError('gunzip exited with an error: %s' % stderr)
         
         call_string = 'md5sum test_pipe_dir/*.txt > test_pipe_dir/results.md5'
         
         returncode, stdout, stderr = run_command(call_string)
         if returncode != 0:
-            raise RuntimeError('command line app exited with an error: %s' % stderr)
+            raise RuntimeError('md5sum exited with an error: %s' % stderr)
 
         
         # Compare values. Note: this could fail with user altered parameters

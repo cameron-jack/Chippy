@@ -107,11 +107,11 @@ def main():
         # so write straight to 'combined' file
         print 'Running fastx adapter clipping'
         run_record = command_line.run_fastx_clipper(opts.blat_adapters,
-                    fastq_fn, trimmed_fn, run_record, opts.test_run)
+                    fastq_fn, trimmed_fn, run_record, 1, opts.test_run)
 
         print 'Running fastq_quality_trimmer'
         run_record = command_line.run_fastq_qual_trim(trimmed_fn, combined_fn,
-                     run_record, opts.test_run)
+                     run_record, 1, opts.test_run)
     else:
         raise RuntimeError('Unknown adapter clipper choice %s' \
                 % opts.adapter_clipper)
@@ -123,7 +123,7 @@ def main():
     elif opts.aligner.lower() == 'bwa':
         print 'Aligning seqs with bwa aln'
         run_record = command_line.run_bwa_aln(opts.index,
-            combined_fn, combined_sai_fn, run_record, opts.test_run)
+            combined_fn, combined_sai_fn, run_record, 1, opts.test_run)
         print 'Finding chromosomal coordinates with bwa samse'
         run_record = command_line.run_bwa_samse(opts.index, 
             combined_sai_fn, combined_fn, combined_sam_fn,

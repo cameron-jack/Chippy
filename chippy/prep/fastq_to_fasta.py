@@ -27,7 +27,7 @@ def run(input_fn, output_fn, minimum_length, rewrite, run_record, test_run):
     """receives a fastq file and outputs fasta and trimmed fastq files"""
 
     # Any files not passed in as parameters can be accessed through this interface
-    mapped_files = internal_instantiation()
+    # mapped_files = internal_instantiation()
 
     if not test_run:
         outfile_fasta_fn = open(output_fn, 'w')
@@ -36,7 +36,7 @@ def run(input_fn, output_fn, minimum_length, rewrite, run_record, test_run):
     
     i = 0
     num_too_small = 0
-    for seq in FastqParser(input_fn):
+    for seq in FastqParser(input_fn, remove_ambig=False, trim_bad_bases=False):
         i += 1
         if len(seq) < minimum_length:
             num_too_small += 1

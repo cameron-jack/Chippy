@@ -38,33 +38,36 @@ script_info['required_options'] = [
                 help='The 2nd input fastq sequence file'),
     make_option('-S', '--save_dir', help='path to save all files'),
     make_option('--adapters', help='path to the Illumina adapters'),
-    make_option('--index', help='path to the bwa aligner index'),
+    make_option('--index', help='path to the bwa aligner index')
 ]
 
 script_info['optional_options'] = [\
-    make_option('-n','--num_threads', type='int',
+    make_option('-n', '--num_threads', type='int',
                 default = 6,
                 help='Number of threads to use [default: %default]'),
-    make_option('-m','--mem_usage', type='int',
+    make_option('-m', '--mem_usage', type='int',
                 default = 7000000000,
                 help='memory usage for samtools sort [default: %default]'),
-    make_option('-t','--test_run', action='store_true',
-                dest='test_run', default = False,
+    make_option('-t', '--test_run', action='store_true',
+                dest= 'test_run', default = False,
                 help='Dry run without writing any data'
                 +'[default: %default]'),
-    make_option('-s','--sample_name', type='string', default = '',
+    make_option('-s', '--sample_name', type='string', default = '',
                 help='specify sample name in annotated bam header'
                 +'[default: %default]'),
-    make_option('-w','--work_dir', type='string', default = '',
+    make_option('-w', '--work_dir', type='string', default = '',
                 help='specify temporary working directory'
                 +'[default: %default]'),
-    make_option('-b','--begin', type='int', default = 1,
+    make_option('-b', '--begin', type='int', default = 1,
                 help='begin at stage # [default: %default]'),
-    make_option('-e','--end', type='int', default = 7,
+    make_option('-e', '--end', type='int', default = 7,
                 help='end at stage # [default: %default]'),
-    make_option('-D','--delete', action='store_true', default = False,
+    make_option('-D', '--delete', action='store_true', default = False,
                 help='Deletes the working dir at the end of the run'
                 +'[default: %default]'),
+    make_option('-r', '--reduce', action='store_true', default = False,
+                help='Finish with ChIP-Seq reduction step'
+                +'[default: %default]')
 ]
 
 def main():
@@ -78,7 +81,7 @@ def main():
     mapped_files_1 = MappedFiles(opts.input_file_1, opts.save_dir, opts.work_dir)
     filenames_1 = dict(fastq=mapped_files_1.adapterless_trimmed_fn,
                        pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn,
-                       bam=mapped_files_1.bam_fn)
+                       bam=mapped_files_1.bam_fn, sam=mapped_files_1.sam_fn)
     mapped_files_2 = MappedFiles(opts.input_file_2, opts.save_dir, opts.work_dir)
     filenames_2 = dict(fastq=mapped_files_2.adapterless_trimmed_fn,
                        pristine=mapped_files_2.pristine_fn, sai=mapped_files_2.sai_fn,
@@ -130,6 +133,15 @@ def main():
                                                                  filenames_1['pristine'], filenames_2['pristine'],
                                                                  filenames_1['bam'],
                                                                  rr, opts.sample_name, opts.mem_usage, opts.test_run)
+
+    if opts.reduce:
+        # convert to SAM and reduce
+        rr = command_line.convert_bam_to_sam(filenames_1['bam'],
+                                             filenames_1['sam'],rr, opts.test_run)
+
+        rr = reduce.run(infile_name=filenames_1['sam'],
+        outdir=opts.save_dir, chroms='Do All', pval_cutoff=opts.pval_cutoff,
+        limit=numpy.inf, run_record=rr, dry_run=opts.test_run)
 
     if opts.delete:
         os.remove(filenames_1['sai'])

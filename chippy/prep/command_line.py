@@ -369,6 +369,31 @@ def convert_sam_to_bam(sam_filename, bam_filename, run_record, test):
     
     return run_record
 
+def convert_bam_to_sam(bam_filename, sam_filename, run_record, test):
+    """uses samtools to convert sam to bam
+        Required for reduce step"""
+    command = 'samtools view -h %s -o %s' % (bam_filename, sam_filename)
+
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+
+    run_record.addInfo(program_name=command, message='Time taken (mins)',
+            value=((end-start)/60.))
+
+    pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+    for pipe in pipes:
+        for line in pipes[pipe].splitlines():
+            print line
+            if not line.startswith('#'):
+                continue
+            line = [element.strip() for element in line[2:].split(':')]
+            run_record.addMessage(program_name=command,
+                    error_type=logmsg[pipe], message=line[0], value=line[1])
+
+    return run_record
+
 
 def convert_sam_to_sorted_bam(sam_filename, bam_filename, run_record, num_threads, test):
     """uses samtools to convert sam to sorted bam"""

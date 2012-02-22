@@ -85,7 +85,8 @@ class MappedFiles:
         #suffix = ['.fq', '.fq.gz'][self.pristine_fn.endswith('.gz')]
         self.sai_fn = robust_replace_suffix(self.pristine_fn, '_pristine.fq', '.sai')
         self.bam_fn = make_unified_fn(self.sai_fn.replace('.sai', '.bam')).replace(self.working_dn, self.save_dn)
-        
+        self.sam_fn = make_unified_fn(self.sai_fn.replace('.sai', '.sam')).replace(self.working_dn, self.save_dn)
+
         self.run_record_fn = self.bam_fn.replace('.bam','.run_record.txt')
         
         self.combined_fn = self.fasta_fn.replace('.fasta', '_combined.fq')

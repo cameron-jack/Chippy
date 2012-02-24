@@ -118,6 +118,35 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test
         print ''.join(stderr)
     return run_record
 
+def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, quality, min_length, run_record, test):
+    """run sickle (UC Davis) to remove poor quality bases/reads. Note that
+       we are being reasonably conservative with the minimum length we
+       pass on for alignment. Note we throw away residual reads"""
+
+    command = 'sickle -f %s -r %s -o %s -p %s -s /dev/null -q %d -l %d' \
+              % fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn,\
+              quality, min_length
+    if test:
+        print "=== The command ==="
+        print command
+        return run_record
+
+    start = time.time()
+
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
+
 
 def run_fastx_clip_and_trim(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_threads, test):
     """run fastx_clipper to remove adapter sequences"""
@@ -256,7 +285,7 @@ def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
     
     return run_record
 
-def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, num_threads, test):
+def run_bwa_aln(align_index, fastq_filename, out_filename, pipe_ver, run_record, num_threads, test):
     """run bwa and add version to run_record"""
 
     command = 'bwa'
@@ -264,10 +293,20 @@ def run_bwa_aln(align_index, fastq_filename, out_filename, run_record, num_threa
     for line in stderr.splitlines():
         if line.startswith('Version'):
             run_record.addMessage(program_name=command,
-            error_type=LOG_INFO, message=line, value=0) 
+            error_type=LOG_INFO, message=line, value=0)
 
-    command = 'bwa aln -I -t %s %s %s > %s' % (num_threads, align_index, fastq_filename,
+    if 1.3 <= pipe_ver <= 1.7:
+        command = 'bwa aln -I -t %s %s %s > %s' % (num_threads, align_index, fastq_filename,
                                         out_filename)
+    elif pipe_ver >= 1.8:
+        command = 'bwa aln -t %s %s %s > %s' % (num_threads, align_index, fastq_filename,
+                                        out_filename)
+    else:
+        run_record.addError('fastq_to_mapped_bam',
+                'Invalid Illumina pipeline given. v1.3+ supported', pipe_ver)
+        run_record.display()
+        sys.exit(0)
+
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()

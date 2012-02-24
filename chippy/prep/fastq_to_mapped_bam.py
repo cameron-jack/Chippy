@@ -51,23 +51,29 @@ script_info['optional_options'] = [\
     make_option('-t', '--test_run', action='store_true',
                 dest= 'test_run', default = False,
                 help='Dry run without writing any data'
-                +'[default: %default]'),
+                +' [default: %default]'),
     make_option('-s', '--sample_name', type='string', default = '',
                 help='specify sample name in annotated bam header'
-                +'[default: %default]'),
+                +' [default: %default]'),
     make_option('-w', '--work_dir', type='string', default = '',
                 help='specify temporary working directory'
-                +'[default: %default]'),
+                +' [default: %default]'),
     make_option('-b', '--begin', type='int', default = 1,
                 help='begin at stage # [default: %default]'),
     make_option('-e', '--end', type='int', default = 7,
                 help='end at stage # [default: %default]'),
     make_option('-D', '--delete', action='store_true', default = False,
                 help='Deletes the working dir at the end of the run'
-                +'[default: %default]'),
+                +' [default: %default]'),
     make_option('-r', '--reduce', action='store_true', default = False,
                 help='Finish with ChIP-Seq reduction step'
-                +'[default: %default]')
+                +' [default: %default]'),
+    make_option('-I', '--Illumina_version', default=1.7,
+                help='Illumina pipeline version number'
+                +' [default: %default]'),
+    make_option('--no_qual', action='store_true', default=False,
+                help='Do not use any quality control'
+                +' [default: %default]')
 ]
 
 def main():
@@ -90,49 +96,94 @@ def main():
     if os.path.exists(filenames_1['bam']):
         rr.addInfo('fastq_to_mapped_bam', 'already exists, exiting', filenames_1['bam'])
         rr.display()
-        exit(0)
+        sys.exit(0)
 
-    ## do input file 1
-    if opts.begin <= 1 and opts.end >= 1:
-        rr = command_line.run_fastx_clip_and_trim(opts.adapters, opts.input_file_1, 
+    if not opts.no_qual:
+        if 1.3 >= opts.Illumina_version <= 1.7:
+
+            ## do input file 1
+            if opts.begin <= 1 and opts.end >= 1:
+                rr = command_line.run_fastx_clip_and_trim(opts.adapters, opts.input_file_1,
                                                   filenames_1['fastq'], rr, opts.num_threads, opts.test_run)
 
-    ## do input file 2
-    if opts.begin <= 2 and opts.end >= 2:
-        rr = command_line.run_fastx_clip_and_trim(opts.adapters, opts.input_file_2, 
+            ## do input file 2
+            if opts.begin <= 2 and opts.end >= 2:
+                rr = command_line.run_fastx_clip_and_trim(opts.adapters, opts.input_file_2,
                                                   filenames_2['fastq'], rr, opts.num_threads, opts.test_run)
 
-    ## produce the paired pristine seq files with matched reads
-    if opts.begin <= 3 and opts.end >= 3:
-#        rr = command_line.run_pristine_paired(
-        rr = command_line.run_pristine_seesaw(opts.input_file_1,
+            ## produce the paired pristine seq files with matched reads
+            if opts.begin <= 3 and opts.end >= 3:
+                # rr = command_line.run_pristine_paired(
+                rr = command_line.run_pristine_seesaw(opts.input_file_1,
                                               filenames_1['fastq'], filenames_2['fastq'],
                                               filenames_1['pristine'], filenames_2['pristine'],
                                               rr, opts.num_threads, opts.test_run)
 
-    if opts.delete:
-        os.remove(filenames_1['fastq'])
-        os.remove(filenames_2['fastq'])
+        elif opts.Illumina_version >= 1.8: # Illumina pipeline 1.8 or higher
+            # Don't worry about 5' adapter clipping
+            # Though we might want to think about 3' adapters in future
 
-    ## now align each individually
-    if opts.begin <= 4 and opts.end >= 4:
-        rr = command_line.run_bwa_aln(opts.index,
+            # Quality check with Sickle (UC Davis), discard single-ends residual
+            quality_window = 20;
+            min_length = 19;
+            rr = command_line.run_sickle_pe(opts.input_file_1, opts.input_file_2,
+                            filenames_1['pristine'], filenames_2['pristine'],
+                            quality_window, min_length, rr, opts.test_run)
+
+        else:
+            rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',
+                        opts.Illumina_version)
+            rr.display()
+            sys.exit(0)
+
+        ## now align each individually
+        if opts.begin <= 4 and opts.end >= 4:
+            rr = command_line.run_bwa_aln(opts.index,
                                       filenames_1['pristine'],
-                                      filenames_1['sai'], rr, opts.num_threads, opts.test_run)
+                                      filenames_1['sai'],
+                                      opts.Illumina_version,
+                                      rr, opts.num_threads, opts.test_run)
 
-    if opts.begin <= 5 and opts.end >= 5:
-        rr = command_line.run_bwa_aln(opts.index,
+        if opts.begin <= 5 and opts.end >= 5:
+            rr = command_line.run_bwa_aln(opts.index,
                                       filenames_2['pristine'],
-                                      filenames_2['sai'], rr, opts.num_threads, opts.test_run)
+                                      filenames_2['sai'],
+                                      opts.Illumina_version,
+                                      rr, opts.num_threads, opts.test_run)
 
-    ## direct bwa_sampe to final sorted bam, bypassing sam
-    if opts.begin <= 6 and opts.end >= 6:
-#        rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
-        rr = command_line.bwa_sampe_to_local_bam_sort_index_move(opts.index,
-                                                                 filenames_1['sai'], filenames_2['sai'],
-                                                                 filenames_1['pristine'], filenames_2['pristine'],
-                                                                 filenames_1['bam'],
-                                                                 rr, opts.sample_name, opts.mem_usage, opts.test_run)
+        ## direct bwa_sampe to final sorted bam, bypassing sam
+        if opts.begin <= 6 and opts.end >= 6:
+            # rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
+            rr = command_line.bwa_sampe_to_local_bam_sort_index_move(opts.index,
+                                      filenames_1['sai'], filenames_2['sai'],
+                                      filenames_1['pristine'], filenames_2['pristine'],
+                                      filenames_1['bam'],
+                                      rr, opts.sample_name, opts.mem_usage, opts.test_run)
+
+    else:
+        ## read direct from fastq
+        if opts.begin <= 4 and opts.end >= 4:
+            rr = command_line.run_bwa_aln(opts.index,
+                                      opts.input_file_1,
+                                      filenames_1['sai'],
+                                      opts.Illumina_version,
+                                      rr, opts.num_threads, opts.test_run)
+
+        if opts.begin <= 5 and opts.end >= 5:
+            rr = command_line.run_bwa_aln(opts.index,
+                                      opts.input_file_2,
+                                      filenames_2['sai'],
+                                      opts.Illumina_version,
+                                      rr, opts.num_threads, opts.test_run)
+
+        ## direct bwa_sampe to final sorted bam, bypassing sam
+        if opts.begin <= 6 and opts.end >= 6:
+            # rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
+            rr = command_line.bwa_sampe_to_local_bam_sort_index_move(opts.index,
+                                      filenames_1['sai'], filenames_2['sai'],
+                                      opts.input_file_1, opts.input_file_2,
+                                      filenames_1['bam'],
+                                      rr, opts.sample_name, opts.mem_usage, opts.test_run)
 
     if opts.reduce:
         # convert to SAM and reduce
@@ -148,6 +199,7 @@ def main():
         os.remove(filenames_2['sai'])
         os.remove(filenames_1['pristine'])
         os.remove(filenames_2['pristine'])
+        os.remove(filenames_1['sam']) # Keep BAM
 
         ## index final bam
 #    if opts.begin <= 7 and opts.end >= 7:

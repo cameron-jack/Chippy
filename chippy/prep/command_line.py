@@ -383,6 +383,34 @@ def run_bwa_sampe(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
     
     return run_record
 
+def run_bwa_sampe_raw(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+            sam_filename, run_record, test):
+    """runn bwa for paired end reads"""
+
+    command = 'bwa sampe %s %s %s %s %s > %s' % (align_index,
+                        in1_sai, in2_sai, in1_fastq, in2_fastq, sam_filename)
+
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+
+    pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+    for pipe in pipes:
+        for line in pipes[pipe].splitlines():
+            print line
+            if not line.startswith('#'):
+                continue
+            line = [element.strip() for element in line[2:].split(':')]
+            run_record.addMessage(program_name=command,
+                    error_type=logmsg[pipe], message=line[0], value=line[1])
+
+    return run_record
+
 
 def convert_sam_to_bam(sam_filename, bam_filename, run_record, test):
     """uses samtools to convert sam to bam"""

@@ -62,6 +62,11 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
             continue
 
         mapQ = record[4] # 5th SAM field gives mapping quality in Phred units
+        # Quality score 0 reads have no optional strings and must be ditched now
+        if mapQ == 0:
+            count_unmapped += 1
+            continue
+
         optional_field = record[11] # 12th SAM field gives optional strings
 
         if ((optional_field == unique_str_bowtie) or (optional_field == unique_str_bwa))\

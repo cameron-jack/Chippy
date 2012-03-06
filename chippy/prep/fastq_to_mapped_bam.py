@@ -73,7 +73,10 @@ script_info['optional_options'] = [\
                 +' [default: %default]'),
     make_option('--no_qual', action='store_true', default=False,
                 help='Do not use any quality control'
-                +' [default: %default]')
+                +' [default: %default]'),
+    make_option('-p', '--pval_cutoff', type='float', default=0.001,
+        help='Minimum p-value for mapping quality of reads '\
+             '[default: %default]')
 ]
 
 def main():
@@ -176,23 +179,25 @@ def main():
                                       opts.Illumina_version,
                                       rr, opts.num_threads, opts.test_run)
 
-        ## direct bwa_sampe to final sorted bam, bypassing sam
+
         if opts.begin <= 6 and opts.end >= 6:
-            # rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
-            rr = command_line.bwa_sampe_to_local_bam_sort_index_move(opts.index,
+            if opts.reduce: # output to uncompressed SAM
+                rr = command_line.run_bwa_sampe_raw(opts.index,
+                                      filenames_1['sai'], filenames_2['sai'],
+                                      opts.input_file_1, opts.input_file_2,
+                                      filenames_1['sam'], rr, opts.test_run)
+
+            else: # direct bwa_sampe to final sorted BAM, bypassing SAM
+                rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
                                       filenames_1['sai'], filenames_2['sai'],
                                       opts.input_file_1, opts.input_file_2,
                                       filenames_1['bam'],
                                       rr, opts.sample_name, opts.mem_usage, opts.test_run)
 
     if opts.reduce:
-        # convert to SAM and reduce
-        rr = command_line.convert_bam_to_sam(filenames_1['bam'],
-                                             filenames_1['sam'],rr, opts.test_run)
-
         rr = reduce.run(infile_name=filenames_1['sam'],
-        outdir=opts.save_dir, chroms='Do All', pval_cutoff=opts.pval_cutoff,
-        limit=numpy.inf, run_record=rr, dry_run=opts.test_run)
+                outdir=opts.save_dir, chroms='Do All', pval_cutoff=opts.pval_cutoff,
+                limit=numpy.inf, run_record=rr, dry_run=opts.test_run)
 
     if opts.delete:
         os.remove(filenames_1['sai'])

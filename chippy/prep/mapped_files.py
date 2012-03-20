@@ -136,7 +136,7 @@ class MappedSangerFiles:
         self.unzipped_fq_fn = self.working_dn + '/' + fastq_fn_only_no_zip
 
         # trimmed is the result of DynamicTrim
-        self.trimmed_fn = self.unzipped_fq_fn + '.trimmmed'
+        self.trimmed_fn = self.unzipped_fq_fn + '.trimmed'
         # balanced is the result of Sickle
         self.pristine_fn = self.unzipped_fq_fn + '.pristine'
         # singles is the remainder output of Sickle

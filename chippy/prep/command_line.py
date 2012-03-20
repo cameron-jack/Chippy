@@ -119,10 +119,10 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test
     return run_record
 
 # DynamicTrim and Sickle are used for QA of Illumina Hi-Seq data
-def run_dynamic_trim(fastq_in_fn, save_dir, quality, run_record, test):
+def run_dynamic_trim(fastq_in_fn, output_dir, quality, run_record, test):
     """run DynamicTrim (SolexaQA) to remove poor quality bases/reads. Note that
        DynamicTrim leaves short length reads, so we then have to run sickle_pe"""
-    command = 'perl DynamicTrim.pl -sanger %s -p %f -d %s' % (fastq_in_fn, quality, save_dir)
+    command = 'DynamicTrim.pl -sanger %s -p %f -d %s' % (fastq_in_fn, quality, output_dir)
     if test:
         print "=== The command ==="
         print command
@@ -144,12 +144,11 @@ def run_dynamic_trim(fastq_in_fn, save_dir, quality, run_record, test):
         print ''.join(stderr)
     return run_record
 
-def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, quality, min_length, run_record, test):
+def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, min_length, run_record, test):
     """run sickle (UC Davis) to remove short length reads left behind by Dynamic_trim.
             Note, we throw away residual reads from the matching end"""
-    command = 'sickle -f %s -r %s -o %s -p %s -s /dev/null -q %d -l %d' \
-              % fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn,\
-              quality, min_length
+    command = 'sickle pe -t sanger -f %s -r %s -o %s -p %s -s /dev/null -l %d' \
+              % (fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, min_length)
     if test:
         print "=== The command ==="
         print command

@@ -93,7 +93,63 @@ class MappedFiles:
         self.combined_sai_fn = self.combined_fn.replace('.fq', '.sai')
         self.combined_sam_fn = self.combined_fn.replace('.fq', '.sam')
 
-    
+class MappedSangerFiles:
+
+    def __init__(self, input_fastq_fname, save_dname, working_dname):
+        """Create file and dir name strings for paired-end fastq files with
+            Sanger scores"""
+
+        if save_dname.endswith('/'):
+            save_dname = save_dname[:-1]
+
+        if working_dname.endswith('/'):
+            working_dname = working_dname[:-1]
+
+        if working_dname=='':
+            working_dname = save_dname+'-working'
+
+        # directory names, make sure they exist
+        create_path(save_dname)
+        self.save_dn = save_dname
+        self.working_dn = working_dname
+        create_path(self.working_dn)
+
+        # The work flow is as follows:
+        # Check if gzipped, if yes then unzip
+        # Run Perl DynamicTrim.pl on each end (outputs as filename.ext.trimmed)
+        # Run Sickle on both ends (we name the out files plus the singles file)
+        # Run bwa aln on each end
+        # Run bwa sampe
+
+        # keep the full path in case needed throughout code
+        self.input_fastq_fullpath = input_fastq_fname
+
+        fastq_path = input_fastq_fname.split('/')
+        # mostly we'll use the file name without the path
+        fastq_fn_only = fastq_path[-1]
+
+        if fastq_fn_only.endswith('.gz'):
+            fastq_fn_only_no_zip = fastq_fn_only.rstrip(input_fastq_fname, '.gz')
+        else:
+            fastq_fn_only_no_zip = fastq_fn_only
+
+        self.unzipped_fq_fn = self.working_dn + '/' + fastq_fn_only_no_zip
+
+        # trimmed is the result of DynamicTrim
+        self.trimmed_fn = self.unzipped_fq_fn + '.trimmmed'
+        # balanced is the result of Sickle
+        self.pristine_fn = self.unzipped_fq_fn + '.pristine'
+        # singles is the remainder output of Sickle
+        self.singles_fn = self.unzipped_fq_fn + '.singles'
+        # .sai is the bwa index file
+        self.sai_fn = self.unzipped_fq_fn.replace('.fq', '.sai')
+        # .bam is the final bwa output in binary format
+        self.bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.bam')))
+        # .sam is the final bwa output in tab delimited format
+        self.sam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sam')))
+
+        # output run_record to save directory
+        self.run_record_fn = self.bam_fn.replace('.bam','.run_record.txt')
 
 
 def mapped_file_handle(fastq_fname, save_dname, work_dname):

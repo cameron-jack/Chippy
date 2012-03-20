@@ -118,11 +118,35 @@ def run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test
         print ''.join(stderr)
     return run_record
 
-def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, quality, min_length, run_record, test):
-    """run sickle (UC Davis) to remove poor quality bases/reads. Note that
-       we are being reasonably conservative with the minimum length we
-       pass on for alignment. Note we throw away residual reads"""
+# DynamicTrim and Sickle are used for QA of Illumina Hi-Seq data
+def run_dynamic_trim(fastq_in_fn, save_dir, quality, run_record, test):
+    """run DynamicTrim (SolexaQA) to remove poor quality bases/reads. Note that
+       DynamicTrim leaves short length reads, so we then have to run sickle_pe"""
+    command = 'perl DynamicTrim.pl -sanger %s -p %f -d %s' % (fastq_in_fn, quality, save_dir)
+    if test:
+        print "=== The command ==="
+        print command
+        return run_record
 
+    start = time.time()
+
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
+
+def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, quality, min_length, run_record, test):
+    """run sickle (UC Davis) to remove short length reads left behind by Dynamic_trim.
+            Note, we throw away residual reads from the matching end"""
     command = 'sickle -f %s -r %s -o %s -p %s -s /dev/null -q %d -l %d' \
               % fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn,\
               quality, min_length
@@ -357,7 +381,7 @@ def run_bwa_samse(align_index, sai_filename, fastq_filename,
 
 def run_bwa_sampe(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
             sam_filename, run_record, num_threads, test):
-    """runn bwa for paired end reads"""
+    """run bwa for paired end reads"""
 
     command = 'bwa sampe %s %s %s %s %s | pigz -p %s > %s' % (align_index,
                         in1_sai, in2_sai, in1_fastq, in2_fastq, num_threads-1, sam_filename)
@@ -437,7 +461,7 @@ def convert_sam_to_bam(sam_filename, bam_filename, run_record, test):
     return run_record
 
 def convert_bam_to_sam(bam_filename, sam_filename, run_record, test):
-    """uses samtools to convert sam to bam
+    """uses samtools to convert bam to sam
         Required for reduce step"""
     command = 'samtools view -h %s -o %s' % (bam_filename, sam_filename)
 

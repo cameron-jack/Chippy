@@ -125,8 +125,9 @@ def main():
             combined_fn, combined_sam_fn, run_record, opts.test_run)
     elif opts.aligner.lower() == 'bwa':
         print 'Aligning seqs with bwa aln'
+        # hard coded for 1 thread and Casava v1.7
         run_record = command_line.run_bwa_aln(opts.index,
-            combined_fn, combined_sai_fn, run_record, 1, opts.test_run)
+            combined_fn, combined_sai_fn, 1.7, run_record, 1, opts.test_run)
         print 'Finding chromosomal coordinates with bwa samse'
         run_record = command_line.run_bwa_samse(opts.index, 
             combined_sai_fn, combined_fn, combined_sam_fn,

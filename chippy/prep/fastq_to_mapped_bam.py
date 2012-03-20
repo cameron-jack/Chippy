@@ -106,16 +106,15 @@ def main():
     ## v1.8+
     # Check if gzipped, if yes then unzip - raw
     # Run Perl DynamicTrim.pl on each end (outputs as filename.ext.trimmed) - trimmed
-    # Run Sickle on both ends (we name the out files plus the singles file) - balanced
+    # Run Sickle on both ends (we name the out files) - pristine
     # Run bwa aln on each end - sai
     # Run bwa sampe and save as either BAM or reduced
 
     elif opts.Illumina_version >= 1.8: # Illumina pipeline 1.8 or higher
         mapped_files_1 = MappedSangerFiles(opts.input_file_1, opts.save_dir, opts.work_dir)
         filenames_1 = dict(unzipped=mapped_files_1.unzipped_fq_fn, trimmed=mapped_files_1.trimmed_fn,
-                pristine=mapped_files_1.pristine_fn, singles=mapped_files_1.singles_fn,
-                sai=mapped_files_1.sai_fn, bam=mapped_files_1.bam_fn,
-                sam=mapped_files_1.sam_fn)
+                pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn,
+                bam=mapped_files_1.bam_fn, sam=mapped_files_1.sam_fn)
 
         mapped_files_2 = MappedSangerFiles(opts.input_file_2, opts.save_dir, opts.work_dir)
         filenames_2 = dict(unzipped=mapped_files_2.unzipped_fq_fn, trimmed=mapped_files_2.trimmed_fn,
@@ -176,17 +175,20 @@ def main():
 
         if opts.begin <= 2 and opts.end >= 2:
             # Don't worry about 5' adapter clipping, though we might want to think about 3' adapters in future
-
+            if opts.work_dir == '':
+                work_dir = opts.save_dir + '-working'
+            else:
+                work_dir = opts.work_dir
             # Remove low quality bases with DynamicTrim (SolexaQA)
-            rr = command_line.run_dynamic_trim(filenames_1['unzipped'], opts.save_dir, opts.pval_cutoff, rr, opts.test_run)
-            rr = command_line.run_dynamic_trim(filenames_2['unzipped'], opts.save_dir, opts.pval_cutoff, rr, opts.test_run)
+            rr = command_line.run_dynamic_trim(filenames_1['unzipped'], work_dir, opts.pval_cutoff, rr, opts.test_run)
+            rr = command_line.run_dynamic_trim(filenames_2['unzipped'], work_dir, opts.pval_cutoff, rr, opts.test_run)
 
         if opts.begin <= 3 and opts.end >= 3:
             # Balance inputs files with Sickle (UC Davis), discard single-ends residual
             min_length = 19;
             rr = command_line.run_sickle_pe(filenames_1['trimmed'], filenames_2['trimmed'],
                         filenames_1['pristine'], filenames_2['pristine'],
-                        filenames_1['singles'], min_length, rr, opts.test_run)
+                        min_length, rr, opts.test_run)
 
     else:
         rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',

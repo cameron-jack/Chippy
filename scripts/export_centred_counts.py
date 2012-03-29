@@ -1,7 +1,8 @@
 """dumps a RegionCollection compressed file"""
 from __future__ import division
 
-import os, sys, glob
+import os, sys, glob, warnings
+warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
 import numpy

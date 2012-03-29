@@ -27,6 +27,39 @@ def run_command(command, test=None):
     returncode = r.returncode
     return returncode, stdout, stderr
 
+# All 'sam' functions are now legacy - supporting the older, single-end pipeline
+
+# The following external calls are supported (in the order they appear in this file):
+
+# run_blat(blat_adapters, query_file, psl_out, run_record, test)
+# run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_threads, test)
+# run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test)
+# run_dynamic_trim(fastq_in_fn, output_dir, quality, run_record, test)
+# run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, min_length, run_record, test)
+# run_fastx_clip_and_trim(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_threads, test)
+# run_pristine_paired(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn,
+#       run_record, num_threads, test)
+# run_pristine_seesaw(fastq_ref_fn, fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn,
+#       run_record, num_threads, test)
+# concatenate(pristine_path, contaminated_path, combined_path, run_record, test)
+# run_bowtie(align_index, fastq_filename, map_filename, run_record, test)
+# run_bwa_aln(align_index, fastq_filename, out_filename, pipe_ver, run_record, num_threads, test)
+# run_bwa_samse(align_index, sai_filename, fastq_filename, sam_filename, run_record, test)
+# run_bwa_sampe(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+#       sam_filename, run_record, num_threads, test) - DEPRECATED
+# run_bwa_sampe_to_sam(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+#       sam_filename, run_record, test)
+# run_bwa_sampe_to_bam(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+#       sam_filename, run_record, test)
+# convert_sam_to_bam(sam_filename, bam_filename, run_record, test)
+# convert_bam_to_sam(bam_filename, sam_filename, run_record, test)
+# convert_sam_to_sorted_bam(sam_filename, bam_filename, run_record, num_threads, test)
+# annotate_bam_header(sam_filename, bam_filename, anno_bam_filename, sample_name, run_record, test)
+# bwa_sampe_to_local_bam_sort_index_move(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+#       bam_filename, run_record, sample_name, mem_usage, test)
+# index_bam(bam_filename, run_record, test)
+# convert_sorted_bam_to_filtered_bed(bam_in_fn, bed_out_fn, run_record, test)
+
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     """run blat to remove adapter sequences"""
     command = "blat %s %s %s" % (blat_adapters, query_file, psl_out)
@@ -170,7 +203,6 @@ def run_sickle_pe(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, min_
         print ''.join(stderr)
     return run_record
 
-
 def run_fastx_clip_and_trim(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_threads, test):
     """run fastx_clipper to remove adapter sequences"""
 
@@ -207,7 +239,6 @@ def run_fastx_clip_and_trim(blat_adapters, fastq_in_fn, fastq_out_fn, run_record
         print ''.join(stderr)
     return run_record
 
-
 def run_pristine_paired(fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, 
 run_record, num_threads, test):
     """run pristine_paired.py to ensure paired filtered reads"""
@@ -228,7 +259,6 @@ fastq_out1_fn, fastq_out2_fn, num_threads)
             value=((end-start)/60.))
     return run_record
 
-
 def run_pristine_seesaw(fastq_ref_fn, fastq_in1_fn, fastq_in2_fn, fastq_out1_fn, fastq_out2_fn, 
 run_record, num_threads, test):
     """run pristine_seesaw.py to ensure paired filtered reads"""
@@ -247,7 +277,6 @@ run_record, num_threads, test):
             error_type=LOG_INFO, message='Time taken (mins)',
             value=((end-start)/60.))
     return run_record
-
 
 def concatenate(pristine_path, contaminated_path, combined_path, run_record, test):
     """concatenates pristine to the end of contaminated producing a new file"""
@@ -274,7 +303,6 @@ def concatenate(pristine_path, contaminated_path, combined_path, run_record, tes
     run_record.addMessage(program_name='concatenate',
             error_type=LOG_INFO, message='Total lines', value=total_lines)
     return run_record
-
 
 def run_bowtie(align_index, fastq_filename, map_filename, run_record, test):
     """run bowtie, output SAM format, add version to run_record"""
@@ -377,38 +405,38 @@ def run_bwa_samse(align_index, sai_filename, fastq_filename,
     
     return run_record
 
+# Deprecated
+# def run_bwa_sampe(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+#            sam_filename, run_record, num_threads, test):
+#    """run bwa for paired end reads - compressing output"""
+#
+#    command = 'bwa sampe %s %s %s %s %s | pigz -p %s > %s' % (align_index,
+#                        in1_sai, in2_sai, in1_fastq, in2_fastq, num_threads-1, sam_filename)
+#
+#    start = time.time()
+#    returncode, stdout, stderr = run_command(command, test)
+#    end = time.time()
+#
+#    run_record.addMessage(program_name=command,
+#            error_type=LOG_INFO, message='Time taken (mins)',
+#            value=((end-start)/60.))
+#
+#    pipes = {'stderr': stderr, 'stdout': stdout}
+#    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+#    for pipe in pipes:
+#        for line in pipes[pipe].splitlines():
+#            print line
+#            if not line.startswith('#'):
+#                continue
+#            line = [element.strip() for element in line[2:].split(':')]
+#            run_record.addMessage(program_name=command,
+#                    error_type=logmsg[pipe], message=line[0], value=line[1])
+#
+#    return run_record
 
-def run_bwa_sampe(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
-            sam_filename, run_record, num_threads, test):
-    """run bwa for paired end reads"""
-
-    command = 'bwa sampe %s %s %s %s %s | pigz -p %s > %s' % (align_index,
-                        in1_sai, in2_sai, in1_fastq, in2_fastq, num_threads-1, sam_filename)
-    
-    start = time.time()
-    returncode, stdout, stderr = run_command(command, test)
-    end = time.time()
-    
-    run_record.addMessage(program_name=command,
-            error_type=LOG_INFO, message='Time taken (mins)',
-            value=((end-start)/60.))
-    
-    pipes = {'stderr': stderr, 'stdout': stdout}
-    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
-    for pipe in pipes:
-        for line in pipes[pipe].splitlines():
-            print line
-            if not line.startswith('#'):
-                continue
-            line = [element.strip() for element in line[2:].split(':')]
-            run_record.addMessage(program_name=command,
-                    error_type=logmsg[pipe], message=line[0], value=line[1])
-    
-    return run_record
-
-def run_bwa_sampe_raw(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+def run_bwa_sampe_to_sam(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
             sam_filename, run_record, test):
-    """runn bwa for paired end reads"""
+    """runn bwa for paired end reads and output as SAM"""
 
     command = 'bwa sampe %s %s %s %s %s > %s' % (align_index,
                         in1_sai, in2_sai, in1_fastq, in2_fastq, sam_filename)
@@ -434,6 +462,33 @@ def run_bwa_sampe_raw(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
 
     return run_record
 
+def run_bwa_sampe_to_bam(align_index, in1_sai, in2_sai, in1_fastq, in2_fastq,
+                         bam_filename, run_record, test):
+    """runn bwa for paired end reads and output as BAM"""
+
+    command = 'bwa sampe %s %s %s %s %s | samtools view -bS - > %s' % (align_index,
+                        in1_sai, in2_sai, in1_fastq, in2_fastq, bam_filename)
+
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+
+    run_record.addMessage(program_name=command,
+        error_type=LOG_INFO, message='Time taken (mins)',
+        value=((end-start)/60.))
+
+    pipes = {'stderr': stderr, 'stdout': stdout}
+    logmsg = {'stderr': LOG_ERROR, 'stdout': LOG_INFO}
+    for pipe in pipes:
+        for line in pipes[pipe].splitlines():
+            print line
+            if not line.startswith('#'):
+                continue
+            line = [element.strip() for element in line[2:].split(':')]
+            run_record.addMessage(program_name=command,
+                error_type=logmsg[pipe], message=line[0], value=line[1])
+
+    return run_record
 
 def convert_sam_to_bam(sam_filename, bam_filename, run_record, test):
     """uses samtools to convert sam to bam"""
@@ -484,7 +539,6 @@ def convert_bam_to_sam(bam_filename, sam_filename, run_record, test):
 
     return run_record
 
-
 def convert_sam_to_sorted_bam(sam_filename, bam_filename, run_record, num_threads, test):
     """uses samtools to convert sam to sorted bam"""
     bam_prefix=bam_filename
@@ -511,7 +565,6 @@ def convert_sam_to_sorted_bam(sam_filename, bam_filename, run_record, num_thread
                     error_type=logmsg[pipe], message=line[0], value=line[1])
     
     return run_record
-
 
 def annotate_bam_header(sam_filename, bam_filename, anno_bam_filename, sample_name, run_record, test):
     """write out existing sam header and insert @RG line"""
@@ -689,7 +742,6 @@ def bwa_sampe_to_local_bam_sort_index_move(align_index, in1_sai, in2_sai, in1_fa
     
     return run_record
 
-
 def index_bam(bam_filename, run_record, test):
     """create .bai index for final .bam file"""
     command = 'samtools index %s' % (bam_filename)
@@ -712,4 +764,29 @@ def index_bam(bam_filename, run_record, test):
 
     return run_record
 
+def convert_sorted_bam_to_filtered_bed(bam_in_fn, bed_out_fn, run_record, test):
+    """Converts a sorted BAM file to BED format removing unmapped reads and PCR duplicates.
+       Requires Samtools and Bamtools"""
+    command = "samtools view -h -F 4 %s | awk '$1~/@SQ/ || $1~/@PG/ || $2~/83/ || $2~/147/ || $2~/99/ || $2~/163/'" \
+            "| samtools view -Sb - | samtools rmdup - - | bamtools convert -format bed "\
+            "-in - -out %s" % (bam_in_fn, bed_out_fn)
+    if test:
+        print "=== The command ==="
+        print command
+        return run_record
 
+    start = time.time()
+
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name=command,
+        error_type=LOG_INFO, message='Time taken (mins)',
+        value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record

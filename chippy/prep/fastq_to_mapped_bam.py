@@ -5,20 +5,24 @@
 - produces trimmed sequences without adpaters
 - maps the clean sequences using bowtie
 """
-import sys, re, os, shutil, zipfile
+import sys, os, shutil, zipfile
 sys.path.extend(['..', '../src'])
-
-import numpy
 
 from cogent.util.misc import parse_command_line_parameters
 from optparse import make_option
 
-from chippy.prep import reduce, pristine_seqs, command_line, fastq_to_fasta, \
-     pristine_paired
+from chippy.prep import command_line
 from chippy.prep.mapped_files import MappedFiles, MappedSangerFiles
 from chippy.util.run_record import RunRecord
-from chippy.util.util import create_path
 
+__author__ = "Gavin Huttley, Aaron, Chuah, Cameron Jack"
+__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack, Aaron Chuah"
+__credits__ = ["Gavin Huttley, Cameron Jack, Aaron Chuah"]
+__license__ = "GPL"
+__maintainer__ = "Gavin Huttley"
+__email__ = "Gavin.Huttley@anu.edu.au"
+__status__ = "alpha"
+__version__ = '0.1.3'
 
 script_info = {}
 descr = "Draft snp discovery process"
@@ -26,9 +30,7 @@ script_info['brief_description']= descr
 script_info['script_description'] = descr
 script_info['version'] = '1e-3.alpha'
 script_info['script_usage']=[]
-# script_info['script_usage'].append(
-#     ("Example 1","""General Usage:""",
-#     """python fastq_to_fasta.py -i <seqs.fastq> -o <seqs.fasta>"""))
+
 
 script_info['help_on_no_arguments'] = True
 script_info['required_options'] = [
@@ -66,7 +68,7 @@ script_info['optional_options'] = [\
                 help='Deletes the working dir at the end of the run'
                 +' [default: %default]'),
     make_option('-r', '--reduce', action='store_true', default = False,
-                help='Finish with ChIP-Seq reduction step'
+                help='Finish with ChIP-Seq reduction step to old format'
                 +' [default: %default]'),
     make_option('-I', '--Illumina_version', default=1.7,
                 help='Illumina pipeline version number'
@@ -97,7 +99,8 @@ def main():
         mapped_files_1 = MappedFiles(opts.input_file_1, opts.save_dir, opts.work_dir)
         filenames_1 = dict(fastq=mapped_files_1.adapterless_trimmed_fn,
                        pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn,
-                       bam=mapped_files_1.bam_fn, sam=mapped_files_1.sam_fn)
+                       bam=mapped_files_1.bam_fn, bed=mapped_files_1.bed_fn,
+                        work_dir=mapped_files_1.working_dn)
         mapped_files_2 = MappedFiles(opts.input_file_2, opts.save_dir, opts.work_dir)
         filenames_2 = dict(fastq=mapped_files_2.adapterless_trimmed_fn,
                        pristine=mapped_files_2.pristine_fn, sai=mapped_files_2.sai_fn,
@@ -112,13 +115,16 @@ def main():
 
     elif opts.Illumina_version >= 1.8: # Illumina pipeline 1.8 or higher
         mapped_files_1 = MappedSangerFiles(opts.input_file_1, opts.save_dir, opts.work_dir)
-        filenames_1 = dict(unzipped=mapped_files_1.unzipped_fq_fn, trimmed=mapped_files_1.trimmed_fn,
+        filenames_1 = dict(unzipped=mapped_files_1.unzipped_fq_fn,
+                trimmed=mapped_files_1.trimmed_fn,
                 pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn,
-                bam=mapped_files_1.bam_fn, sam=mapped_files_1.sam_fn)
+                bam=mapped_files_1.bam_fn, bed=mapped_files_1.bed_fn,
+                work_dir=mapped_files_1.working_dn)
 
         mapped_files_2 = MappedSangerFiles(opts.input_file_2, opts.save_dir, opts.work_dir)
-        filenames_2 = dict(unzipped=mapped_files_2.unzipped_fq_fn, trimmed=mapped_files_2.trimmed_fn,
-            pristine=mapped_files_2.pristine_fn, sai=mapped_files_2.sai_fn)
+        filenames_2 = dict(unzipped=mapped_files_2.unzipped_fq_fn,
+                trimmed=mapped_files_2.trimmed_fn,
+                pristine=mapped_files_2.pristine_fn, sai=mapped_files_2.sai_fn)
 
     else: # unsupported Illumina pipeline version
         rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',
@@ -212,39 +218,26 @@ def main():
                                       rr, opts.num_threads, opts.test_run)
 
     if opts.begin <= 6 and opts.end >= 6:
-        if opts.reduce: # output to uncompressed SAM
-            rr = command_line.run_bwa_sampe_raw(opts.index,
-                    filenames_1['sai'], filenames_2['sai'],
-                    opts.input_file_1, opts.input_file_2,
-                    filenames_1['sam'], rr, opts.test_run)
+        rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
+                filenames_1['sai'], filenames_2['sai'],
+                opts.input_file_1, opts.input_file_2,
+                filenames_1['bam'],
+                rr, opts.sample_name, opts.mem_usage, opts.test_run)
 
-        else: # direct bwa_sampe to final sorted BAM, bypassing SAM
-            rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
-                    filenames_1['sai'], filenames_2['sai'],
-                    opts.input_file_1, opts.input_file_2,
-                    filenames_1['bam'],
-                    rr, opts.sample_name, opts.mem_usage, opts.test_run)
-
-    ## index bam or output to reduced format
+    ## index bam or output to BED for ChIP-Seq analysis
     if opts.begin <= 7 and opts.end >= 7:
         if opts.reduce:
-            rr = reduce.run(infile_name=filenames_1['sam'],
-                outdir=opts.save_dir, chroms='Do All', pval_cutoff=opts.pval_cutoff,
-                limit=numpy.inf, run_record=rr, dry_run=opts.test_run)
+            # Output to BED file
+            # Reduce.py is now legacy for single-end reads
+            rr = command_line.convert_sorted_bam_to_filtered_bed(filenames_1['bam'],
+                    filenames_1['bed'], rr, opts.test_run)
 
         else:
             rr = command_line.index_bam(filenames_1['bam'], rr, opts.test_run)
 
 
     if opts.delete:
-        os.remove(filenames_1['sai'])
-        os.remove(filenames_2['sai'])
-        os.remove(filenames_1['pristine'])
-        os.remove(filenames_2['pristine'])
-        if opts.reduce:
-            os.remove(filenames_1['sam'])
-
-
+        shutil.rmtree(filenames_1['work_dir'])
 
     ## output audit
     rr.display()

@@ -119,8 +119,10 @@ class MappedSangerFiles:
         # Run Perl DynamicTrim.pl on each end (outputs as filename.ext.trimmed)
         # Run Sickle on both ends (we name the out files plus the singles file)
         # Run bwa aln on each end
-        # Run bwa sampe
-        # Save as BAM and possibly also as BED (for ChipPy)
+        # Run bwa sampe and save bam
+        # Sort bam - unsorted to sorted
+        # Filter bam - sorted to filtered
+        # Convert BAM to BED (for ChipPy)
 
         # keep the full path in case needed throughout code
         self.input_fastq_fullpath = input_fastq_fname
@@ -129,10 +131,24 @@ class MappedSangerFiles:
         # mostly we'll use the file name without the path
         fastq_fn_only = fastq_path[-1]
 
+        # Set input file type
+        self.is_gzip = False
+        self.is_bzip2 = False
+        self.is_zip = False # Code path not currently working
+        self.is_fastq = False
+
         if fastq_fn_only.endswith('.gz'):
             fastq_fn_only_no_zip = fastq_fn_only.rstrip('.gz')
-        else:
+            self.is_gzip = True
+        elif fastq_fn_only.endswith('.zip'):
+            fastq_fn_only_no_zip = fastq_fn_only.rstrip('.zip')
+            self.is_zip = True
+        elif fastq_fn_only.endswith('.bz2'):
+            fastq_fn_only_no_zip = fastq_fn_only.rstrip('.bz2')
+            self.is_bzip2 = True
+        elif fastq_fn_only.endswith('.fastq') or fastq_fn_only.endswith('.fq'):
             fastq_fn_only_no_zip = fastq_fn_only
+            self.is_fastq = True
 
         ## Working_dir names below
 
@@ -146,18 +162,22 @@ class MappedSangerFiles:
         self.singles_fn = self.unzipped_fq_fn + '.singles'
         # .sai is the bwa index file
         self.sai_fn = self.unzipped_fq_fn.replace('.fq', '.sai')
+        # .unsorted.bam from bwa sampe
+        self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.unsorted.bam'))
+        # .filtered.bam for ChipPy - handy to check against
+        self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.filtered.bam'))
 
         ## Save_dir names below
 
-        # .bam is the final bwa output in binary format
-        self.bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.bam')))
+        # .sorted.bam is to be kept for all projects
+        self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sorted.bam')))
         # .sam is the final bwa output in tab delimited format - DEPRECATED
         self.sam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sam')))
         # .bed is a format needed for ChIP-Seq mappers and is now the standard format for ChipPy
         self.bed_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.bed')))
 
         # output run_record to save directory
-        self.run_record_fn = self.bam_fn.replace('.bam','.run_record.txt')
+        self.run_record_fn = self.sorted_bam_fn.replace('.sorted.bam','.run_record.txt')
 
 
 def mapped_file_handle(fastq_fname, save_dname, work_dname):

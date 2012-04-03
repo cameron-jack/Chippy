@@ -5,7 +5,7 @@
 - produces trimmed sequences without adpaters
 - maps the clean sequences using bowtie
 """
-import sys, os, shutil, zipfile
+import sys, os, shutil, zipfile, bz2, gzip
 sys.path.extend(['..', '../src'])
 
 from cogent.util.misc import parse_command_line_parameters
@@ -117,14 +117,19 @@ def main():
         mapped_files_1 = MappedSangerFiles(opts.input_file_1, opts.save_dir, opts.work_dir)
         filenames_1 = dict(unzipped=mapped_files_1.unzipped_fq_fn,
                 trimmed=mapped_files_1.trimmed_fn,
-                pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn,
-                bam=mapped_files_1.bam_fn, bed=mapped_files_1.bed_fn,
-                work_dir=mapped_files_1.working_dn)
+                pristine=mapped_files_1.pristine_fn, sai=mapped_files_1.sai_fn)
 
         mapped_files_2 = MappedSangerFiles(opts.input_file_2, opts.save_dir, opts.work_dir)
         filenames_2 = dict(unzipped=mapped_files_2.unzipped_fq_fn,
                 trimmed=mapped_files_2.trimmed_fn,
                 pristine=mapped_files_2.pristine_fn, sai=mapped_files_2.sai_fn)
+
+        # unspecific to an 'end' - they're still derived from mapped_files_1
+        unified_fns = dict(unsorted=mapped_files_1.unsorted_bam_fn,
+                sorted=mapped_files_1.sorted_bam_fn,
+                filtered=mapped_files_1.filtered_bam_fn,
+                bed=mapped_files_1.bed_fn,
+                work_dir=mapped_files_1.working_dn)
 
     else: # unsupported Illumina pipeline version
         rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',
@@ -160,34 +165,65 @@ def main():
                         rr, opts.num_threads, opts.test_run)
 
     elif opts.Illumina_version >= 1.8: # Illumina pipeline 1.8 or higher
-        # Check if zipped, and if yes, then unzip to work directory
-            # otherwise copy so DynamicTrim can work in-place
+        # Check if gzipped, bzipped or zipped, and if yes, then unzip to work directory
+                # otherwise copy so DynamicTrim can work in-place
         if opts.begin <= 1 and opts.end >= 1:
-            if zipfile.is_zipfile(opts.input_file_1):
-                with zipfile(opts.input_file_1, 'r') as zip1:
-                    zipfile.extractall(opts.work_dir)
-                    rr.addInfo('fastq_to_mapped_bam', 'file unzipped to work dir', opts.input_file_1)
-            else:
+            # input file 1
+            if mapped_files_1.is_gzip:
+                fastq_out = open(filenames_1['unzipped'], 'w')
+                for line in gzip.GzipFile(opts.input_file_1, 'rb'):
+                    fastq_out.write(line)
+                fastq_out.close()
+                rr.addInfo('fastq_to_mapped_bam', 'file decompressed with gz to work dir', opts.input_file_1)
+            elif mapped_files_1.is_bzip2:
+                fastq_out = open(filenames_1['unzipped'], 'w')
+                for line in bz2.BZ2File(opts.input_file_1, 'rb'):
+                    fastq_out.write(line)
+                fastq_out.close()
+                rr.addInfo('fastq_to_mapped_bam', 'file decompressed with bz2 to work dir', opts.input_file_1)
+            # Zip support seems broken right now, so removing.
+            #elif mapped_files_1.is_zip:
+            #    zip1 = zipfile.ZipFile(opts.input_file_1, 'r')
+            #    zip1.extractall(opts.work_dir)
+            #    rr.addInfo('fastq_to_mapped_bam', 'file unzipped to work dir', opts.input_file_1)
+            elif mapped_files_1.is_fastq:
                 shutil.copy(opts.input_file_1, filenames_1['unzipped'])
                 rr.addInfo('fastq_to_mapped_bam', 'file copied to work dir', opts.input_file_1)
-
-            if zipfile.is_zipfile(opts.input_file_2):
-                with zipfile(opts.input_file_2, 'r') as zip2:
-                    zipfile.extractall(opts.work_dir)
-                    rr.addInfo('fastq_to_mapped_bam', 'file unzipped to work dir', opts.input_file_2)
             else:
+                rr.addError('fastq_to_mapped_bam', 'unrecognised filename extension', opts.input_file_1)
+
+            # input file 2
+            if mapped_files_2.is_gzip:
+                fastq_out = open(filenames_2['unzipped'], 'w')
+                for line in gzip.GzipFile(opts.input_file_2, 'rb'):
+                    fastq_out.write(line)
+                fastq_out.close()
+                rr.addInfo('fastq_to_mapped_bam', 'file decompressed with gz to work dir', opts.input_file_2)
+            elif mapped_files_2.is_bzip2:
+                fastq_out = open(filenames_2['unzipped'], 'w')
+                for line in bz2.BZ2File(opts.input_file_2, 'rb'):
+                    fastq_out.write(line)
+                fastq_out.close()
+                rr.addInfo('fastq_to_mapped_bam', 'file decompressed with bz2 to work dir', opts.input_file_2)
+            # Zip support seems broken right now, so removing
+            #elif mapped_files_2.is_zip:
+            #    zip2 = zipfile.ZipFile(opts.input_file_2, 'r')
+            #    zip2.extractall(opts.work_dir)
+            #    rr.addInfo('fastq_to_mapped_bam', 'file unzipped to work dir', opts.input_file_2)
+            elif mapped_files_2.is_fastq:
                 shutil.copy(opts.input_file_2, filenames_2['unzipped'])
                 rr.addInfo('fastq_to_mapped_bam', 'file copied to work dir', opts.input_file_2)
+            else:
+                rr.addError('fastq_to_mapped_bam', 'unrecognised filename extension', opts.input_file_2)
 
         if opts.begin <= 2 and opts.end >= 2:
-            # Don't worry about 5' adapter clipping, though we might want to think about 3' adapters in future
-            if opts.work_dir == '':
-                work_dir = opts.save_dir + '-working'
-            else:
-                work_dir = opts.work_dir
+            # Don't worry about 5' adapter clipping for Hi-Seq, though we might want to think about 3' adapters in future
+
             # Remove low quality bases with DynamicTrim (SolexaQA)
-            rr = command_line.run_dynamic_trim(filenames_1['unzipped'], work_dir, opts.pval_cutoff, rr, opts.test_run)
-            rr = command_line.run_dynamic_trim(filenames_2['unzipped'], work_dir, opts.pval_cutoff, rr, opts.test_run)
+            rr = command_line.run_dynamic_trim(filenames_1['unzipped'], unified_fns['work_dir'],
+                    opts.pval_cutoff, rr, opts.test_run)
+            rr = command_line.run_dynamic_trim(filenames_2['unzipped'], unified_fns['work_dir'],
+                    opts.pval_cutoff, rr, opts.test_run)
 
         if opts.begin <= 3 and opts.end >= 3:
             # Balance inputs files with Sickle (UC Davis), discard single-ends residual
@@ -202,35 +238,47 @@ def main():
         rr.display()
         sys.exit(0)
 
-    ## now align each individually
+    # Now align each individually
     if opts.begin <= 4 and opts.end >= 4:
-        rr = command_line.run_bwa_aln(opts.index,
-                                      filenames_1['pristine'],
-                                      filenames_1['sai'],
-                                      opts.Illumina_version,
-                                      rr, opts.num_threads, opts.test_run)
+        rr = command_line.run_bwa_aln(opts.index, filenames_1['pristine'],
+                filenames_1['sai'], opts.Illumina_version,
+                rr, opts.num_threads, opts.test_run)
 
     if opts.begin <= 5 and opts.end >= 5:
-        rr = command_line.run_bwa_aln(opts.index,
-                                      filenames_2['pristine'],
-                                      filenames_2['sai'],
-                                      opts.Illumina_version,
-                                      rr, opts.num_threads, opts.test_run)
+        rr = command_line.run_bwa_aln(opts.index, filenames_2['pristine'],
+                filenames_2['sai'], opts.Illumina_version,
+                rr, opts.num_threads, opts.test_run)
 
+    # Note - from here the pipeline is broken for Illumina version < 1.8
     if opts.begin <= 6 and opts.end >= 6:
-        rr = command_line.bwa_sampe_to_sorted_bam(opts.index,
+        rr = command_line.bwa_sampe_to_bam_with_header(opts.index,
                 filenames_1['sai'], filenames_2['sai'],
-                opts.input_file_1, opts.input_file_2,
-                filenames_1['bam'],
-                rr, opts.sample_name, opts.mem_usage, opts.test_run)
+                filenames_1['pristine'], filenames_2['pristine'],
+                unified_fns['unsorted'],
+                rr, opts.input_file_1, opts.test_run)
 
-    ## index bam or output to BED for ChIP-Seq analysis
+    # Sort BAM
     if opts.begin <= 7 and opts.end >= 7:
+        rr = command_line.bam_to_sorted_bam(unified_fns['unsorted'],
+                unified_fns['sorted'], opts.mem_usage, rr, opts.test_run)
+
+    ## index bam or filter and output to BED for ChIP-Seq analysis
+    if opts.begin <= 8 and opts.end >= 8:
         if opts.reduce:
-            # Output to BED file
             # Reduce.py is now legacy for single-end reads
-            rr = command_line.convert_sorted_bam_to_filtered_bed(filenames_1['bam'],
-                    filenames_1['bed'], rr, opts.test_run)
+
+            # filter out bad mappings and PCR duplicates
+            rr = command_line.convert_sorted_bam_to_filtered_bam(
+                    unified_fns['sorted'], unified_fns['filtered'], rr,
+                    opts.test_run)
+
+            # convert BAM to BED
+            rr = command_line.convert_bam_to_bed(unified_fns['filtered'],
+                    unified_fns['bed'], rr, opts.test_run)
+
+            # Single command version of the above
+            #rr = command_line.convert_sorted_bam_to_filtered_bed(filenames_1['bam'],
+            #        filenames_1['bed'], rr, opts.test_run)
 
         else:
             rr = command_line.index_bam(filenames_1['bam'], rr, opts.test_run)

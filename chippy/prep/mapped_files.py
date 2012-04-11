@@ -146,9 +146,13 @@ class MappedSangerFiles:
         elif fastq_fn_only.endswith('.bz2'):
             fastq_fn_only_no_zip = fastq_fn_only.rstrip('.bz2')
             self.is_bzip2 = True
-        elif fastq_fn_only.endswith('.fastq') or fastq_fn_only.endswith('.fq'):
+        elif fastq_fn_only.endswith('.fastq'):
             fastq_fn_only_no_zip = fastq_fn_only
             self.is_fastq = True
+        elif fastq_fn_only.endswith('.fq'):
+            fastq_fn_only_no_zip = fastq_fn_only
+            self.is_fastq = True
+
 
         ## Working_dir names below
 
@@ -160,24 +164,40 @@ class MappedSangerFiles:
         self.pristine_fn = self.unzipped_fq_fn + '.pristine'
         # singles is the remainder output of Sickle
         self.singles_fn = self.unzipped_fq_fn + '.singles'
-        # .sai is the bwa index file
-        self.sai_fn = self.unzipped_fq_fn.replace('.fq', '.sai')
-        # .unsorted.bam from bwa sampe
-        self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.unsorted.bam'))
-        # .filtered.bam for ChipPy - handy to check against
-        self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.filtered.bam'))
+        if self.unzipped_fq_fn.endswith('.fq'):
+            # .sai is the bwa index file
+            self.sai_fn = self.unzipped_fq_fn.replace('.fq', '.sai')
+            # .unsorted.bam from bwa sampe
+            self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.unsorted.bam'))
+            # .filtered.bam for ChipPy - handy to check against
+            self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.filtered.bam'))
+        elif self.unzipped_fq_fn.endswith('.fastq'):
+            # .sai is the bwa index file
+            self.sai_fn = self.unzipped_fq_fn.replace('.fastq', '.sai')
+            # .unsorted.bam from bwa sampe
+            self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fastq', '.unsorted.bam'))
+            # .filtered.bam for ChipPy - handy to check against
+            self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fastq', '.filtered.bam'))
+        else:
+            print "In mapped_sanger_files, unrecognised filename extension for %s" % (self.unzipped_fq_fn)
+            exit(0)
 
         ## Save_dir names below
 
-        # .sorted.bam is to be kept for all projects
-        self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sorted.bam')))
+        if self.unzipped_fq_fn.endswith('.fq'):
+            # .sorted.bam is to be kept for all projects
+            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sorted.bam')))
+        elif self.unzipped_fq_fn.endswith('.fastq'):
+            # .sorted.bam is to be kept for all projects
+            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fastq', '.sorted.bam')))
+
         # .sam is the final bwa output in tab delimited format - DEPRECATED
-        self.sam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sam')))
+        self.sam_fn = self.sorted_bam_fn.replace('.sorted.bam','.sam')
         # .bed is a format needed for ChIP-Seq mappers and is now the standard format for ChipPy
-        self.bed_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.bed')))
+        self.bed_fn = self.sorted_bam_fn.replace('.sorted.bam','.bed')
 
         # output run_record to save directory
-        self.run_record_fn = self.sorted_bam_fn.replace('.sorted.bam','.run_record.txt')
+        self.run_record_fn = self.sorted_bam_fn.replace('.sorted.bam', '.run_record.txt')
 
 
 def mapped_file_handle(fastq_fname, save_dname, work_dname):

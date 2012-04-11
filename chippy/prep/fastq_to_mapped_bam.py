@@ -129,7 +129,8 @@ def main():
                 sorted=mapped_files_1.sorted_bam_fn,
                 filtered=mapped_files_1.filtered_bam_fn,
                 bed=mapped_files_1.bed_fn,
-                work_dir=mapped_files_1.working_dn)
+                work_dir=mapped_files_1.working_dn,
+                run_record=mapped_files_1.run_record_fn)
 
     else: # unsupported Illumina pipeline version
         rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',
@@ -290,7 +291,8 @@ def main():
     ## output audit
     rr.display()
     table = rr.getMessageTable()
-    table.writeToFile(mapped_files_1.run_record_fn, sep='\t')
+    # print "\n\nRun record location: %s\n\n" % unified_fns['run_record']
+    table.writeToFile(unified_fns['run_record'], sep='\t')
 
 if __name__ == "__main__":
     main()

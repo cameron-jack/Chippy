@@ -12,7 +12,9 @@ from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
 from chippy.util import util
+from chippy.ref.util import chroms
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+from chippy.parse.bed import MinimalBedParser
 
 __author__ = "Anuj Pahwa, Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"

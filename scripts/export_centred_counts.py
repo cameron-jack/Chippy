@@ -116,25 +116,23 @@ opt_read_length = make_option('-x', '--max_read_length', type='int',
         default=75, help='Maximum sequence read length [default: %default]')
 
 opt_count_max_length = make_option('-k', '--count_max_length',
-             action='store_false',
-             help="Use maximum read length instead of mapped length",
-             default=True)
+        action='store_false',
+        help='Use maximum read length instead of mapped length',
+        default=True)
 
 opt_window = make_option('-w', '--window_size', type='int', default=1000,
-                help='Region size around TSS [default: %default]')
+        help='Region size around TSS [default: %default]')
 
 opt_multitest_signif = make_option('-m', '--multitest_signif_val', type='int',
-                help='Restrict plot to genes that pass multitest signficance,'\
-                'valid values: 1, 0, -1', default=None)
+        help='Restrict plot to genes that pass multitest signficance,'\
+        'valid values: 1, 0, -1', default=None)
 
 #optional output
 opt_tab_delimited = make_option('-d', '--tab_delimited', action='store_true',
-                help='output to tab delimited format', default=False)
+        help='output to tab delimited format', default=False)
 
-opt_test_run = make_option('-t', '--test_run',
-             action='store_true', help="Test run, don't write output",
-             default=False)
-
+opt_test_run = make_option('-t', '--test_run', action='store_true',
+        help="Test run, don't write output", default=False)
 
 # adding into the main script_info dictionary required for correct processing
 # via command-line or PyCogent.app

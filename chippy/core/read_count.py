@@ -1,6 +1,6 @@
 from __future__ import division
 
-from os import path
+from os import path, listdir
 from glob import glob1
 import re
 import warnings
@@ -14,7 +14,7 @@ from cogent.util.progress_display import display_wrap
 from chippy.util import util
 from chippy.ref.util import chroms
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
-from chippy.parse.bed import MinimalBedParser
+from chippy.parse.bed import BedRep
 
 __author__ = "Anuj Pahwa, Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -33,7 +33,7 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
     
     Arguments:
         - mapped_read_path: path to table containing read coordinates,
-          frequency data
+          frequency data, or the data itself
         - max_read_length: maximum length of a read length
         - count_max_length: if max_read_length provided, all mapped seqs set
           to this length
@@ -41,17 +41,24 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
         - sep: the delimiter in the read coordinates file
         - is_sorted: whether the read file is already sorted
     """
-    data = LoadTable(mapped_read_path, sep=sep)
-    assert list(data.Header) == ['start', 'length', 'strand', 'freq'],\
-        "mapped read Table header doesn't match expected"
-    
-    if not is_sorted:
-        data = data.sorted(columns='start')
-    
+
+    if type(mapped_read_path) == str or type(mapped_read_path) == unicode:
+        data = LoadTable(mapped_read_path, sep=sep)
+        assert list(data.Header) == ['start', 'length', 'strand', 'freq'],\
+                "mapped read Table header doesn't match expected"
+        if not is_sorted:
+            data = data.sorted(columns='start')
+        data = data.array.astype(int32)
+    else:
+        # It came from a BED file
+        data = mapped_read_path
+
+    #print mapped_read_path
+
     if count_max_length:
         assert max_read_length, 'must specify max_read_length to use'\
                                 ' count_max_length'
-    data = data.array.astype(int32)
+
     total = data.shape[0]
     max_read_length = max_read_length or inf
     total_length = data[-1][0] + data[-1][1]
@@ -87,9 +94,10 @@ class WholeChrom(object):
         super(WholeChrom, self).__init__()
         self.last_start_index = 0
         self.strand = strand
-        
-        assert not (mapped_read_path and counts),\
-                "Cannot provide a counts array AND a path to create one from"
+
+        if type(mapped_read_path) == str or type(mapped_read_path) == unicode:
+            assert not (mapped_read_path and counts),\
+                    "Cannot provide a counts array AND a path to create one from"
         
         if counts is not None:
             self.counts = counts
@@ -163,9 +171,26 @@ class WholeChrom(object):
             strand = NULL_STRAND
         
         return self.__class__(counts=new, strand=strand)
-    
 
-def get_combined_counts(counts_dir, chrom_name, max_read_length, count_max_length):
+def read_all_beds(counts_dir):
+    """ Read all BED files into memory. We can access the chroms from them late
+        via get_chrom_as_nparray(chrom) """
+
+    if type(counts_dir) == str:
+        counts_dirs = [counts_dir]
+    else:
+        counts_dirs = counts_dir
+
+    bed_reps = []
+    for counts_dir in counts_dirs:
+        dir_list = listdir(counts_dir)
+        for file_name in dir_list:
+            if file_name[-4:] == '.bed':
+                bed_reps.append(BedRep(path.join(counts_dir, file_name)))
+
+    return bed_reps
+
+def get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length, count_max_length):
     """returns a single WholeChrom, potentially summing counts from different
     sequencer runs"""
     if type(counts_dir) == str:
@@ -174,16 +199,33 @@ def get_combined_counts(counts_dir, chrom_name, max_read_length, count_max_lengt
         counts_dirs = counts_dir
     
     chrom = None
+
+    # first check for chrom files and read in
     for counts_dir in counts_dirs:
+
         chrom_counts_path = path.join(counts_dir,
                     'chr%s.txt.gz' % chrom_name)
-        print '\t%s' % chrom_counts_path
-        counts = WholeChrom(chrom_counts_path,
+        if path.exists(chrom_counts_path):
+            print '\t%s' % chrom_counts_path
+            counts = WholeChrom(chrom_counts_path,
                             max_read_length=max_read_length,
                             count_max_length=count_max_length)
-        if chrom is None:
-            chrom = counts
-        else:
-            chrom = counts + chrom
+            if chrom is None:
+                chrom = counts
+            else:
+                chrom = counts + chrom
+
+    # now add data from any BEDs
+    for bed_rep in bed_reps:
+        chrom_array = bed_rep.get_chrom_as_nparray(chrom_name)
+        counts = WholeChrom(chrom_array, max_read_length=max_read_length,
+                count_max_length=count_max_length)
+        if counts != 0:
+            if chrom is None:
+                chrom = counts
+            else:
+                chrom = counts + chrom
+
+    # Now combine counts from all BEDs
     
     return chrom

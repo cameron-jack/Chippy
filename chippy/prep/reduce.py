@@ -200,7 +200,7 @@ script_info['optional_options'] = [
  make_option('-L', '--limit', type='int', default=Inf,
                 help='number of records to read in (defaults to all)'),
  make_option('-p', '--pval_cutoff',
-                type='float', default=0.001,
+                type='float', default=0.05,
                 help='Minimum p-value for mapping quality of reads\
                 [default: %default]')
 ]

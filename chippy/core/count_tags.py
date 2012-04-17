@@ -5,7 +5,7 @@ import os, sys
 
 from cogent.util.progress_display import display_wrap
 
-from chippy.core.read_count import WholeChrom, get_combined_counts
+from chippy.core.read_count import WholeChrom, get_combined_counts, read_all_beds
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
         get_ranked_expression_diff, get_ranked_genes_per_chrom, \
@@ -35,14 +35,17 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names,
     
     assert set(chrom_ordered.keys()) <= set(chrom_names), \
                     'Chromosome mismatch between study and species reference'
-    
+
+    # import all bed data first and then mine it per chrom later
+    bed_reps = read_all_beds(counts_dir)
+
     n = 0
     total = len(genes)
     summed_counts = {}
     chrom_names = [c for l, c in sorted([(len(c), c) for c in chrom_ordered])]
     for chrom_name in chrom_names:
         print 'Making full counts array for chromosome %s' % chrom_name
-        counts = get_combined_counts(counts_dir, chrom_name, max_read_length,
+        counts = get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length,
                                     count_max_length)
         summed_counts[chrom_name] = counts.counts.sum()
         print '\tGetting read counts for genes'

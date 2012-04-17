@@ -104,6 +104,7 @@ class BedRep:
     """ defines a BED file. Use a dict of chroms containing a list of tuples.
         This class allows access the same way as for Pickled arrays. The user
         requests a numpy array by chromosome."""
+
     def __init__(self, bed_file_path):
         parser = MinimalBedParser(bed_file_path)
         self.chrom_dict = {} # only append if not already in list
@@ -113,8 +114,8 @@ class BedRep:
             if record[0] not in self.chrom_dict:
                 self.chrom_dict[record[0]] = []
 
-            # add tuple of start, length, strand to chrom-specific list
-            track = (record[1], record[2]-record[1], record[5])
+            # add tuple of start, length, strand and frequency of 1, to chrom-specific list
+            track = (record[1], record[2]-record[1], record[5], 1)
             self.chrom_dict[record[0]].append(track)
 
     def get_chrom_as_nparray(self, chrom):

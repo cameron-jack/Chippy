@@ -63,7 +63,7 @@ def run_command(command, test=None):
 # convert_sorted_bam_to_filtered_bed(bam_in_fn, bed_out_fn, run_record, test)
     # As above but in two steps:
 # convert_sorted_bam_to_filtered_bam(bam_in_fn, bam_out_fn, run_record, test)
-# convert_bam_to_bed(bam_in_fn, bed_out_fn, run_record, test)
+# convert_bam_to_compressed_bed(bam_in_fn, bed_out_fn, run_record, test)
 
 
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):
@@ -912,10 +912,32 @@ def convert_sorted_bam_to_filtered_bam(bam_in_fn, bam_out_fn, run_record, test):
         print ''.join(stderr)
     return run_record
 
-def convert_bam_to_bed(bam_in_fn, bed_out_fn, run_record, test):
+def convert_bam_to_compressed_bed(bam_in_fn, bed_out_fn, run_record, test):
     """Converts a sorted BAM file to BED format assuming sorting and filtering.
-       Requires Samtools and Bamtools"""
+       And saves in gzipped format. Requires Samtools and Bamtools"""
     command = "bamtools convert -format bed -in %s -out %s" % (bam_in_fn, bed_out_fn)
+    if test:
+        print "=== The command ==="
+        print command
+        return run_record
+
+    start = time.time()
+
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name=command,
+        error_type=LOG_INFO, message='Time taken (mins)',
+        value=((end-start)/60.))
+    if stdout:
+        print
+        print ''.join(stdout)
+
+    if stderr:
+        print
+        print ''.join(stderr)
+
+    # now compress BED file
+    command = "gzip %s" % ( bed_out_fn)
     if test:
         print "=== The command ==="
         print command

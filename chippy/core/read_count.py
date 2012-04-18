@@ -185,7 +185,7 @@ def read_all_beds(counts_dir):
     for counts_dir in counts_dirs:
         dir_list = listdir(counts_dir)
         for file_name in dir_list:
-            if file_name[-4:] == '.bed':
+            if file_name[-4:] == '.bed' or file_name[-7:] == '.bed.gz':
                 bed_reps.append(BedRep(path.join(counts_dir, file_name)))
 
     return bed_reps

@@ -273,8 +273,8 @@ def main():
                     unified_fns['sorted'], unified_fns['filtered'], rr,
                     opts.test_run)
 
-            # convert BAM to BED
-            rr = command_line.convert_bam_to_bed(unified_fns['filtered'],
+            # convert BAM to BED (gzipped)
+            rr = command_line.convert_bam_to_compressed_bed(unified_fns['filtered'],
                     unified_fns['bed'], rr, opts.test_run)
 
             # Single command version of the above

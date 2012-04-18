@@ -195,6 +195,9 @@ class MappedSangerFiles:
         self.sam_fn = self.sorted_bam_fn.replace('.sorted.bam','.sam')
         # .bed is a format needed for ChIP-Seq mappers and is now the standard format for ChipPy
         self.bed_fn = self.sorted_bam_fn.replace('.sorted.bam','.bed')
+        # .gz.bed should be standard output for ChIP-Seq as it saves a lot of space and IO time
+        # NOT CURRENTLY USED
+        self.bed_gz_fn = self.sorted_bam_fn.replace('.sorted.bam', '.gz.bed')
 
         # output run_record to save directory
         self.run_record_fn = self.sorted_bam_fn.replace('.sorted.bam', '.run_record.txt')

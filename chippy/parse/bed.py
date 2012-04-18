@@ -1,7 +1,7 @@
 from __future__ import division
 
 from cogent.parse.table import ConvertFields, SeparatorFormatParser
-import sys, warnings, re
+import sys, warnings, re, gzip
 import numpy as np
 
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
@@ -83,7 +83,10 @@ def MinimalBedParser(data, converter=converter):
     NOTE: BED uses 0-based numbering"""
     # If given a filename for the data
     if type(data) == str:
-        data = open(data)
+        if data.endswith('.bed.gz'):
+            data = gzip.GzipFile(data, 'rb')
+        else:
+            data = open(data, 'r')
 
     header_lines = 0
     data_lines = []

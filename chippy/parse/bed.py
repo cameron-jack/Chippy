@@ -97,6 +97,7 @@ def MinimalBedParser(data, converter=converter):
         else:
             data_lines.append(row)
 
+
     parser = SeparatorFormatParser(converter=converter, with_header=False,
                     sep="\t")
 
@@ -111,6 +112,7 @@ class BedRep:
     def __init__(self, bed_file_path):
         parser = MinimalBedParser(bed_file_path)
         self.chrom_dict = {} # only append if not already in list
+        self.name = bed_file_path
 
         for record in parser:
             # Add list of track if chromosome not yet seen

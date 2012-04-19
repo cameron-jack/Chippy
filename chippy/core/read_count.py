@@ -218,6 +218,7 @@ def get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length, count
     # now add data from any BEDs
     for bed_rep in bed_reps:
         chrom_array = bed_rep.get_chrom_as_nparray(chrom_name)
+        print '\t%s: chr%s' % (bed_rep.name, chrom_name)
         counts = WholeChrom(chrom_array, max_read_length=max_read_length,
                 count_max_length=count_max_length)
         if counts != 0:

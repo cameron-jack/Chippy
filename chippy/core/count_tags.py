@@ -5,7 +5,7 @@ import os, sys
 
 from cogent.util.progress_display import display_wrap
 
-from chippy.core.read_count import WholeChrom, get_combined_counts, read_all_beds
+from chippy.core.read_count import get_combined_counts, read_all_beds
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
         get_ranked_expression_diff, get_ranked_genes_per_chrom, \

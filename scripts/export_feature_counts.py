@@ -11,7 +11,7 @@ from cogent.util.progress_display import display_wrap
 from cogent.util.misc import parse_command_line_parameters
 
 from chippy.express import db_query, db_schema
-from chippy.core.read_count import get_combined_counts
+from chippy.core.read_count import get_combined_counts, read_all_beds
 from chippy.ref.util import chroms
 from chippy.util.util import grouped_by_chrom
 from chippy.util.run_record import RunRecord
@@ -91,11 +91,13 @@ def get_sum_counts_table(session, chrom_genes, counts_dir, max_read_length, coun
     else:
         chrom_names = sorted([(len(n), n) for n in chrom_genes])
         chrom_names = [n for l,n in chrom_names]
-    
+
+    # import all bed data first and then mine it per chrom later
+    bed_reps = read_all_beds(counts_dir)
+
     tables = []
-    beds = []
     for chrom_name in chrom_names:
-        chrom_counts = get_combined_counts(counts_dirs, beds, chrom_name,
+        chrom_counts = get_combined_counts(counts_dirs, bed_reps, chrom_name,
                     max_read_length, count_max_length)
         chrom_table = _get_count_sum_table_per_chrom(chrom_counts,
                                     chrom_genes[chrom_name], upstream_size)

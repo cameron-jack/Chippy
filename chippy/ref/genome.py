@@ -34,41 +34,47 @@ script_info['script_description'] = "Dump species chromosome sequences in fasta 
 script_info['output_description']= "fasta formatted sequences"
 script_info['version'] = __version__
 script_info['authors'] = 'Gavin Huttley'
+script_info['suppress_verbose'] = True
 
 script_info['required_options'] = [
- make_option('-s',
+    make_option('-s',
             '--species',
             type='choice', 
             help='Species to query [default: %default]',
             default='mouse',
             choices=['mouse', 'human']),
- make_option('-r','--release',
+    make_option('-r','--release',
              help='The Ensembl release number [default: %default]',
              default=None),
 ]
 
 script_info['optional_options'] = [
- make_option('-o','--outdir',
+    make_option('-o','--outdir',
              help='Directory to write files to [default: %default]',
              default='.'),
- make_option('-c','--by_chrom', action='store_true', default=False,
+    make_option('-c','--by_chrom', action='store_true', default=False,
              help='Write separate files for each chromosome [default: %default]'),
- make_option('-H','--hostname',
+    make_option('-H','--hostname',
              help='MySQL server hostname. Will look for ENSEMBL_ACCOUNT by default.',
              default=None),
- make_option('-U',
+    make_option('-U',
              '--user',
              help='MySQL username. Will look for ENSEMBL_ACCOUNT by default.',
              default=None),
- make_option('-P',
+    make_option('-P',
              '--passwd',
              help='MySQL password. Will look for ENSEMBL_ACCOUNT by default.',
              default=None),
- make_option('-t',
+    make_option('-t',
              '--test_run',
              action='store_true',
              help='Do not write any output [default: %default]',
              default=False),
+    make_option('-v',
+             '--verbose',
+             action='store_true',
+             help='Prints lots of output [default: %default]',
+             default=False)
 ]
 
 def main():

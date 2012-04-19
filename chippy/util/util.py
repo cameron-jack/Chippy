@@ -1,6 +1,6 @@
 from __future__ import division
 
-import os
+import os, random
 from fnmatch import fnmatch, filter as fn_filter
 
 __author__ = "Gavin Huttley"

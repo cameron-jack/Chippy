@@ -241,6 +241,119 @@ class TestGene(TestDbBase):
         for gene in genes:
             self.assertEqual(gene.getUpstreamCoords(500),
                             expect[gene.ensembl_id])
+
+    def test_anchored_exons_all(self):
+        """return correct 3' coords for all exons"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        # no min_spacing returns all for 3 exons cases
+        win_size = 100
+        expect = {'PLUS-1': None, 'PLUS-3': [(c-win_size, c+win_size)
+                                                for c in [1400, 1700, 1900]],
+                 'MINUS-1': None, 'MINUS-3': [(c-win_size, c+win_size)
+                                                for c in [1800, 1600, 1050]]}
+
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getExon3primeAll(win_size)
+            self.assertEqual(got, expect[gene.ensembl_id])
+
+
+    def test_anchored_introns_all(self):
+        """return correct 3' coords for all intron"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        # no min_spacing returns all for 3 intron cases
+        win_size = 100
+        expect = {'PLUS-1': None, 'PLUS-3': [(c-win_size, c+win_size)
+                                                    for c in [1600, 1800]],
+                 'MINUS-1': None, 'MINUS-3': [(c-win_size, c+win_size)
+                                                    for c in [1700, 1400]]}
+
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getIntron3primeAll(win_size)
+            self.assertEqual(got, expect[gene.ensembl_id])
+
+
+    def test_anchored_exons_numbered(self):
+        """return correct 3' coords for numbered exon"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        # no min_spacing returns all for 3 exons cases, when looping
+        win_size = 100
+        expect = {'PLUS-1': [(1, None)],
+                 'PLUS-3': [(i+1,(c-win_size, c+win_size))
+                                for i, c in enumerate([1400, 1700, 1900])],
+                 'MINUS-1': [(1, None)],
+                 'MINUS-3': [(i+1,(c-win_size, c+win_size))
+                                for i,c in enumerate([1800, 1600, 1050])]}
+        #
+        for gene in (plus1, plus3, minus1, minus3):
+            for rank, expect_val in expect[gene.ensembl_id]:
+                got = gene.getExon3primeByRank(rank, win_size)
+                self.assertEqual(got, expect_val)
+
+
+    def test_anchored_introns_numbered(self):
+        """return correct 3' coords for numbered intron"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        win_size = 100
+        expect = {'PLUS-1': [(1, None)],
+                  'PLUS-3': [(i+1,(c-win_size, c+win_size))
+                                        for i, c in enumerate([1600, 1800])],
+                 'MINUS-1': [(1, None)],
+                 'MINUS-3': [(i+1,(c-win_size, c+win_size))
+                                        for i, c in enumerate([1700, 1400])]}
+
+        for gene in (plus1, plus3, minus1, minus3):
+            for rank, expect_val in expect[gene.ensembl_id]:
+                got = gene.getIntron3primeByRank(rank, win_size)
+                self.assertEqual(got, expect_val)
+
+
+    def test_anchored_exons_last(self):
+        """returns genes last exon3' boundary"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        win_size = 100
+        expect = {'PLUS-1': (1950-win_size, 1950+win_size),
+                  'PLUS-3': (1900-win_size, 1900+win_size),
+                 'MINUS-1': (1050-win_size, 1050+win_size),
+                 'MINUS-3': (1050-win_size, 1050+win_size)}
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getLastExon3prime(win_size)
+            self.assertEqual(got, expect[gene.ensembl_id])
+
+    def test_anchored_introns_last(self):
+        """returns genes last intron 3' boundary"""
+        add_all_gene_exons(self.session, self.genes)
+        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
+        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
+        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
+        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
+        win_size = 100
+        expect = {'PLUS-1': None,
+                  'PLUS-3': (1800-win_size, 1800+win_size),
+                 'MINUS-1': None,
+                 'MINUS-3': (1400-win_size, 1400+win_size)}
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getLastIntron3prime(win_size)
+            self.assertEqual(got, expect[gene.ensembl_id])
     
 
 class TestExpression(TestDbBase):

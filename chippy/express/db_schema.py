@@ -242,6 +242,72 @@ class Gene(Base):
             start, end = tss, tss+size
         return start, end
     
+    def getExon3primeAll(self, size):
+        """returns all exon coords centred on 3' boundary"""
+        if len(self.ExonCoordsByRank) == 1:
+            return None
+
+        coords = []
+        index = [0, 1][self.strand == 1]
+        for coord in self.ExonCoordsByRank:
+            end = coord[index]
+            coords.append((end-size, end+size))
+        return coords
+
+    def getIntron3primeAll(self, size):
+        """returns all intron coords centred on 3' boundary"""
+        if len(self.IntronCoordsByRank) == 0:
+            return None
+
+        coords = []
+        index = [0, 1][self.strand == 1]
+        for coord in self.IntronCoordsByRank:
+            end = coord[index]
+            coords.append((end-size, end+size))
+        return coords
+
+    def getIntron3primeByRank(self, rank, size):
+        """returns coord of ranked intron (rank is 1-based) centred on 3'
+        boundary"""
+        assert rank > 0, 'Rank is 1-based'
+        num_introns = len(self.IntronCoordsByRank)
+        if num_introns < rank:
+            return None
+
+        coord = self.IntronCoordsByRank[rank-1]
+        index = [0, 1][self.strand == 1]
+        end = coord[index]
+        return end-size, end+size
+
+    def getExon3primeByRank(self, rank, size):
+        """returns 3' coord of ranked exon (rank is 1-based) centred on 3'
+        boundary"""
+        assert rank > 0, 'Rank is 1-based'
+        num_exons = len(self.ExonCoordsByRank)
+        if num_exons < rank or num_exons == 1:
+            return None
+
+        coord = self.ExonCoordsByRank[rank-1]
+        index = [0, 1][self.strand == 1]
+        end = coord[index]
+        return end-size, end+size
+
+    def getLastExon3prime(self, size):
+        """get's coord centred on last exon 3' boundary"""
+        coord = self.ExonCoordsByRank[-1]
+        index = [0, 1][self.strand == 1]
+        end = coord[index]
+        return end-size, end+size
+
+    def getLastIntron3prime(self, size):
+        """get's coord centred on last intron 3' boundary"""
+        if len(self.IntronCoordsByRank) == 0:
+            return None
+        coord = self.IntronCoordsByRank[-1]
+        index = [0, 1][self.strand == 1]
+        end = coord[index]
+        return end-size, end+size
+
 
 class Exon(Base):
     __tablename__ = 'exon'

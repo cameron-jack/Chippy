@@ -93,8 +93,9 @@ def get_sum_counts_table(session, chrom_genes, counts_dir, max_read_length, coun
         chrom_names = [n for l,n in chrom_names]
     
     tables = []
+    beds = []
     for chrom_name in chrom_names:
-        chrom_counts = get_combined_counts(counts_dirs, chrom_name,
+        chrom_counts = get_combined_counts(counts_dirs, beds, chrom_name,
                     max_read_length, count_max_length)
         chrom_table = _get_count_sum_table_per_chrom(chrom_counts,
                                     chrom_genes[chrom_name], upstream_size)
@@ -127,7 +128,7 @@ make_option('-c', '--sample', type='choice',
             'Can be a glob pattern.'),
     make_option('-s','--save_table_name', help='path to save to table data'),
     make_option('-S', '--sample_top', type='int', default = None,
-     help='Genes ranked to this number will be sampled (default is All)'),
+     help='Genes ranked to this number will be sampled [default: %default]'),
 ]
 
 script_info['optional_options'] = [

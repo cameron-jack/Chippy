@@ -173,7 +173,7 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
                 labels_set.append('Group %d' % index)
 
         num_groups = len(counts)
-        if num_groups == 0:
+        if num_groups == 0: # default to 1 group
             counts, ranks = data_collection.transformed(counts_func=counts_func)
             num_groups = 1
             counts = [counts]
@@ -230,9 +230,9 @@ opt_extern = make_option('-E', '--external_sample', type='choice',
             help='External sample')
 
 # essential plotting information
-opt_grp_size = make_option('-g', '--group_size', type='choice', default='All',
-   choices=['All', '50', '100'],
-   help='Number of genes to group to estimate statistic [default: %default]')
+opt_grp_size = make_option('-g', '--group_size', type='string', default='All',
+   help='Number of genes to group to estimate statistic - All or a specific '\
+        'number [default: %default]')
 
 # optional sample choice information
 opt_topgenes = make_option('--topgenes', action='store_true', default = False,
@@ -408,7 +408,7 @@ def main():
     window_size_set = []
     data_collection_set = []
     if opts.metric == 'Mean counts':
-        print 'Calculating mean counts'
+        print 'Collating mean counts'
         counts_func = column_mean
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
@@ -420,7 +420,7 @@ def main():
             window_size_set.append(window_size)
             
     elif opts.metric == 'Frequency counts':
-        print 'Calculating normalized frequency counts'
+        print 'Collating normalized frequency counts'
         counts_func = column_sum
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
@@ -433,7 +433,7 @@ def main():
             window_size_set.append(window_size)
 
     elif opts.metric == 'Standard deviation':
-        print 'Calculating standard deviations of counts'
+        print 'Collating standard deviations of counts'
         counts_func = stdev
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
@@ -457,6 +457,15 @@ def main():
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Total data collections',
                   len(data_collection_set))
 
+    if opts.group_size.lower() == 'all':
+        group_size = 'All'
+    else:
+        try:
+            group_size = int(opts.group_size)
+        except:
+            print ('Invalid group size: ' + opts.group_size + '. Defaulting to all genes.\n')
+            group_size = 'All'
+
     # pool genes into groups
     count_set = []
     rank_set = []
@@ -465,7 +474,7 @@ def main():
     iteration = 0
     for data_collection in data_collection_set:
         counts, ranks, num_groups, labels, rr = _group_genes(data_collection,
-                group_size=opts.group_size, labels=filenames_set[iteration],
+                group_size=group_size, labels=filenames_set[iteration],
                 counts_func=counts_func, topgenes=opts.topgenes,
                 plot_series=opts.plot_series, rr=rr)
 

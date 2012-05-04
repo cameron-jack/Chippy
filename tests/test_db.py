@@ -257,7 +257,7 @@ class TestGene(TestDbBase):
                                                 for c in [1800, 1600, 1050]]}
 
         for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getExon3primeAll(win_size)
+            got = gene.getAllExon3primeWindows(win_size)
             self.assertEqual(got, expect[gene.ensembl_id])
 
 
@@ -276,7 +276,7 @@ class TestGene(TestDbBase):
                                                     for c in [1700, 1400]]}
 
         for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getIntron3primeAll(win_size)
+            got = gene.getAllIntron3primeWindows(win_size)
             self.assertEqual(got, expect[gene.ensembl_id])
 
 

@@ -65,27 +65,39 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
     biotypes = [b for b in genome.getDistinct('BioType') if b not in skip]
     
     data = []
+    unique_gene_ids = set()
+    unique_exon_ids = set()
     n = 0
     total_objects = 0
     for biotype in biotypes:
         for gene in genome.getGenesMatching(BioType=biotype):
             if gene.Location.CoordName not in species_chroms:
                 continue
-            
-            db_gene = Gene(ensembl_id=gene.StableId, symbol=gene.Symbol,
-                biotype=gene.BioType,
-                description=gene.Description, status=gene.Status,
-                coord_name=gene.Location.CoordName,
-                start=gene.Location.Start, end=gene.Location.End,
-                strand=gene.Location.Strand)
-            total_objects += 1
-            data.append(db_gene)
-            for exon in gene.CanonicalTranscript.Exons:
-                db_exon = Exon(exon.StableId, exon.Rank,
-                        exon.Location.Start, exon.Location.End)
-                db_exon.gene = db_gene
-                data.append(db_exon)
+
+            if gene.StableId not in unique_gene_ids:
+
+                db_gene = Gene(ensembl_id=gene.StableId, symbol=gene.Symbol,
+                        biotype=gene.BioType,
+                        description=gene.Description, status=gene.Status,
+                        coord_name=gene.Location.CoordName,
+                        start=gene.Location.Start, end=gene.Location.End,
+                        strand=gene.Location.Strand)
                 total_objects += 1
+                unique_gene_ids.add(gene.StableId)
+                data.append(db_gene)
+            else:
+                print 'Duplicate gene StableId detected: ' + str(gene.StableId) + ' not adding to DB.'
+
+            for exon in gene.CanonicalTranscript.Exons:
+                if exon.StableId not in unique_exon_ids:
+                    db_exon = Exon(exon.StableId, exon.Rank,
+                            exon.Location.Start, exon.Location.End)
+                    db_exon.gene = db_gene
+                    unique_exon_ids.add(exon.StableId)
+                    data.append(db_exon)
+                    total_objects += 1
+                else:
+                    print 'Duplicate exon StableId detected: ' + str(exon.StableId) + ' not adding to DB.'
             
             n += 1
             if n % 100 == 0:
@@ -95,9 +107,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                     session.add_all(data)
                     session.commit()
                     return
-                
-            
-    
+
     print 'Writing objects into db'
     session.add_all(data)
     session.commit()

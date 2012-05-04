@@ -25,12 +25,23 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
+class Feature:
+    """ Abstraction for gene, exon, intron and any other genomic feature """
+    def __init__(self, counts=None, ranks=None, ids=None):
+        self.counts = counts
+        self.Rank = ranks
+        self.ensembl_id = ids
+
+    # This is required to support sorting
+    def __repr__(self):
+        return repr((self.counts, self.Rank, self.ensembl_id))
+
 @display_wrap
-def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names,
+def get_count_decorated_expressed_genes(genes, counts_dir, expr_area, chrom_names,
             max_read_length, count_max_length, window_size, ui=None):
     """decorates the Expression instances with a counts attribute, length=2*window_size"""
+
     # group the genes by chromosome
-    
     chrom_ordered = grouped_by_chrom(genes)
     
     assert set(chrom_ordered.keys()) <= set(chrom_names), \
@@ -42,41 +53,84 @@ def get_count_decorated_expressed_genes(genes, counts_dir, chrom_names,
     n = 0
     total = len(genes)
     summed_counts = {}
+    features = [] # this is the output set
     chrom_names = [c for l, c in sorted([(len(c), c) for c in chrom_ordered])]
+
     for chrom_name in chrom_names:
         print 'Making full counts array for chromosome %s' % chrom_name
         counts = get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length,
                                     count_max_length)
+        if counts == None:
+            continue
         summed_counts[chrom_name] = counts.counts.sum()
         print '\tGetting read counts for genes'
         for gene in chrom_ordered[chrom_name]:
-            start, end, strand = gene.getTssCentredCoords(window_size)
-            # strand is being used here as a stride so if minus strand
-            # then start > end and with stride==-1 we reverse the counts so
-            # they are all 5' to 3'
-            gene.counts = counts[start:end:strand].copy()
+            if expr_area.lower() == 'tss':
+                start, end, strand = gene.getTssCentredCoords(window_size)
+                # strand is being used here as a stride so if minus strand
+                # then start > end and with stride==-1 we reverse the counts so
+                # they are all 5' to 3'
+
+                feature_counts = counts[start:end:strand].copy()
+                feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                features.append(feature)
+
+            elif expr_area.lower() == 'intron_3p':
+                # intron 3' and exon 5' regions - except first exon 5'
+                intron_window_list = gene.getAllIntron3primeWindows(window_size)
+                strand = gene.strand
+                if intron_window_list is not None:
+                    for intron_window in intron_window_list:
+                        start = intron_window[0]
+                        end = intron_window[1]
+                        feature_counts = counts[start:end:strand].copy()
+                        feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                        features.append(feature)
+
+            elif expr_area.lower() == 'exon_3p':
+                # exon 3' and intron 5', also includes final exon 3'
+                exon_window_list = gene.getAllExon3primeWindows(window_size)
+                strand = gene.strand
+                if exon_window_list is not None:
+                    for exon_window in exon_window_list:
+                        start = exon_window[0]
+                        end = exon_window[1]
+                        feature_counts = counts[start:end:strand].copy()
+                        feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                        features.append(feature)
+
+            elif expr_area.lower() == 'both_3p':
+                # Both intron and exon 3' regions, also includes final exon 3'
+                strand = gene.strand
+                intron_window_list = gene.getAllIntron3primeWindows(window_size)
+                if intron_window_list is not None:
+                    for intron_window in intron_window_list:
+                        start = intron_window[0]
+                        end = intron_window[1]
+                        feature_counts = counts[start:end:strand].copy()
+                        feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                        features.append(feature)
+                exon_window_list = gene.getAllExon3primeWindows(window_size)
+                if exon_window_list is not None:
+                    for exon_window in exon_window_list:
+                        start = exon_window[0]
+                        end = exon_window[1]
+                        feature_counts = counts[start:end:strand].copy()
+                        feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                        features.append(feature)
+
+            else:
+                raise RuntimeError('Count tags, expression area invalid: %s' % (expr_area))
+
             n += 1
             if n % 10 == 0:
                 ui.display('Getting counts for gene [%d / %d]' % \
                                                     (n, total), n/total)
-        
         del counts
     
-    return genes, summed_counts
+    return features, summed_counts
 
-@display_wrap
-def get_counts_ranks_ensembl_ids(genes, ui=None):
-    """returns separate series for counts, ranks and ensembl_ids"""
-    ranks = []
-    counts = []
-    ensembl_ids = []
-    for gene in ui.series(genes, noun='Getting counts, ranks and ensembl_ids'):
-        ranks.append(gene.Rank)
-        counts.append(gene.counts)
-        ensembl_ids.append(gene.ensembl_id)
-    return counts, ranks, ensembl_ids
-
-def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir,
+def _get_decorated_expressed(session, sample_name, expr_area, species, chrom, counts_dir,
                     max_read_length, count_max_length, window_size, test_run):
     species_chroms = chroms[species]
     
@@ -92,12 +146,12 @@ def _get_decorated_expressed(session, sample_name, species, chrom, counts_dir,
     
     print 'Decorating'
     expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
-            counts_dir, species_chroms, max_read_length, count_max_length,
+            counts_dir, expr_area, species_chroms, max_read_length, count_max_length,
             window_size)
     
     return expressed, summed_counts
 
-def _get_decorated_expressed_diff(session, sample_name, species, chrom,
+def _get_decorated_expressed_diff(session, sample_name, expr_area, species, chrom,
             counts_dir, max_read_length, count_max_length, window_size,
             multitest_signif_val, test_run):
     
@@ -115,18 +169,32 @@ def _get_decorated_expressed_diff(session, sample_name, species, chrom,
 
     print 'Decorating'
     expressed_diff, summed_counts = get_count_decorated_expressed_genes(expressed_diff,
-            counts_dir, species_chroms, max_read_length, count_max_length,
+            counts_dir, expr_area, species_chroms, max_read_length, count_max_length,
             window_size)
 
     return expressed_diff, summed_counts
 
-def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
+@display_wrap
+def get_counts_ranks_ensembl_ids(features, ui=None):
+    """returns separate series for counts, ranks and ensembl_ids"""
+    ranks = []
+    counts = []
+    ensembl_ids = []
+    # This sort is required for the Feature class to match the Gene class
+    features = sorted(features, key=lambda features: features.Rank)
+    for feature in ui.series(features, noun='Getting counts, ranks and ensembl_ids'):
+        ranks.append(feature.Rank)
+        counts.append(feature.counts)
+        ensembl_ids.append(feature.ensembl_id)
+    return counts, ranks, ensembl_ids
+
+def centred_counts_for_genes(session, sample_name, expr_area, species, chrom, counts_dir,
                     max_read_length, count_max_length,
                     window_size, run_record=None, test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     expressed, summed_counts = _get_decorated_expressed(session, sample_name,
-        species, chrom, counts_dir, max_read_length,
-        count_max_length, window_size, test_run)
+            expr_area, species, chrom, counts_dir, max_read_length,
+            count_max_length, window_size, test_run)
     total_expressed_genes = len(expressed)
     run_record.addMessage('count_tags', LOG_INFO, 'Sample counts name',
                           sample_name)
@@ -149,7 +217,7 @@ def centred_counts_for_genes(session, sample_name, species, chrom, counts_dir,
 
     return data, run_record
 
-def centred_diff_counts_for_genes(session, sample_name, species, chrom,
+def centred_diff_counts_for_genes(session, sample_name, expr_area, species, chrom,
                 counts_dir, max_read_length, count_max_length, window_size,
                 multitest_signif_val, run_record=None, test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc ..
@@ -159,7 +227,7 @@ def centred_diff_counts_for_genes(session, sample_name, species, chrom,
         run_record = RunRecord()
 
     expressed_diff, summed_counts = _get_decorated_expressed_diff(session,
-            sample_name, species, chrom, counts_dir, max_read_length,
+            sample_name, expr_area, species, chrom, counts_dir, max_read_length,
             count_max_length, window_size, multitest_signif_val, test_run)
     total_expressed_diff_genes = len(expressed_diff)
     

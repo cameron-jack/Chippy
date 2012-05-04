@@ -29,7 +29,8 @@ __email__ = "Gavin.Huttley@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
 
-def get_collection(session, sample_name, counts_dir, max_read_length,
+# TODO: fix hard-wiring to Mouse
+def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
         count_max_length, window_size, multitest_signif_val, filename,
         overwrite, sample_type, tab_delimited, run_record=None, test_run=False):
 
@@ -41,13 +42,13 @@ def get_collection(session, sample_name, counts_dir, max_read_length,
         if sample_type == 'Expression data: absolute ranked':
             print "Collecting data for absolute expression experiment"
             data_collection, run_record = centred_counts_for_genes(session,
-                    sample_name, 'mouse', None, counts_dir, max_read_length,
+                    sample_name, expr_area, 'mouse', None, counts_dir, max_read_length,
                     count_max_length, window_size, run_record, test_run)
         
         elif sample_type == 'Expression data: difference in expression between samples':
             print "Collecting data for difference expression experiment"
             data_collection, run_record = centred_diff_counts_for_genes(session,
-                    sample_name, 'mouse', None, counts_dir, max_read_length,
+                    sample_name, expr_area, 'mouse', None, counts_dir, max_read_length,
                     count_max_length, window_size, multitest_signif_val,
                     run_record, test_run)
             
@@ -55,7 +56,7 @@ def get_collection(session, sample_name, counts_dir, max_read_length,
             print "Experiment type %s not supported" % sample_type
             
         if data_collection is not None:
-            data_collection.writeToFile(filename, as_table=tab_delimited)
+            data_collection.writeToFile(filename, as_table=tab_delimited, compress_file=True)
         else:
             sys.stderr.write('No data_collection was returned!\n')
     else:
@@ -77,11 +78,14 @@ if not samples:
     samples = [None]
 
 script_info = {}
-script_info['title'] = 'Saves TSS centred counts'
-script_info['script_description'] = 'Saves centred counts from a sample for a given window size'
+script_info['title'] = 'Saves feature centred counts'
+script_info['script_description'] = 'Saves centred counts for TSS and '\
+        'Exon-3prime, Intron-3prime or Exon 3&5-prime boundaries for a '\
+        'given window size'
 script_info['version'] = __version__
 script_info['authors'] = __author__
-script_info['output_description']= 'Generates either a compressed file that can be used for plotting of subsets of genes'
+script_info['output_description']= 'Generates a Pickle file or a gzipped '\
+        'tab-delimited file that can be used for plotting of subsets of genes'
 
 # options organisation
 
@@ -96,8 +100,12 @@ external_genes ='External gene list'
 
 opt_sample_type = make_option('-y', '--sample_type', type='choice',
         choices=[exp_absolute, exp_diff, external_genes],
-            help='Select the type of data you want entered from %s' % \
+        help='Select the type of data you want entered from %s' % \
                 str([exp_absolute, exp_diff, external_genes]))
+
+opt_expression_area = make_option('-e', '--expression_area', type='choice',
+        choices=['TSS', 'Exon_3p', 'Intron_3p', 'Both_3p'], help='Expression '\
+                'area options: TSS, Exon_3p, Intron-3p, Both-3p')
 
 # essential source files
 opt_counts_dir = make_option('-r', '--counts_dir',
@@ -137,7 +145,7 @@ opt_test_run = make_option('-t', '--test_run', action='store_true',
 # adding into the main script_info dictionary required for correct processing
 # via command-line or PyCogent.app
 script_info['required_options'] = [opt_sample, opt_counts_dir, opt_save,
-                                   opt_sample_type]
+                                   opt_sample_type, opt_expression_area]
 
 run_opts = [opt_overwrite, opt_tab_delimited, opt_test_run]
 sampling_opts = [opt_read_length, opt_count_max_length, opt_window,
@@ -170,11 +178,12 @@ def main():
         raise RuntimeError('multitest_signif_val is not -1, 0, 1 or None. Halting execution.')
 
     if sample_type == exp_absolute or exp_diff:
-        data_collection, rr = get_collection(session, sample_name, counts_dirs,
-                      opts.max_read_length, opts.count_max_length,
-                      opts.window_size, opts.multitest_signif_val,
-                      opts.collection, opts.overwrite, opts.sample_type,
-                      opts.tab_delimited, run_record=None, test_run=opts.test_run)
+        data_collection, rr = get_collection(session, sample_name,
+                opts.expression_area, counts_dirs, opts.max_read_length,
+                opts.count_max_length, opts.window_size,
+                opts.multitest_signif_val, opts.collection, opts.overwrite,
+                opts.sample_type, opts.tab_delimited, run_record=None,
+                test_run=opts.test_run)
 
     else:
         print 'Other options not defined yet, choose from %s '\

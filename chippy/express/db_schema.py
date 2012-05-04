@@ -242,7 +242,7 @@ class Gene(Base):
             start, end = tss, tss+size
         return start, end
     
-    def getExon3primeAll(self, size):
+    def getAllExon3primeWindows(self, size):
         """returns all exon coords centred on 3' boundary"""
         if len(self.ExonCoordsByRank) == 1:
             return None
@@ -254,7 +254,7 @@ class Gene(Base):
             coords.append((end-size, end+size))
         return coords
 
-    def getIntron3primeAll(self, size):
+    def getAllIntron3primeWindows(self, size):
         """returns all intron coords centred on 3' boundary"""
         if len(self.IntronCoordsByRank) == 0:
             return None

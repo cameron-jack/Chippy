@@ -156,18 +156,20 @@ class RegionCollection(_GenericCollection):
         out_table = LoadTable(header=header, rows=save_data, sep='\t')
         return out_table
 
-    def writeToFile(self, filename, as_table=False):
-        """writes a gzipped .npy formatted data store"""
+    def writeToFile(self, filename, as_table=False, compress_file=False):
+        """writes a gzipped .npy formatted data store or tab-delimited file"""
         if as_table == False:
-            outfile = gzip.GzipFile(filename, 'w')
+            outfile = gzip.GzipFile(filename, 'wb')
             save_data = dict(counts=self.counts, ranks=self.ranks,
-                             labels=self.labels, info=self.info)
+                            labels=self.labels, info=self.info)
             numpy.save(outfile, save_data)
             outfile.close()
         else:
+            # form as table and write to compressed file with Cogent
             out_table = self.toTable()
-            out_table.writeToFile(filename, sep='\t')
-    
+            out_table.writeToFile(filename, sep='\t', compress=compress_file)
+            # file is closed by writeToFile call
+
     def _load(self, filename):
         """loads attributes from a gzipped, .npy data structure or a tab delimited
         cogent table"""

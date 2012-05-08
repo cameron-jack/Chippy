@@ -173,19 +173,40 @@ class RegionCollection(_GenericCollection):
     def _load(self, filename):
         """loads attributes from a gzipped, .npy data structure or a tab delimited
         cogent table"""
-        infile = gzip.GzipFile(filename, 'r')
-        data = numpy.load(infile)
-        infile.close()
-        
-        # remember numpy.load() returns and array object
-        # numpy.load().tolist() returns a dict ... wtf !
-        
-        data = data.tolist()
-        for name in data:
-            value = data[name]
-            self.__dict__[name] = value
-            if name == 'ranks' and value is not None:
-                self.__dict__[name] = value.astype(float)
+        try:
+            infile = gzip.GzipFile(filename, 'r')
+            data = numpy.load(infile)
+            infile.close()
+
+            # remember numpy.load() returns and array object
+            # numpy.load().tolist() returns a dict ... wtf !
+            data = data.tolist()
+            for name in data:
+                value = data[name]
+                self.__dict__[name] = value
+                if name == 'ranks' and value is not None:
+                    self.__dict__[name] = value.astype(float)
+
+        except Exception as e:
+            print "Trying to load from table"
+            data = LoadTable(filename, sep='\t')
+
+            # convert table to collection here.
+            ls = []
+            rs = []
+            cs = []
+            for row in data.getRawData():
+                l =numpy.unicode(row[0])
+                r = numpy.float(row[1])
+                c = numpy.array(row[2:len(row)], dtype=numpy.int)
+
+                ls.append(l)
+                rs.append(r)
+                cs.append(c)
+
+            self.labels = numpy.array(ls)
+            self.ranks = numpy.array(rs)
+            self.counts = numpy.array(cs)
         
         self.N = self.counts.shape[0]
     

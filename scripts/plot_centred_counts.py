@@ -142,7 +142,10 @@ def _filter_collection(data_collection, cutoff, external_sample, stable_ids, rr)
     total_gene = data_collection.ranks.max() # used to normalise colouring
     data_collection.ranks /= total_gene
 
-    window_size = data_collection.info['args']['window_size']
+    try:
+        window_size = data_collection.info['args']['window_size']
+    except KeyError:
+        window_size = len(data_collection.counts[0])/2
 
     return data_collection, window_size, rr
 

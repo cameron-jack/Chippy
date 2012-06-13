@@ -76,14 +76,18 @@ def _auto_yaxis(counts, ranks, test_run):
     num_range = len(counts)
     ymaxs = []
     ymins = []
-    for i in range(num_range):
-        if ranks is not None:
-            y = counts[i]
-        else:
-            y = counts
 
-        ymaxs.append(max(y))
-        ymins.append(min(y))
+    for i in range(num_range):
+        if type(counts[i]) == numpy.float64:
+            ymaxs.append(counts[i])
+            ymins.append(counts[i])
+        else:
+            if ranks is not None:
+                y = counts[i]
+            else:
+                y = counts
+            ymaxs.append(max(y))
+            ymins.append(min(y))
 
     ymax = max(ymaxs)
     ymin = min(ymins)
@@ -143,10 +147,11 @@ def _filter_collection(data_collection, cutoff, external_sample, stable_ids, rr)
     data_collection.ranks /= total_gene
 
     try:
-        window_size = data_collection.info['args']['window_size']
+        window_size = data_collection.info['args']['window_size']        
     except KeyError:
-        window_size = len(data_collection.counts[0])/2
-
+        print 'No info tags'
+        window_size = len(data_collection.counts[0])/2  
+    
     return data_collection, window_size, rr
 
 def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plot_series, rr):
@@ -408,6 +413,8 @@ def main():
         file = file.replace('_', ' ')
         filenames_set.append(file)
 
+    print 'collection filename set size: %d' % len(collection_file_names)
+
     window_size_set = []
     data_collection_set = []
     if opts.metric == 'Mean counts':
@@ -455,7 +462,7 @@ def main():
     if len(window_size_set) == 0:
         raise RuntimeError('No valid data files loaded')
 
-    window_size = max(window_size_set)
+    window_size = min(window_size_set)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Max window size', window_size)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Total data collections',
                   len(data_collection_set))
@@ -620,6 +627,7 @@ def main():
 
         if not opts.legend:
             labels_set = None
+
         plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
             alpha=opts.line_alpha, xlabel=opts.xlabel,

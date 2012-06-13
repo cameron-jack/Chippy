@@ -1,7 +1,8 @@
 from sqlalchemy import and_
 from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-
+import pickle
+import gzip
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 from cogent.util.misc import flatten
@@ -135,7 +136,9 @@ def get_stable_id_genes_mapping(session):
     ensembl_id_genes = dict([(g.ensembl_id, g) for g in genes])
     return ensembl_id_genes
 
-def get_ranked_expression(session, sample_name, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
+def get_ranked_expression(session, sample_name, biotype='protein_coding',
+        data_path=None, include_genes=None, exclude_genes=None, rank_by='mean',
+        test_run=False):
     """returns all ranked genes from a sample"""
     query = get_gene_expression_query(session, sample_name,
                     data_path=data_path, test_run=test_run)
@@ -144,13 +147,37 @@ def get_ranked_expression(session, sample_name, biotype='protein_coding', data_p
         query = query.filter(Gene.biotype==biotype)
     
     records = query.all()
-    
+
     genes = []
     for expressed in records:
         gene = expressed.gene
         gene.Scores = expressed.scores
         genes.append(gene)
-    
+
+    #print 'Number of genes found in DB: %d' % len(genes)
+
+    # 'include-file' code
+    if include_genes is not None:
+        try:
+            includeFile = gzip.GzipFile(include_genes, 'rb')
+            includeList = pickle.load(includeFile)
+
+            includeSet = set(includeList)
+            final_genes = []
+            for gene in genes:
+                ensembl_id_list = [gene.ensembl_id]
+                if len(includeSet.intersection(set(ensembl_id_list))) > 0:
+                    final_genes.append(gene)
+            genes = final_genes
+            #print 'Genes in common with included-gene list: %d' % len(genes)
+
+        except IOError:
+            print 'Failed to load include-gene file: %s' % str(include_genes)
+    #else:
+    #    print 'Getting counts from all genes in study: %d' % len(genes)
+
+    #TODO: 'exclude-genes'
+
     # set rank
     if rank_by.lower() == 'mean':
         scored = [(g.MeanScore, g) for g in genes]
@@ -159,15 +186,18 @@ def get_ranked_expression(session, sample_name, biotype='protein_coding', data_p
     else:
         raise NotImplementedError
     
+    # Make sure we get highest first
     scored = reversed(sorted(scored))
     genes = []
     for rank, (score, gene) in enumerate(scored):
         gene.Rank = rank + 1
         genes.append(gene)
-    
+
     return genes
 
-def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None, biotype='protein_coding', data_path=None, rank_by='mean', test_run=False):
+def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
+        biotype='protein_coding', data_path=None, include_genes=None,
+        exclude_genes=None, rank_by='mean', test_run=False):
     """returns all ranked genes from a sample difference experiment"""
     query = get_gene_expression_diff_query(session, sample_name,
             data_path=data_path,multitest_signif_val=multitest_signif_val,
@@ -184,6 +214,29 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None, 
         gene.Scores = expressed_diff.fold_changes
         genes.append(gene)
 
+    # 'include-file' code
+    if include_genes is not None:
+        try:
+            # Should be a pickled list of unicode gene_ids
+            includeFile = gzip.GzipFile(include_genes, 'rb')
+            includeList = pickle.load(includeFile)
+
+            includeSet = set(includeList)
+            final_genes = []
+            for gene in genes:
+                ensembl_id_list = [gene.ensembl_id]
+                # if it intersects then keep it
+                if len(includeSet.intersection(set(ensembl_id_list))) > 0:
+                    final_genes.append(gene)
+            genes = final_genes
+        except IOError:
+            print 'Failed to load include-gene file: %s' % str(include_genes)
+    #else:
+    #    print 'No include-gene list given'
+    #    print 'Getting counts from all genes in study: %d' % len(genes)
+
+    #TODO 'exclude-genes'
+
     # set rank
     if rank_by.lower() == 'mean':
         scored = [(g.MeanScore, g) for g in genes]
@@ -192,6 +245,7 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None, 
     else:
         raise NotImplementedError
 
+    # Make sure we get highest first
     scored = reversed(sorted(scored))
     genes = []
     for rank, (score, gene) in enumerate(scored):
@@ -324,4 +378,3 @@ def diff_expression_study(session, sample_name, data_path, table,
         'notice', 'Database population errors', dberror)
     
     return run_record, full_log
-

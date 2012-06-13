@@ -31,8 +31,9 @@ __version__ = '0.1'
 
 # TODO: fix hard-wiring to Mouse
 def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
-        count_max_length, window_size, multitest_signif_val, filename,
-        overwrite, sample_type, tab_delimited, run_record=None, test_run=False):
+        count_max_length, window_size, multitest_signif_val, filename, overwrite,
+        sample_type, tab_delimited, include_genes=None, exclude_genes=None,
+        run_record=None, test_run=False):
 
     if run_record is None:
         run_record = RunRecord()
@@ -42,15 +43,16 @@ def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
         if sample_type == 'Expression data: absolute ranked':
             print "Collecting data for absolute expression experiment"
             data_collection, run_record = centred_counts_for_genes(session,
-                    sample_name, expr_area, 'mouse', None, counts_dir, max_read_length,
-                    count_max_length, window_size, run_record, test_run)
+                    sample_name, expr_area, 'mouse', None, counts_dir,
+                    max_read_length, count_max_length, window_size,
+                    include_genes, exclude_genes, run_record, test_run)
         
         elif sample_type == 'Expression data: difference in expression between samples':
             print "Collecting data for difference expression experiment"
             data_collection, run_record = centred_diff_counts_for_genes(session,
                     sample_name, expr_area, 'mouse', None, counts_dir, max_read_length,
-                    count_max_length, window_size, multitest_signif_val,
-                    run_record, test_run)
+                    count_max_length, window_size, multitest_signif_val, include_genes,
+                    exclude_genes, run_record, test_run)
             
         else:
             print "Experiment type %s not supported" % sample_type
@@ -135,6 +137,13 @@ opt_multitest_signif = make_option('-m', '--multitest_signif_val', type='int',
         help='Restrict plot to genes that pass multitest signficance,'\
         'valid values: 1, 0, -1', default=None)
 
+opt_include_genes = make_option('--include_genes', type='string', default=None,
+        help='Path to pickle.gz file of ensembl gene ids that will be the '\
+        'only genes included in the study')
+opt_exclude_genes = make_option('--exclude_genes', type='string', default=None,
+        help='Path to pickle.gz file of ensembl gene ids that will be '\
+        'specifically excluded from study')
+
 #optional output
 opt_tab_delimited = make_option('-d', '--tab_delimited', action='store_true',
         help='output to tab delimited format', default=False)
@@ -149,12 +158,12 @@ script_info['required_options'] = [opt_sample, opt_counts_dir, opt_save,
 
 run_opts = [opt_overwrite, opt_tab_delimited, opt_test_run]
 sampling_opts = [opt_read_length, opt_count_max_length, opt_window,
-                 opt_multitest_signif]
+        opt_include_genes, opt_exclude_genes, opt_multitest_signif]
 
 script_info['optional_options'] = run_opts+sampling_opts
 
 script_info['optional_options_groups'] = [('Run control', run_opts),
-                                  ('Sampling', sampling_opts)
+        ('Sampling', sampling_opts)
                                   ]
 
 def main():
@@ -182,8 +191,8 @@ def main():
                 opts.expression_area, counts_dirs, opts.max_read_length,
                 opts.count_max_length, opts.window_size,
                 opts.multitest_signif_val, opts.collection, opts.overwrite,
-                opts.sample_type, opts.tab_delimited, run_record=None,
-                test_run=opts.test_run)
+                opts.sample_type, opts.tab_delimited, opts.include_genes,
+                opts.exclude_genes, run_record=None, test_run=opts.test_run)
 
     else:
         print 'Other options not defined yet, choose from %s '\

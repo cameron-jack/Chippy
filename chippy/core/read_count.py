@@ -228,5 +228,4 @@ def get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length, count
                 chrom = counts + chrom
 
     # Now combine counts from all BEDs
-    
     return chrom

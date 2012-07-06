@@ -284,8 +284,7 @@ class RawPlotData(object):
 
         return rr
 
-def load_sample_genes(session, diff_sample, sample, sample_extremes,
-        groups_dict, rr):
+def load_sample_genes(session, diff_sample, sample, sample_extremes, rr):
     """ load all portions of diffs into a dict with keys:
     diff_plus1, diff_noSig, diff_minus1, sample_bot, sample_mid, sample_top """
 
@@ -561,10 +560,10 @@ def main():
     # Should do number restrictions in load step
     # Load all genes into RawPlotData object
     raw_plot_data1, rr = load_sample_genes(session, opts.diff_sample,
-            opts.sample1, opts.sample_extremes, groups_dict, rr)
+            opts.sample1, opts.sample_extremes, rr)
 
     raw_plot_data2, rr = load_sample_genes(session, opts.diff_sample,
-            opts.sample2, opts.sample_extremes, groups_dict, rr)
+            opts.sample2, opts.sample_extremes, rr)
 
     session.close() # End DB session now data had been loaded
 

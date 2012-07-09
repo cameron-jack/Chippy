@@ -11,7 +11,7 @@ from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
 from chippy.express.db_schema import Gene, Exon, \
-            ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
+            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.express.db_query import  get_stable_id_genes_mapping
 from chippy.ref.util import chroms
@@ -335,7 +335,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     return run_record
 
-def add_external_genes(session, sample_name, data_path, table,
+def add_target_genes(session, sample_name, data_path, table,
         ensembl_id_label='ENSEMBL', run_record=None):
     """adds Expression instances into the database from table
 
@@ -358,7 +358,7 @@ def add_external_genes(session, sample_name, data_path, table,
         reffile.sample = sample
         data.append(reffile)
     else: # Don't overwrite anything, exit instead
-        run_record.addWarning('add_external_genes', 'File already loaded', data_path)
+        run_record.addWarning('add_target_genes', 'File already loaded', data_path)
         run_record.display()
         sys.exit(-1)
         #reffile = reffile[0]
@@ -366,15 +366,15 @@ def add_external_genes(session, sample_name, data_path, table,
     ensembl_ids = table.getRawData(ensembl_id_label)
     genes = session.query(Gene).filter(Gene.ensembl_id.in_(ensembl_ids)).all()
     for num_genes, gene in enumerate(genes):
-        external = ExternalGene()
-        external.gene = gene
-        external.reference_file = reffile
-        external.sample = sample
-        data.append(external)
+        target = TargetGene()
+        target.gene = gene
+        target.reference_file = reffile
+        target.sample = sample
+        data.append(target)
 
-    run_record.addMessage('add_external_genes', LOG_INFO,
-            'Added external genes from', data_path)
-    run_record.addMessage('add_external_genes', LOG_INFO,
+    run_record.addMessage('add_target_genes', LOG_INFO,
+            'Added target genes from', data_path)
+    run_record.addMessage('add_target_genes', LOG_INFO,
             'No. genes added', num_genes+1)
     session.add_all(data)
     session.commit()

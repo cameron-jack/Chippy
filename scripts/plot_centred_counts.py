@@ -30,9 +30,9 @@ __status__ = 'alpha'
 __version__ = '0.1'
 
 def make_sample_choices(session):
-    """returns the available choices for external gene samples"""
+    """returns the available choices for target gene samples"""
     samples = ['%s : %s' % (s.name, s.description)
-        for s in db_query.get_external_sample(session)]
+        for s in db_query.get_target_sample(session)]
     samples.insert(0, None)
     return samples
 
@@ -124,14 +124,14 @@ def _auto_yaxis(counts, ranks, test_run):
         print 'Setting Y-grid-line spacing: %e' % grid_lines
     return ylim, grid_lines
 
-def _filter_collection(data_collection, cutoff, external_sample, stable_ids, rr):
+def _filter_collection(data_collection, cutoff, target_sample, stable_ids, rr):
     # exclude outlier genes using one-sided Chebyshev
     if cutoff < 0 or cutoff > 1:
         raise RuntimeError('The cutoff must be between 0 and 1')
 
     rr.addMessage('plot_centred_counts._filter_collection', LOG_INFO,
         'Starting no. of genes', data_collection.N)
-    if external_sample is None:
+    if target_sample is None:
         data_collection = data_collection.filteredChebyshevUpper(p=cutoff)
         rr.addMessage('plot_centred_counts._filter_collection', LOG_INFO,
             'Used Chebyshev filter cutoff', cutoff)
@@ -203,7 +203,7 @@ else:
                        'that indicates where to find the database')
 
 session = db_query.make_session('sqlite:///%s' % db_path)
-samples = db_query.get_external_sample(session)
+samples = db_query.get_target_sample(session)
 
 script_info = {}
 script_info['title'] = 'Plot read counts heat-mapped by gene expression'
@@ -231,11 +231,11 @@ opt_chroms = make_option('-C', '--chrom', type='choice', default='All',
                help='Choose a chromosome [default: %default]',
                choices=('All',)+chroms['mouse'])
 
-# or external sample (gene) choice
-opt_extern = make_option('-E', '--external_sample', type='choice', 
+# or target sample (gene) choice
+opt_target = make_option('-T', '--target_sample', type='choice',
             default=None,
             choices=make_sample_choices(session),
-            help='External sample')
+            help='Target sample')
 
 # essential plotting information
 opt_grp_size = make_option('-g', '--group_size', type='string', default='All',
@@ -327,7 +327,7 @@ opt_test_run = make_option('-t', '--test_run',
 script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
-sampling_opts = [opt_grp_size, opt_extern, opt_chroms, opt_cutoff,
+sampling_opts = [opt_grp_size, opt_target, opt_chroms, opt_cutoff,
                  opt_topgenes, opt_smoothing]
 save_opts = [opt_plot_filename]
 series_opts = [opt_plotseries, opt_txt_coords]
@@ -365,12 +365,12 @@ def main():
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'using metric', opts.metric)
     
-    external_sample = get_sample_name(opts.external_sample)
+    target_sample = get_sample_name(opts.target_sample)
     stable_ids = None
-    if external_sample is not None:
+    if target_sample is not None:
         rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Using an external sample', external_sample)
-        genes = db_query.get_external_genes(session, external_sample)
+            'Using an target sample', target_sample)
+        genes = db_query.get_target_genes(session, target_sample)
         stable_ids = [g.ensembl_id for g in genes]
     elif opts.chrom != 'All':
         rr.addMessage('plot_centred_counts', LOG_INFO,
@@ -424,7 +424,7 @@ def main():
             data_collection = RegionCollection(filename=collection_file)
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, external_sample=external_sample,
+                    cutoff=opts.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
@@ -437,7 +437,7 @@ def main():
             data_collection = data_collection.asfreqs()
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, external_sample=external_sample,
+                    cutoff=opts.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
@@ -449,7 +449,7 @@ def main():
             data_collection = RegionCollection(filename=collection_file)
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, external_sample=external_sample,
+                    cutoff=opts.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)

@@ -411,10 +411,10 @@ class ExpressionDiff(Base):
             (self.probesets, self.probability, self.multitest_signif)
 
 
-class ExternalGene(Base):
-    """a gene of interest identified by an external source"""
-    __tablename__ = 'external_gene'
-    external_gene_id = Column(Integer, primary_key=True)
+class TargetGene(Base):
+    """a gene of interest without expression info"""
+    __tablename__ = 'target_gene'
+    target_gene_id = Column(Integer, primary_key=True)
     
     rank = Column(Integer)
     
@@ -424,11 +424,11 @@ class ExternalGene(Base):
             ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
-                backref=backref('external_genes', order_by=external_gene_id))
+                backref=backref('target_genes', order_by=target_gene_id))
     gene = relationship(Gene,
-                backref=backref('external_gene', order_by=external_gene_id))
+                backref=backref('target_gene', order_by=target_gene_id))
     reference_file = relationship(ReferenceFile,
-                backref=backref('external_genes', order_by=external_gene_id))
+                backref=backref('target_genes', order_by=target_gene_id))
     
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                     name='unique'), {})

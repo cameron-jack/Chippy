@@ -8,7 +8,7 @@ from cogent.util.progress_display import display_wrap
 from cogent.util.misc import flatten
 
 from chippy.express.db_schema import Gene, Exon, \
-            ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
+            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
@@ -100,9 +100,9 @@ def get_samples(session):
     samples = session.query(Sample).all()
     return samples
 
-def get_external_sample(session):
-    """returns samples for external genes"""
-    query = session.query(Sample).join(ExternalGene).distinct()
+def get_target_sample(session):
+    """returns samples for target genes"""
+    query = session.query(Sample).join(TargetGene).distinct()
     return query.all()
 
 def get_genes(session, chrom=None, biotype='protein_coding', stable_ids=None):
@@ -273,15 +273,15 @@ def get_diff_ranked_genes_per_chrom(session, sample_name, multitest_signif_val, 
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
-def get_external_genes(session, external_gene_sample_name, test_run=False):
-    """returns external genes, not ranked"""
-    external_sample = _get_sample(session, external_gene_sample_name)
-    if not external_sample:
-        raise RuntimeError('No external_sample with name %s' % \
-                        external_gene_sample_name)
+def get_target_genes(session, target_gene_sample_name, test_run=False):
+    """returns target genes, not ranked"""
+    target_sample = _get_sample(session, target_gene_sample_name)
+    if not target_sample:
+        raise RuntimeError('No target_sample with name %s' % \
+                        target_gene_sample_name)
     
-    query = session.query(Gene).join(ExternalGene).\
-            filter(ExternalGene.sample_id==external_sample.sample_id)
+    query = session.query(Gene).join(TargetGene).\
+            filter(TargetGene.sample_id==target_sample.sample_id)
     return query
 
 def get_expression_diff_genes(session, sample_name, biotype='protein_coding',

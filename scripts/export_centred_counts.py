@@ -12,7 +12,7 @@ from cogent.util.misc import parse_command_line_parameters
 
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_diff_counts_for_genes,\
-            centred_counts_external_genes
+            centred_counts_target_genes
 from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from chippy.express.db_schema import make_session
@@ -98,12 +98,12 @@ opt_sample = make_option('-c', '--sample', type='choice',
 
 exp_absolute = 'Expression data: absolute ranked'
 exp_diff = 'Expression data: difference in expression between samples'
-external_genes ='External gene list'
+target_genes ='Target gene list'
 
 opt_sample_type = make_option('-y', '--sample_type', type='choice',
-        choices=[exp_absolute, exp_diff, external_genes],
+        choices=[exp_absolute, exp_diff, target_genes],
         help='Select the type of data you want entered from %s' % \
-                str([exp_absolute, exp_diff, external_genes]))
+                str([exp_absolute, exp_diff, target_genes]))
 
 opt_expression_area = make_option('-e', '--expression_area', type='choice',
         choices=['TSS', 'Exon_3p', 'Intron_3p', 'Both_3p'], help='Expression '\
@@ -138,8 +138,7 @@ opt_multitest_signif = make_option('-m', '--multitest_signif_val', type='int',
         'valid values: 1, 0, -1', default=None)
 
 opt_include_genes = make_option('--include_genes', type='string', default=None,
-        help='Path to pickle.gz file of ensembl gene ids that will be the '\
-        'only genes included in the study')
+        help='A Target Gene List in ChipPyDB')
 opt_exclude_genes = make_option('--exclude_genes', type='string', default=None,
         help='Path to pickle.gz file of ensembl gene ids that will be '\
         'specifically excluded from study')

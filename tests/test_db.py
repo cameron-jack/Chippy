@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from chippy.express.db_schema import Gene, Exon, \
-            ExternalGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
+            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             make_session
 from chippy.express.db_query import get_total_gene_counts, \
         get_ranked_expression, get_ranked_genes_per_chrom, get_genes,\
@@ -418,7 +418,7 @@ class TestExpression(TestDbBase):
         self.assertRaises(IntegrityError, self.session.commit)
     
 
-class TestExternalGene(TestDbBase):
+class TestTargetGene(TestDbBase):
     reffiles = [('file-1.txt', today),
                 ('file-2.txt', today)]
     
@@ -429,7 +429,7 @@ class TestExternalGene(TestDbBase):
     
     def setUp(self):
         """docstring for add_files_samples"""
-        super(TestExternalGene, self).setUp()
+        super(TestTargetGene, self).setUp()
         
         if not self.proccessed:
             add_all_gene_exons(self.session, TestGene.genes)
@@ -440,15 +440,15 @@ class TestExternalGene(TestDbBase):
         self.session.commit()
         self.proccessed = True
     
-    def test_unique_constraint_external(self):
-        """study external genes can only map to single genes"""
+    def test_unique_constraint_target(self):
+        """study target genes can only map to single genes"""
         gene = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         sample = self.session.query(Sample).filter_by(name='sample 1').one()
         reffile = self.session.query(ReferenceFile).filter_by(name='file-1.txt').one()
         data = []
         # adding multiple copies with same reffile and gene
         for i in range(2):
-            e = ExternalGene()
+            e = TargetGene()
             e.reference_file = reffile
             e.gene = gene
             e.sample = sample

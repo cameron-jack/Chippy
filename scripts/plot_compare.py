@@ -10,7 +10,7 @@ from cogent.util.misc import parse_command_line_parameters
 from cogent.maths.stats.jackknife import JackknifeStats
 
 from chippy.core.count_tags import centred_counts_for_genes,\
-            centred_counts_external_genes
+            centred_counts_target_genes
 from chippy.core.collection import RegionCollection, column_sum, column_mean
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableSingle
@@ -49,7 +49,7 @@ def averaged(data):
     return c
 
 session = db_query.make_session('sqlite:///%s' % db_path)
-samples = db_query.get_external_sample(session)
+samples = db_query.get_target_sample(session)
 
 script_info = {}
 script_info['title'] = 'Compare read counts between histone variants'

@@ -31,7 +31,7 @@ __status__ = 'beta'
 __version__ = '1.0'
 
 def _make_sample_choices(session):
-    """returns the available choices for external gene samples"""
+    """returns the available choices for gene samples"""
     samples = ['%s : %s' % (s.name, s.description)
             for s in db_query.get_samples(session)]
     if not samples:

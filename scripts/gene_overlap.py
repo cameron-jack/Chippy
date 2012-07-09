@@ -39,7 +39,7 @@ def get_sample_name(sample):
     return sample
 
 def _make_sample_choices(session):
-    """returns the available choices for external gene samples"""
+    """returns the available choices for target gene samples"""
     samples = ['%s : %s' % (s.name, s.description)
                for s in db_query.get_samples(session)]
     if not samples:
@@ -59,16 +59,16 @@ def _create_required(session):
 
     exp_absolute = 'Expression data: absolute ranked'
     exp_diff = 'Expression data: difference in expression between samples'
-    external_genes ='External gene list'
+    target_genes ='Target gene list'
     opt_sample1_type = make_option('-w', '--sample1_type', type='choice',
-            choices=[exp_absolute, exp_diff, external_genes],
+            choices=[exp_absolute, exp_diff, target_genes],
             help='Select the type of data you want entered from %s' %\
-            str([exp_absolute, exp_diff, external_genes]))
+            str([exp_absolute, exp_diff, target_genes]))
 
     opt_sample2_type = make_option('-x', '--sample2_type', type='choice',
-            choices=[exp_absolute, exp_diff, external_genes],
+            choices=[exp_absolute, exp_diff, target_genes],
             help='Select the type of data you want entered from %s' %\
-            str([exp_absolute, exp_diff, external_genes]))
+            str([exp_absolute, exp_diff, target_genes]))
 
     intersection_text = 'Intersection: the genes in common between samples'
     union_text = 'Union: the superset of all genes found in given samples'
@@ -98,11 +98,11 @@ def _create_extra_input_options(session):
 
     exp_absolute = 'Expression data: absolute ranked'
     exp_diff = 'Expression data: difference in expression between samples'
-    external_genes ='External gene list'
+    target_genes ='Target gene list'
     opt_sample3_type = make_option('-y', '--sample3_type', type='choice',
-            choices=[exp_absolute, exp_diff, external_genes],
+            choices=[exp_absolute, exp_diff, target_genes],
             help='Select the type of data you want entered from %s' %\
-            str([exp_absolute, exp_diff, external_genes]))
+            str([exp_absolute, exp_diff, target_genes]))
 
     opt_expression_sample1 = make_option('--expression_sample1',
             type='choice', default=None, help='Choose the expression study '\
@@ -257,7 +257,7 @@ def getExpressedGenes(session, sample, sample_type='Expression data: '\
                 data_path=None, rank_by='mean', test_run=False)
 
     else:
-        raise RuntimeError('External genes not implemented yet, or %d') % sample_type
+        raise RuntimeError('Target genes not implemented yet, or %d') % sample_type
 
     if not len(sample_genes):
         rr.addError('getExpressionIDs', 'Sample genes remaining', 0)

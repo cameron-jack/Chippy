@@ -12,7 +12,7 @@ from cogent import LoadTable
 from chippy.express.db_query import get_samples
 from chippy.express.db_populate import add_ensembl_gene_data, \
         add_expression_study, add_expression_diff_study, add_samples,\
-        ReferenceFile, add_external_genes, add_samples
+        ReferenceFile, add_target_genes, add_samples
 from chippy.express.db_schema import make_session
 from chippy.parse.r_dump import SimpleRdumpToTable
 
@@ -78,12 +78,12 @@ new_sample = make_option('-S','--new_sample',
 
 exp_absolute = 'Expression data: absolute ranked'
 exp_diff = 'Expression data: difference in expression between samples'
-external_genes ='External gene list'
+target_genes ='Target gene list'
 
 sample_type = make_option('-y', '--sample_type', type='choice',
-        choices=[exp_absolute, exp_diff, external_genes],
+        choices=[exp_absolute, exp_diff, target_genes],
             help='Select the type of data you want entered from %s' % \
-                str([exp_absolute, exp_diff, external_genes]))
+                str([exp_absolute, exp_diff, target_genes]))
 
 
 sample = [probeset_qc, existing_sample, new_sample, sample_type]
@@ -156,8 +156,8 @@ def main():
             ensembl_id_label=opts.gene_id_heading,
             expression_label=opts.expression_heading,
             prob_label='rawp', sig_label='sig', run_record=rr)
-    elif sample_type == external_genes:
-        rr = add_external_genes(session, name, opts.expression_data, data,
+    elif sample_type == target_genes:
+        rr = add_target_genes(session, name, opts.expression_data, data,
                     ensembl_id_label=opts.gene_id_heading, run_record=rr)
     else:
         raise RuntimeError('Unknown sample type')

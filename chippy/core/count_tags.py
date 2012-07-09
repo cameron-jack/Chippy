@@ -263,14 +263,13 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
 
     return data, run_record
 
-# TODO: get_external_genes_from_expression_study()
-def centred_counts_external_genes(session, external_genes_sample_name, 
+def centred_counts_target_genes(session, target_genes_sample_name, 
     sample_name, species, counts_dir, max_read_length,
     window_size):
-    """returns RegionCollection object for external gene list sample from
+    """returns RegionCollection object for target gene list sample from
     the sample_name"""
-    expressed = get_external_genes_from_expression_study(session,
-                external_genes_sample_name, sample_name)
+    expressed = get_target_genes_from_expression_study(session,
+                target_genes_sample_name, sample_name)
     chrom_names = chroms[species]
     expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
         counts_dir, chrom_names, max_read_length, window_size)

@@ -118,13 +118,18 @@ def main():
     
     if opts.new_sample not in (default_new_sample, None, ''):
         name, description = _get_name_description(opts.new_sample)
-        rr = add_samples(session, [(name, description)])
+        successes, rr = add_samples(session, [(name, description)])
+        # We try to added a single sample and fail
+        if len(successes) == 1 and successes[0] == False:
+            rr.display()
+            sys.exit(-1)
+
     elif opts.sample is None:
         raise RuntimeError('No sample specified')
     else:
         name, description = _get_name_description(opts.sample)
         rr = None
-    
+
     sample_type = opts.sample_type
     
     if sample_type in (exp_absolute, exp_diff):
@@ -135,10 +140,6 @@ def main():
                 run_record=rr)
     else:
         data = LoadTable(opts.expression_data, sep='\t')
-    
-    # TODO seems I should define constants for the headers and do a conversion
-    # on reading in. This would eliminate all the optional arguments for
-    # column labels
 
     if sample_type == exp_absolute:
         rr = add_expression_study(session, name, opts.expression_data, data,

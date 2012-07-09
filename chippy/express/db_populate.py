@@ -1,7 +1,7 @@
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
-import datetime
+import datetime, sys
 from sqlalchemy import create_engine, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
@@ -116,16 +116,19 @@ def add_samples(session, names_descriptions, run_record=None):
     """add basic sample type"""
     if run_record is None:
         run_record = RunRecord()
-    
+
+    successes = []
     for name, description in names_descriptions:
         sample = Sample(name, description)
         if not successful_commit(session, sample):
             run_record.addMessage('add_samples',
                 LOG_INFO, 'Sample already exists in db', name)
-            
+            successes.append(False)
             session.rollback()
-    
-    return run_record
+        else:
+            successes.append(True)
+
+    return successes, run_record
 
 
 @display_wrap
@@ -354,21 +357,25 @@ def add_external_genes(session, sample_name, data_path, table,
         reffile = ReferenceFile(data_path, today)
         reffile.sample = sample
         data.append(reffile)
-    else:
-        reffile = reffile[0]
+    else: # Don't overwrite anything, exit instead
+        run_record.addWarning('add_external_genes', 'File already loaded', data_path)
+        run_record.display()
+        sys.exit(-1)
+        #reffile = reffile[0]
     
     ensembl_ids = table.getRawData(ensembl_id_label)
     genes = session.query(Gene).filter(Gene.ensembl_id.in_(ensembl_ids)).all()
-    for gene in genes:
+    for num_genes, gene in enumerate(genes):
         external = ExternalGene()
         external.gene = gene
         external.reference_file = reffile
         external.sample = sample
         data.append(external)
+
     run_record.addMessage('add_external_genes', LOG_INFO,
             'Added external genes from', data_path)
     run_record.addMessage('add_external_genes', LOG_INFO,
-            'No. genes added', len(data))
+            'No. genes added', num_genes+1)
     session.add_all(data)
     session.commit()
     return run_record

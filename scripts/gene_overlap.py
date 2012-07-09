@@ -424,6 +424,8 @@ def main():
 
     # now save to file
     outfile = open(opts.genefile, 'w')
+    # Add the standard header so that we can import with add_expression_db.py
+    outfile.write('gene\n')
     for id in output_id_set:
         outfile.write(str(id)+'\n')
     outfile.close()

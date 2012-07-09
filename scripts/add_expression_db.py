@@ -49,14 +49,14 @@ probeset_qc = make_option('--allow_probeset_many_gene', action='store_true',
     default=False, help='Allow probesets that map to multiple genes')
 
 gene_id = make_option('-g','--gene_id_heading',
-        default='ENSEMBL',
-        help='Column containing the Ensembl gene stable ID')
+        default='gene',
+        help='Column containing the Ensembl gene stable ID [default: %default]')
 probesets = make_option('-p','--probeset_heading',
         default='probeset',
-        help='Column containing the probeset IDs')
+        help='Column containing the probeset IDs [default: %default]')
 exp_scores = make_option('-o','--expression_heading',
         default='exp',
-        help='Column containing the expression scores')
+        help='Column containing the expression scores [default: %default]')
 identifiers = [gene_id, probesets, exp_scores]
 
 _samples = get_samples(session)

@@ -31,6 +31,7 @@ def run_command(command, test=None):
 
 # The following external calls are supported (in the order they appear in this file):
 
+# get_read_count(caller, query_file, divisor, run_record, test)
 # run_blat(blat_adapters, query_file, psl_out, run_record, test)
 # run_fastx_clipper(blat_adapters, fastq_in_fn, fastq_out_fn, run_record, num_threads, test)
 # run_fastq_qual_trim(fastq_in_fn, fastq_out_fn, run_record, num_threads, test)
@@ -65,6 +66,34 @@ def run_command(command, test=None):
 # convert_sorted_bam_to_filtered_bam(bam_in_fn, bam_out_fn, run_record, test)
 # convert_bam_to_compressed_bed(bam_in_fn, bed_out_fn, run_record, test)
 
+def get_read_count(caller, query_file, divisor, run_record, test=False):
+    """ run wc -l and divide the result by the filetype divisor to get the
+    read count """
+
+    command = "wc -l %s" % query_file
+    if test:
+        print "=== The command ==="
+        print command
+        return
+    start = time.time()
+    returncode, stdout, stderr = run_command(command, test)
+    end = time.time()
+    run_record.addMessage(program_name=command,
+            error_type=LOG_INFO, message='Time taken (mins)',
+            value=((end-start)/60.))
+    try:
+        line_count = int(stdout.split()[0])
+        read_count = line_count / divisor
+        run_record.addInfo(program_name=caller, message='read count',
+                value=read_count)
+    except ValueError:
+        run_record.addError(program_name=caller, message='read count',
+                value='Failed')
+
+    if stderr:
+        print
+        print ''.join(stderr)
+    return run_record
 
 def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     """run blat to remove adapter sequences"""
@@ -76,7 +105,7 @@ def run_blat(blat_adapters, query_file, psl_out, run_record, test):
     start = time.time()
     returncode, stdout, stderr = run_command(command, test)
     end = time.time()
-    run_record.addMessage(program_name='blat',
+    run_record.addMessage(program_name=command,
             error_type=LOG_INFO, message='Time taken (mins)',
             value=((end-start)/60.))
     if stdout:
@@ -858,13 +887,10 @@ def convert_bam_to_sorted_bam(bam_in_fn, sorted_bam_out_fn, memory_limit, run_re
 
     return run_record
 
-def convert_sorted_bam_to_filtered_bed(bam_in_fn, bed_out_fn, run_record, test):
+def dedup_filtered_bam(bam_in_fn, bed_out_fn, run_record, test):
     """Converts a sorted BAM file to BED format removing unmapped reads and PCR duplicates.
        Requires Samtools and Bamtools"""
-    command = "samtools view -h -F 4 %s | awk '$1~/@SQ/ || $1~/@PG/ || $1~/@RG/ || (($2~/83/ " \
-            "|| $2~/147/ || $2~/99/ || $2~/163/) && $5>20)' " \
-            "| samtools view -Sb - | samtools rmdup - - | bamtools convert -format bed "\
-            "-in - -out %s" % (bam_in_fn, bed_out_fn)
+    command = 'samtools rmdup %s %s' % (bam_in_fn, bed_out_fn)
     if test:
         print "=== The command ==="
         print command
@@ -886,11 +912,13 @@ def convert_sorted_bam_to_filtered_bed(bam_in_fn, bed_out_fn, run_record, test):
         print ''.join(stderr)
     return run_record
 
-def convert_sorted_bam_to_filtered_bam(bam_in_fn, bam_out_fn, run_record, test):
-    """Removes unmapped reads and PCR duplicates. Requires Samtools and Bamtools"""
+
+
+def filter_sorted_bam(bam_in_fn, bam_out_fn, run_record, test):
+    """Removes unmapped and poorly mapped reads . Requires Samtools and awk"""
     command = "samtools view -h -F 4 %s | awk '$1~/@SQ/ || $1~/@PG/ || $1~/@RG/ || (($2~/83/ "\
-              "|| $2~/147/ || $2~/99/ || $2~/163/) && $5>20)' "\
-              "| samtools view -Sb - | samtools rmdup - %s" % (bam_in_fn, bam_out_fn)
+              "|| $2~/147/ || $2~/99/ || $2~/163/) && $5>10)' "\
+              "| samtools view -Sb - > %s" % (bam_in_fn, bam_out_fn)
     if test:
         print "=== The command ==="
         print command

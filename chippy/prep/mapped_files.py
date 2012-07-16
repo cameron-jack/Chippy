@@ -122,6 +122,7 @@ class MappedSangerFiles:
         # Run bwa sampe and save bam
         # Sort bam - unsorted to sorted
         # Filter bam - sorted to filtered
+        # Dedup bam - filtered to deduplicated
         # Convert BAM to BED (for ChipPy)
 
         # keep the full path in case needed throughout code
@@ -168,28 +169,41 @@ class MappedSangerFiles:
             # .sai is the bwa index file
             self.sai_fn = self.unzipped_fq_fn.replace('.fq', '.sai')
             # .unsorted.bam from bwa sampe
-            self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.unsorted.bam'))
-            # .filtered.bam for ChipPy - handy to check against
-            self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fq', '.filtered.bam'))
+            self.unsorted_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fq', '.unsorted.bam'))
+            # .filtered.bam for ChipPy - keep just good quality paired-end mappings
+            self.filtered_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fq', '.filtered.bam'))
+            # .filtered.bam for ChipPy - as filtered.bam but with PCR deduplication of reads performed.
+            self.filtered_dedup_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fq', '.filtered_dedup.bam'))
         elif self.unzipped_fq_fn.endswith('.fastq'):
             # .sai is the bwa index file
             self.sai_fn = self.unzipped_fq_fn.replace('.fastq', '.sai')
             # .unsorted.bam from bwa sampe
-            self.unsorted_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fastq', '.unsorted.bam'))
-            # .filtered.bam for ChipPy - handy to check against
-            self.filtered_bam_fn = make_unified_fn(self.unzipped_fq_fn.replace('.fastq', '.filtered.bam'))
+            self.unsorted_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fastq', '.unsorted.bam'))
+            # .filtered.bam - keep just good quality paired-end mappings
+            self.filtered_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fastq', '.filtered.bam'))
+            # .filtered_dedup.bam - as filtered.bam but with PCR deduplication of reads performed.
+            self.filtered_dedup_bam_fn = make_unified_fn(
+                    self.unzipped_fq_fn.replace('.fastq', '.filtered_dedup.bam'))
         else:
-            print "In mapped_sanger_files, unrecognised filename extension for %s" % (self.unzipped_fq_fn)
+            print 'In mapped_sanger_files, unrecognised filename extension '\
+                    'for %s' % self.unzipped_fq_fn
             exit(0)
 
         ## Save_dir names below
 
         if self.unzipped_fq_fn.endswith('.fq'):
             # .sorted.bam is to be kept for all projects
-            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fq', '.sorted.bam')))
+            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' +\
+                    (fastq_fn_only_no_zip.replace('.fq', '.sorted.bam')))
         elif self.unzipped_fq_fn.endswith('.fastq'):
             # .sorted.bam is to be kept for all projects
-            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' + (fastq_fn_only_no_zip.replace('.fastq', '.sorted.bam')))
+            self.sorted_bam_fn = make_unified_fn(self.save_dn + '/' +\
+                    (fastq_fn_only_no_zip.replace('.fastq', '.sorted.bam')))
 
         # .sam is the final bwa output in tab delimited format - DEPRECATED
         self.sam_fn = self.sorted_bam_fn.replace('.sorted.bam','.sam')

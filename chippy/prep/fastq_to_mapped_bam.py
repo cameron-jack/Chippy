@@ -68,7 +68,7 @@ script_info['optional_options'] = [\
                 help='Deletes the working dir at the end of the run'
                 +' [default: %default]'),
     make_option('-r', '--reduce', action='store_true', default = False,
-                help='Finish with ChIP-Seq reduction step to old format'
+                help='Finish with ChIP-Seq reduction step to BED'
                 +' [default: %default]'),
     make_option('-I', '--Illumina_version', default=1.7,
                 help='Illumina pipeline version number'
@@ -128,6 +128,7 @@ def main():
         unified_fns = dict(unsorted=mapped_files_1.unsorted_bam_fn,
                 sorted=mapped_files_1.sorted_bam_fn,
                 filtered=mapped_files_1.filtered_bam_fn,
+                filtered_dedup=mapped_files_1.filtered_dedup_bam_fn,
                 bed=mapped_files_1.bed_fn,
                 work_dir=mapped_files_1.working_dn,
                 run_record=mapped_files_1.run_record_fn)
@@ -139,8 +140,8 @@ def main():
         sys.exit(0)
 
     # Make sure we don't overwrite any existing output BAM file
-    if not opts.reduce and os.path.exists(filenames_1['bam']):
-            rr.addInfo('fastq_to_mapped_bam', 'already exists, exiting', filenames_1['bam'])
+    if not opts.reduce and os.path.exists(unified_fns['sorted']):
+            rr.addInfo('fastq_to_mapped_bam', 'already exists, exiting', unified_fns['sorted'])
             rr.display()
             sys.exit(0)
 
@@ -218,7 +219,12 @@ def main():
                 rr.addError('fastq_to_mapped_bam', 'unrecognised filename extension', opts.input_file_2)
 
         if opts.begin <= 2 and opts.end >= 2:
-            # Don't worry about 5' adapter clipping for Hi-Seq, though we might want to think about 3' adapters in future
+            # Don't worry about 5' adapter clipping for Hi-Seq
+
+            rr = command_line.get_read_count('Raw reads',
+                    filenames_1['unzipped'], 4, rr, opts.test_run)
+            rr = command_line.get_read_count('Raw reads',
+                    filenames_2['unzipped'], 4, rr, opts.test_run)
 
             # Remove low quality bases with DynamicTrim (SolexaQA)
             rr = command_line.run_dynamic_trim(filenames_1['unzipped'], unified_fns['work_dir'],
@@ -232,6 +238,11 @@ def main():
             rr = command_line.run_sickle_pe(filenames_1['trimmed'], filenames_2['trimmed'],
                         filenames_1['pristine'], filenames_2['pristine'],
                         min_length, rr, opts.test_run)
+            # How many reads left after quality checking
+            rr = command_line.get_read_count('Pristine reads',
+                    filenames_1['pristine'], 4, rr, opts.test_run)
+            rr = command_line.get_read_count('Pristine reads',
+                    filenames_2['pristine'], 4, rr, opts.test_run)
 
     else:
         rr.addError('fastq_to_mapped_bam', 'Invalid Illumina pipeline given. v1.3+ supported',
@@ -268,21 +279,38 @@ def main():
         if opts.reduce:
             # Reduce.py is now legacy for single-end reads
 
-            # filter out bad mappings and PCR duplicates
-            rr = command_line.convert_sorted_bam_to_filtered_bam(
+            # filter out bad mappings
+            rr = command_line.filter_sorted_bam(
                     unified_fns['sorted'], unified_fns['filtered'], rr,
                     opts.test_run)
 
+            # Report how many reads left after filtering, 1 per 2 lines
+            rr = command_line.get_read_count('Filtered reads',
+                    unified_fns['filtered'], 2, rr, test=opts.test_run)
+
+            # remove PCR duplicates and convert to BED format
+            rr = command_line.dedup_filtered_bam(
+                    unified_fns['filtered'], unified_fns['filtered_dedup'],
+                    rr, opts.test_run)
+
+            # Report how many reads left after dedup, 1 per 2 lines
+            rr = command_line.get_read_count('Filtered deduplicated reads',
+                unified_fns['filtered_dedup'], 2, rr, test=opts.test_run)
+
             # convert BAM to BED (gzipped)
-            rr = command_line.convert_bam_to_compressed_bed(unified_fns['filtered'],
-                    unified_fns['bed'], rr, opts.test_run)
+            rr = command_line.convert_bam_to_compressed_bed(
+                    unified_fns['filtered_dedup'], unified_fns['bed'],
+                    rr, opts.test_run)
 
             # Single command version of the above
             #rr = command_line.convert_sorted_bam_to_filtered_bed(filenames_1['bam'],
             #        filenames_1['bed'], rr, opts.test_run)
 
         else:
-            rr = command_line.index_bam(filenames_1['bam'], rr, opts.test_run)
+            if opts.Illumina_version >= 1.8:
+                rr = command_line.index_bam(unified_fns['sorted'], rr, opts.test_run)
+            else:
+                rr = command_line.index_bam(filenames_1['bam'], rr, opts.test_run)
 
 
     if opts.delete:

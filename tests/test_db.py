@@ -117,7 +117,7 @@ class TestGene(TestDbBase):
             minus_coords_one_exons, minus_coords_many_exons]
     
     def test_add_genes(self):
-        """excercise adding a gene"""
+        """exercise adding a gene"""
         data = [Gene(**self.plus_coords_many_exons['gene']),
                 Gene(**self.plus_coords_one_exons['gene']),
                 Gene(**self.minus_coords_many_exons['gene']),
@@ -491,7 +491,7 @@ class TestQueryFunctions(TestDbBase):
                 expressed.gene = gene
                 self.session.add(expressed)
                 
-        # add a file with nothign related to it
+        # add a file with nothing related to it
         reffile = ReferenceFile('file-no-data.txt', today)
         self.session.add(reffile)
         self.session.commit()
@@ -505,6 +505,71 @@ class TestQueryFunctions(TestDbBase):
         
         self.populate_db(singleton=singleton)
         self.proccessed = True
+
+    def _build_target_gene(self, reffile, gene_name, target_sample_name):
+        """ helper method to simplify code for creating new TargetGene instances
+        """
+        tg = TargetGene()
+        tg.reference_file = self.session.query(ReferenceFile).\
+                filter_by(name=reffile).one()
+        tg.gene = self.session.query(Gene).\
+                filter_by(ensembl_id=gene_name).one()
+        tg.sample = self.session.query(Sample).\
+                filter_by(name=target_sample_name).one()
+        return tg
+
+    def populate_target_data(self):
+        """ populates db for inclusion/exclusion tests in get_ranked_expression
+        """
+        # Create an extra gene which will be used by TargetGene but not in Sample
+        extra_gene_dict = dict(gene=dict(ensembl_id='TARGET-1',
+            symbol='agene', biotype='protein_coding', status='fake',
+            description='a fake gene',
+            coord_name='5', start=3000, end=5000, strand=1),
+            exons=[dict(ensembl_id='exon-3', rank=3, start=3050, end=4400)]
+        )
+        data = [Gene(**extra_gene_dict['gene'])]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create Target reference file
+        reffile1 = ReferenceFile('target1.txt', today)
+        reffile2 = ReferenceFile('target2.txt', today)
+        reffile3 = ReferenceFile('target3.txt', today)
+        data=[reffile1, reffile2, reffile3]
+        self.session.add_all(data)
+        self.session.commit()
+
+        ### Create Target samples
+        # target1 = Test 1 overlap, 4 sample and 2 target genes (1 match)
+        target_sample1 = Sample('target 1', 'fake target 1')
+        # target2 = Test 4 overlap, 4 sample and 4 target genes (4 matches)
+        target_sample2 = Sample('target 2', 'fake target 2')
+        # target3 = Test 0 overlap, 4 sample and 1 target gene (0 matches)
+        target_sample3 = Sample('target 3', 'fake target 3')
+        targets = [target_sample1, target_sample2, target_sample3]
+        self.session.add_all(targets)
+        self.session.commit()
+
+        # Create one matching and one non-matching TargetGenes for target 1
+        t1 = self._build_target_gene('target1.txt', 'PLUS-1', 'target 1')
+        t2 = self._build_target_gene('target1.txt', 'TARGET-1', 'target 1')
+        data = [t1, t2]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create four matching TargetGenes for target 2
+        t1 = self._build_target_gene('target2.txt', 'PLUS-1', 'target 2')
+        t2 = self._build_target_gene('target2.txt', 'PLUS-3', 'target 2')
+        t3 = self._build_target_gene('target2.txt', 'MINUS-1', 'target 2')
+        t4 = self._build_target_gene('target2.txt', 'MINUS-3', 'target 2')
+        data = [t1, t2, t3, t4]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create 1 non-matching TargetGene for target 3
+        t1 = self._build_target_gene('target3.txt', 'TARGET-1', 'target 3')
+
     
     def test_counting_genes(self):
         """correctly return number of genes for a sample"""
@@ -559,8 +624,62 @@ class TestQueryFunctions(TestDbBase):
         self.assertEqual(len(genes.all()), 2)
         genes = get_genes(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes.all()), 0)
-    
-    
+
+    def test_query_expressed_genes_with_inclusive_target_genes(self):
+        """ return only those genes which overlap with target """
+        # Need to test when we have 100% overlap, 0% overlap and something in between
+
+        self.populate_target_data()
+
+        # Test 1 overlap, 4 sample and 2 target genes
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+                include_target='target 1')
+        self.assertTrue(len(remaining_genes) == 1)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
+
+        # Test 4 overlap, 4 sample and 4 target genes
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+                include_target='target 2')
+        self.assertTrue(len(remaining_genes) == 4)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
+        self.assertTrue(remaining_genes[3].ensembl_id == 'PLUS-1')
+
+        # Test 0 overlap, 4 sample and 1 non-matching target gene
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+                include_target='target 3')
+        self.assertTrue(len(remaining_genes) == 0)
+
+    def test_query_expressed_genes_with_exclusive_target_genes(self):
+        """ return only those genes which DON'T overlap with target """
+        # Need to test when we have 100% overlap, 0% overlap and something in between
+
+        self.populate_target_data()
+
+        # Test 1 overlap, 4 sample and 2 target genes
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+            exclude_target='target 1')
+        self.assertTrue(len(remaining_genes) == 3)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
+
+        # Test 4 overlap, 4 sample and 4 target genes
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+            exclude_target='target 2')
+        self.assertTrue(len(remaining_genes) == 0)
+
+        # Test 0 overlap, 4 sample and 1 non-matching target gene
+        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+            exclude_target='target 3')
+        self.assertTrue(len(remaining_genes) == 4)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
+        self.assertTrue(remaining_genes[3].ensembl_id == 'PLUS-1')
+
+
 class TestQueryFunctionsExpDiff(TestDbBase):
     """test the db querying functions"""
     reffiles = [('file-1.txt', today),
@@ -592,6 +711,70 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         super(TestQueryFunctionsExpDiff, self).setUp()
         add_all_gene_exons(self.session, TestGene.genes)
         self.populate_db()
+
+    def _build_target_gene(self, reffile, gene_name, target_sample_name):
+        """ helper method to simplify code for creating new TargetGene instances
+        """
+        tg = TargetGene()
+        tg.reference_file = self.session.query(ReferenceFile).\
+        filter_by(name=reffile).one()
+        tg.gene = self.session.query(Gene).\
+        filter_by(ensembl_id=gene_name).one()
+        tg.sample = self.session.query(Sample).\
+        filter_by(name=target_sample_name).one()
+        return tg
+
+    def populate_target_data(self):
+        """ populates db for inclusion/exclusion tests in get_ranked_expression
+        """
+        # Create an extra gene which will be used by TargetGene but not in Sample
+        extra_gene_dict = dict(gene=dict(ensembl_id='TARGET-1',
+            symbol='agene', biotype='protein_coding', status='fake',
+            description='a fake gene',
+            coord_name='5', start=3000, end=5000, strand=1),
+            exons=[dict(ensembl_id='exon-3', rank=3, start=3050, end=4400)]
+        )
+        data = [Gene(**extra_gene_dict['gene'])]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create Target reference file
+        reffile1 = ReferenceFile('target1.txt', today)
+        reffile2 = ReferenceFile('target2.txt', today)
+        reffile3 = ReferenceFile('target3.txt', today)
+        data=[reffile1, reffile2, reffile3]
+        self.session.add_all(data)
+        self.session.commit()
+
+        ### Create Target samples
+        # target1 = Test 1 overlap, 4 sample and 2 target genes (1 match)
+        target_sample1 = Sample('target 1', 'fake target 1')
+        # target2 = Test 4 overlap, 4 sample and 4 target genes (4 matches)
+        target_sample2 = Sample('target 2', 'fake target 2')
+        # target3 = Test 0 overlap, 4 sample and 1 target gene (0 matches)
+        target_sample3 = Sample('target 3', 'fake target 3')
+        targets = [target_sample1, target_sample2, target_sample3]
+        self.session.add_all(targets)
+        self.session.commit()
+
+        # Create one matching and one non-matching TargetGenes for target 1
+        t1 = self._build_target_gene('target1.txt', 'PLUS-1', 'target 1')
+        t2 = self._build_target_gene('target1.txt', 'TARGET-1', 'target 1')
+        data = [t1, t2]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create four matching TargetGenes for target 2
+        t1 = self._build_target_gene('target2.txt', 'PLUS-1', 'target 2')
+        t2 = self._build_target_gene('target2.txt', 'PLUS-3', 'target 2')
+        t3 = self._build_target_gene('target2.txt', 'MINUS-1', 'target 2')
+        t4 = self._build_target_gene('target2.txt', 'MINUS-3', 'target 2')
+        data = [t1, t2, t3, t4]
+        self.session.add_all(data)
+        self.session.commit()
+
+        # Create 1 non-matching TargetGene for target 3
+        t1 = self._build_target_gene('target3.txt', 'TARGET-1', 'target 3')
     
     def test_add_expression_diff_data(self):
         """correctly add expression difference data"""
@@ -649,7 +832,60 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         expect_order = ['MINUS-1', 'MINUS-3']
         for i in range(2):
             self.assertEqual(genes[i].ensembl_id, expect_order[i])
-    
+
+    def test_query_expressed_diff_genes_with_inclusive_target_genes(self):
+        """ return only those genes which overlap with target """
+        # Need to test when we have 100% overlap, 0% overlap and something in between
+
+        self.populate_target_data()
+
+        # Test 1 overlap, 4 sample and 2 target genes
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            include_target='target 1')
+        self.assertTrue(len(remaining_genes) == 1)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
+
+        # Test 4 overlap, 4 sample and 4 target genes
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            include_target='target 2')
+        self.assertTrue(len(remaining_genes) == 4)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'PLUS-3')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[3].ensembl_id == 'MINUS-3')
+
+        # Test 0 overlap, 4 sample and 1 non-matching target gene
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            include_target='target 3')
+        self.assertTrue(len(remaining_genes) == 0)
+
+    def test_query_expressed_diff_genes_with_exclusive_target_genes(self):
+        """ return only those genes which DON'T overlap with target """
+        # Need to test when we have 100% overlap, 0% overlap and something in between
+
+        self.populate_target_data()
+
+        # Test 1 overlap, 4 sample and 2 target genes
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            exclude_target='target 1')
+        self.assertTrue(len(remaining_genes) == 3)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-3')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-3')
+
+        # Test 4 overlap, 4 sample and 4 target genes
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            exclude_target='target 2')
+        self.assertTrue(len(remaining_genes) == 0)
+
+        # Test 0 overlap, 4 sample and 1 non-matching target gene
+        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+            exclude_target='target 3')
+        self.assertTrue(len(remaining_genes) == 4)
+        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
+        self.assertTrue(remaining_genes[1].ensembl_id == 'PLUS-3')
+        self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-1')
+        self.assertTrue(remaining_genes[3].ensembl_id == 'MINUS-3')
 
 if __name__ == '__main__':
     main()

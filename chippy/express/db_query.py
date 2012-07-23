@@ -30,7 +30,8 @@ def _get_sample(session, sample_name):
         sample = None
     return sample
 
-def get_gene_expression_query(session, sample_name, data_path=None, test_run=False):
+def get_gene_expression_query(session, sample_name, data_path=None,
+        test_run=False):
     """returns a query instance"""
     sample = _get_sample(session, sample_name)
     if sample is None:
@@ -38,26 +39,28 @@ def get_gene_expression_query(session, sample_name, data_path=None, test_run=Fal
     
     if data_path is not None:
         reffile_id = _one(session.query(ReferenceFile.reffile_id).\
-                            filter(ReferenceFile.name==data_path))
+                filter(ReferenceFile.name==data_path))
         if not data_path:
             raise RuntimeError('Unknown data_path %s' % data_path)
         
         reffile_id = reffile_id[0]
-    
+
     if data_path:
+        # used to reconstruct the origin of a sample
         query = session.query(Expression).join(Gene).filter(
-            and_(Expression.sample_id==sample.sample_id,
-                 Expression.reffile_id==reffile_id)).\
-                    options(contains_eager('gene'))
+                and_(Expression.sample_id==sample.sample_id,
+                Expression.reffile_id==reffile_id)).\
+                options(contains_eager('gene'))
     else:
         query = session.query(Expression).join(Gene).filter(
-            and_(Expression.sample_id==sample.sample_id)).\
-                    options(contains_eager('gene'))
+                Expression.sample_id==sample.sample_id).\
+                options(contains_eager('gene'))
     
     return query
 
-def get_gene_expression_diff_query(session, sample_name, data_path=None, multitest_signif_val=None, test_run=False):
-    """returns a query instance for expression difference"""
+def get_gene_expression_diff_query(session, sample_name, data_path=None,
+        multitest_signif_val=None, test_run=False):
+    """returns a query instance for expression difference """
     sample = _get_sample(session, sample_name)
     if sample is None:
         raise RuntimeError('Unknown sample name: %s' % sample_name)
@@ -71,7 +74,7 @@ def get_gene_expression_diff_query(session, sample_name, data_path=None, multite
         reffile_id = reffile_id[0]
 
     if data_path:
-        if multitest_signif_val == None:
+        if multitest_signif_val is None:
             query = session.query(ExpressionDiff).join(Gene).filter(
                 and_(ExpressionDiff.sample_id==sample.sample_id,
                     ExpressionDiff.reffile_id==reffile_id)).\
@@ -83,7 +86,7 @@ def get_gene_expression_diff_query(session, sample_name, data_path=None, multite
                     ExpressionDiff.reffile_id==reffile_id)).\
                     options(contains_eager('gene'))
     else:
-        if multitest_signif_val == None:
+        if multitest_signif_val is None:
             query = session.query(ExpressionDiff).join(Gene).filter(
                 and_(ExpressionDiff.sample_id==sample.sample_id)).\
                     options(contains_eager('gene'))
@@ -137,7 +140,7 @@ def get_stable_id_genes_mapping(session):
     return ensembl_id_genes
 
 def get_ranked_expression(session, sample_name, biotype='protein_coding',
-        data_path=None, include_genes=None, exclude_genes=None, rank_by='mean',
+        data_path=None, include_target=None, exclude_target=None, rank_by='mean',
         test_run=False):
     """returns all ranked genes from a sample"""
     query = get_gene_expression_query(session, sample_name,
@@ -154,29 +157,29 @@ def get_ranked_expression(session, sample_name, biotype='protein_coding',
         gene.Scores = expressed.scores
         genes.append(gene)
 
-    #print 'Number of genes found in DB: %d' % len(genes)
-
-    # 'include-file' code
-    if include_genes is not None:
-        try:
-            includeFile = gzip.GzipFile(include_genes, 'rb')
-            includeList = pickle.load(includeFile)
-
-            includeSet = set(includeList)
+    # keep only those genes in the include target gene set if provided
+    if include_target is not None:
+        include_genes = get_target_genes(session, include_target,
+            test_run=test_run)
+        if include_genes:
+            include_id_set = set([gene.ensembl_id for gene in include_genes])
             final_genes = []
-            for gene in genes:
-                ensembl_id_list = [gene.ensembl_id]
-                if len(includeSet.intersection(set(ensembl_id_list))) > 0:
+            for gene in genes:  # if it intersects then keep it
+                if len(include_id_set.intersection(set([gene.ensembl_id]))) > 0:
                     final_genes.append(gene)
             genes = final_genes
-            #print 'Genes in common with included-gene list: %d' % len(genes)
 
-        except IOError:
-            print 'Failed to load include-gene file: %s' % str(include_genes)
-    #else:
-    #    print 'Getting counts from all genes in study: %d' % len(genes)
-
-    #TODO: 'exclude-genes'
+    # keep only those genes not in the exclude target gene set if provided
+    if exclude_target is not None:
+        exclude_genes = get_target_genes(session, exclude_target,
+            test_run=test_run)
+        if exclude_genes:
+            exclude_id_set = set([gene.ensembl_id for gene in exclude_genes])
+            final_genes = []
+            for gene in genes: # if it doesn't intersect then keep it
+                if len(exclude_id_set.intersection(set([gene.ensembl_id]))) == 0:
+                    final_genes.append(gene)
+            genes = final_genes
 
     # set rank
     if rank_by.lower() == 'mean':
@@ -196,8 +199,8 @@ def get_ranked_expression(session, sample_name, biotype='protein_coding',
     return genes
 
 def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
-        biotype='protein_coding', data_path=None, include_genes=None,
-        exclude_genes=None, rank_by='mean', test_run=False):
+        biotype='protein_coding', data_path=None, include_target=None,
+        exclude_target=None, rank_by='mean', test_run=False):
     """returns all ranked genes from a sample difference experiment"""
     query = get_gene_expression_diff_query(session, sample_name,
             data_path=data_path,multitest_signif_val=multitest_signif_val,
@@ -214,28 +217,29 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
         gene.Scores = expressed_diff.fold_changes
         genes.append(gene)
 
-    # 'include-file' code
-    if include_genes is not None:
-        try:
-            # Should be a pickled list of unicode gene_ids
-            includeFile = gzip.GzipFile(include_genes, 'rb')
-            includeList = pickle.load(includeFile)
-
-            includeSet = set(includeList)
+    # keep only those genes in the include target gene set if provided
+    if include_target is not None:
+        include_genes = get_target_genes(session, include_target,
+                test_run=test_run)
+        if include_genes:
+            include_id_set = set([gene.ensembl_id for gene in include_genes])
             final_genes = []
-            for gene in genes:
-                ensembl_id_list = [gene.ensembl_id]
-                # if it intersects then keep it
-                if len(includeSet.intersection(set(ensembl_id_list))) > 0:
+            for gene in genes:  # if it intersects then keep it
+                if len(include_id_set.intersection(set([gene.ensembl_id]))) > 0:
                     final_genes.append(gene)
             genes = final_genes
-        except IOError:
-            print 'Failed to load include-gene file: %s' % str(include_genes)
-    #else:
-    #    print 'No include-gene list given'
-    #    print 'Getting counts from all genes in study: %d' % len(genes)
 
-    #TODO 'exclude-genes'
+    # keep only those genes not in the exclude target gene set if provided
+    if exclude_target is not None:
+        exclude_genes = get_target_genes(session, exclude_target,
+            test_run=test_run)
+        if exclude_genes:
+            exclude_id_set = set([gene.ensembl_id for gene in exclude_genes])
+            final_genes = []
+            for gene in genes: # if it doesn't intersect then keep it
+                if len(exclude_id_set.intersection(set([gene.ensembl_id]))) == 0:
+                    final_genes.append(gene)
+            genes = final_genes
 
     # set rank
     if rank_by.lower() == 'mean':

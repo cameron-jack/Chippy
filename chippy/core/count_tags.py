@@ -131,20 +131,20 @@ def get_count_decorated_expressed_genes(genes, counts_dir, expr_area, chrom_name
 
 def _get_decorated_expressed(session, sample_name, expr_area, species, chrom,
         counts_dir, max_read_length, count_max_length, window_size,
-        include_genes=None, exclude_genes=None, test_run=False):
+        include_target=None, exclude_target=None, test_run=False):
     species_chroms = chroms[species]
 
     msg = 'Getting ranked expression instances%s'
     if chrom is None:
         print msg % ''
         expressed = get_ranked_expression(session, sample_name,
-                include_genes=include_genes, exclude_genes=exclude_genes,
+                include_target=include_target, exclude_target=exclude_target,
                 test_run=test_run)
     else:
         print msg % (' for chrom ' + chrom)
         expressed = get_ranked_genes_per_chrom(session,
-                sample_name, chrom, include_genes=include_genes,
-                exclude_genes=exclude_genes, test_run=test_run)
+                sample_name, chrom, include_target=include_target,
+                exclude_target=exclude_target, test_run=test_run)
     
     print 'Decorating for %d genes' % len(expressed)
     expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
@@ -155,7 +155,7 @@ def _get_decorated_expressed(session, sample_name, expr_area, species, chrom,
 
 def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
         chrom, counts_dir, max_read_length, count_max_length, window_size,
-        multitest_signif_val, include_genes=None, exclude_genes=None,
+        multitest_signif_val, include_target=None, exclude_target=None,
         test_run=False):
     
     species_chroms = chroms[species]
@@ -164,13 +164,13 @@ def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
     if chrom is None:
         print msg % ''
         expressed_diff = get_ranked_expression_diff(session, sample_name,
-                multitest_signif_val, include_genes=include_genes,
-                exclude_genes=exclude_genes, test_run=test_run)
+                multitest_signif_val, include_target=include_target,
+                exclude_target=exclude_target, test_run=test_run)
     else:
         print msg % (' for chrom ' + chrom)
         expressed_diff = get_diff_ranked_genes_per_chrom(session, sample_name,
-                multitest_signif_val, chrom, include_genes=include_genes,
-                exclude_genes=exclude_genes, test_run=test_run)
+                multitest_signif_val, chrom, include_target=include_target,
+                exclude_target=exclude_target, test_run=test_run)
 
     print 'Decorating'
     expressed_diff, summed_counts = get_count_decorated_expressed_genes(expressed_diff,
@@ -195,14 +195,14 @@ def get_counts_ranks_ensembl_ids(features, ui=None):
 
 def centred_counts_for_genes(session, sample_name, expr_area, species, chrom,
         counts_dir, max_read_length, count_max_length, window_size=1000,
-        include_genes=None, exclude_genes=None, run_record=None,
+        include_target=None, exclude_target=None, run_record=None,
         test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     
     expressed, summed_counts = _get_decorated_expressed(session, sample_name,
             expr_area, species, chrom, counts_dir, max_read_length,
             count_max_length, window_size=window_size,
-            include_genes=include_genes, exclude_genes=exclude_genes,
+            include_target=include_target, exclude_target=exclude_target,
             test_run=test_run)
     total_expressed_genes = len(expressed)
     run_record.addMessage('count_tags', LOG_INFO, 'Sample counts name',
@@ -228,7 +228,7 @@ def centred_counts_for_genes(session, sample_name, expr_area, species, chrom,
 
 def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
         chrom, counts_dir, max_read_length, count_max_length, window_size,
-        multitest_signif_val, include_genes=None, exclude_genes=None,
+        multitest_signif_val, include_target=None, exclude_target=None,
         run_record=None, test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc ..
     related to an expression difference experiment"""
@@ -238,8 +238,8 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
 
     expressed_diff, summed_counts = _get_decorated_expressed_diff(session,
             sample_name, expr_area, species, chrom, counts_dir, max_read_length,
-            count_max_length, window_size, multitest_signif_val, include_genes,
-            exclude_genes, test_run)
+            count_max_length, window_size, multitest_signif_val, include_target,
+            exclude_target, test_run)
     total_expressed_diff_genes = len(expressed_diff)
     
     run_record.addMessage('count_tags', LOG_INFO, 'Sample diff counts name',

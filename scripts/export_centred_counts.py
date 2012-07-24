@@ -51,7 +51,7 @@ def _create_export_options_required():
     """ essential sample specification """
     session = _create_session()
     opt_sample = make_option('-c', '--sample', type='choice',
-            help='Choose the expression study [default: %default]',
+            help='Choose the expression study ',
             choices=[str(s) for s in _make_sample_choices(session)])
     session.close()
 
@@ -111,15 +111,17 @@ def _create_sampling_options():
             'valid values: 1, 0, -1', default=None)
 
     session = _create_session()
-    opt_include_genes = make_option('--include_genes', type='string', default=None,
-            help='A Target Gene List in ChipPyDB')
-    opt_exclude_genes = make_option('--exclude_genes', type='string', default=None,
+    opt_include_target = make_option('--include_target', type='choice', default=None,
+            help='A Target Gene List in ChipPyDB',
+            choices=[str(s) for s in _make_sample_choices(session)])
+    opt_exclude_target = make_option('--exclude_target', type='choice', default=None,
             help='Path to pickle.gz file of ensembl gene ids that will be '\
-            'specifically excluded from study')
+            'specifically excluded from study',
+            choices=[str(s) for s in _make_sample_choices(session)])
     session.close()
 
     sampling_opts = [opt_read_length, opt_count_max_length, opt_window,
-            opt_multitest_signif, opt_include_genes, opt_exclude_genes]
+            opt_multitest_signif, opt_include_target, opt_exclude_target]
     return sampling_opts
 
 def set_environment():
@@ -147,7 +149,7 @@ def set_environment():
 # TODO: fix hard-wiring to Mouse
 def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
         count_max_length, window_size, multitest_signif_val, filename, overwrite,
-        sample_type, tab_delimited, include_genes=None, exclude_genes=None,
+        sample_type, tab_delimited, include_target=None, exclude_target=None,
         run_record=None, test_run=False):
 
     if run_record is None:
@@ -160,7 +162,7 @@ def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
             data_collection, run_record = centred_counts_for_genes(session,
                     sample_name, expr_area, 'mouse', None, counts_dir,
                     max_read_length, count_max_length, window_size,
-                    include_genes, exclude_genes, run_record, test_run)
+                    include_target, exclude_target, run_record, test_run)
         
         elif sample_type == 'Expression data: difference in expression '\
                 'between samples':
@@ -168,8 +170,8 @@ def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
             data_collection, run_record = centred_diff_counts_for_genes(
                     session, sample_name, expr_area, 'mouse', None,
                     counts_dir, max_read_length, count_max_length,
-                    window_size, multitest_signif_val, include_genes,
-                    exclude_genes, run_record, test_run)
+                    window_size, multitest_signif_val, include_target,
+                    exclude_target, run_record, test_run)
             
         else:
             print "Experiment type %s not supported" % sample_type
@@ -207,6 +209,14 @@ def main():
     target_genes ='Target gene list'
     sample_type = opts.sample_type
 
+    include_name = None
+    exclude_name = None
+    if opts.include_target:
+        include_name = opts.include_target.split(' : ')[0]
+
+    if opts.exclude_target:
+        exclude_name = opts.exclude_target.split(' : ')[0]
+
     if (opts.multitest_signif_val is not None) and not (-1 <= opts.multitest_signif_val <= 1):
         raise RuntimeError('multitest_signif_val is not -1, 0, 1 or None. Halting execution.')
 
@@ -216,8 +226,8 @@ def main():
                 opts.expression_area, counts_dirs, opts.max_read_length,
                 opts.count_max_length, opts.window_size,
                 opts.multitest_signif_val, opts.collection, opts.overwrite,
-                opts.sample_type, opts.tab_delimited, opts.include_genes,
-                opts.exclude_genes, run_record=None, test_run=opts.test_run)
+                opts.sample_type, opts.tab_delimited, include_name,
+                exclude_name, run_record=None, test_run=opts.test_run)
 
     else:
         print 'Other options not defined yet, choose from %s '\

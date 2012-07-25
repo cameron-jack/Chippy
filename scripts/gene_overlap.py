@@ -422,6 +422,8 @@ def main():
                 opts.expression_sample1, opts.expression_sample2,
                 opts.expression_sample3, opts.favoured_expression_sample, rr)
 
+
+    rr.addInfo('gene_overlap', 'Total genes in output', len(output_id_set))
     # now save to file
     outfile = open(opts.genefile, 'w')
     # Add the standard header so that we can import with add_expression_db.py

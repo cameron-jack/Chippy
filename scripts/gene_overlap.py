@@ -153,20 +153,22 @@ def _create_sampling_options():
             default=0.0, help='Proportion of least and most absolute '\
             'expressed genes to treat separately. Set to 0.0 to disable '\
             '[default: %default]')
-    opts_top_extreme_off = make_option('--top_extreme_off',
-            action='store_true', default='False', help='If you set sample '\
-            'extremes then by default both extremes are kept and bulk '\
-            'expressing genes are dropped. This will disable the high '\
+    opt_ignore_bulk = make_option('--ignore_bulk', action='store_true',
+            default=False, help='If sample extremes are set then this will '\
+            'throw away the non-extreme gene ids')
+    opt_ignore_top_extreme = make_option('--ignore_top_extreme',
+            action='store_true', default=False, help='If you set sample '\
+            'extremes then this will throw away the high '\
             'expressing portion of extreme expressing genes')
-    opts_bottom_extreme_off = make_option('--bottom_extreme_off',
-            action='store_true', default='False', help='If you set sample '\
-            'extremes then by default both extremes are kept and bulk '\
-            'expressing genes are dropped. This will disable the low '\
+    opt_ignore_bottom_extreme = make_option('--ignore_bottom_extreme',
+            action='store_true', default=False, help='If you set sample '\
+            'extremes then this will throw away the low '\
             'expressing portion of extreme expressing genes')
 
     sampling_opts = [opt_num_genes, opt_sample_extremes, opt_multitest_signif1,
                      opt_multitest_signif2, opt_multitest_signif3,
-                     opts_top_extreme_off, opts_bottom_extreme_off]
+                     opt_ignore_bulk, opt_ignore_top_extreme,
+                     opt_ignore_bottom_extreme]
     return sampling_opts
 
 def _create_session():
@@ -216,7 +218,8 @@ def set_environment():
 
 def getExpressedGenes(session, sample, sample_type='Expression data: '\
         'absolute ranked', multitest_signif_val=None, sample_extremes=0.0,
-        top_extreme_off=False, bottom_extreme_off=False, rr=RunRecord()):
+        ignore_bulk=False, ignore_top_extreme=False,
+        ignore_bottom_extreme=False, rr=RunRecord()):
     """ Return stableIDs for genes of interest """
     sample_name = sample.split(' : ')[0]
     #print sample_name + '\n'
@@ -233,18 +236,24 @@ def getExpressedGenes(session, sample, sample_type='Expression data: '\
 
             # set absolute expression gene regions
             # sample_mid = sample_genes[sample_cutoff:len(sample_genes)-sample_cutoff]
-            if not top_extreme_off:
+            if not ignore_top_extreme:
                 sample_top = sample_genes[:sample_cutoff]
             else:
                 sample_top = []
 
-            if not bottom_extreme_off:
+            if not ignore_bottom_extreme:
                 sample_bottom = sample_genes[-sample_cutoff:] \
                         if sample_cutoff else []
             else:
                 sample_bottom = []
 
-            sample_genes = sample_top + sample_bottom
+            if not ignore_bulk:
+                sample_bulk = sample_genes[sample_cutoff:\
+                        len(sample_genes)-sample_cutoff]
+            else:
+                sample_bulk = []
+
+            sample_genes = sample_top + sample_bottom + sample_bulk
 
     elif sample_type == 'Expression data: difference in expression between samples':
         if (multitest_signif_val is not None) and not \
@@ -391,14 +400,22 @@ def main():
     # Get all the genes and build ensembl ID sets
     session = _create_session()
     sample1_genes, rr = getExpressedGenes(session, opts.sample1,
-            opts.sample1_type, opts.m1, opts.sample_extremes, rr)
+            opts.sample1_type, opts.m1, opts.sample_extremes,
+            ignore_bulk=opts.ignore_bulk,
+            ignore_top_extreme=opts.ignore_top_extreme,
+            ignore_bottom_extreme=opts.ignore_bottom_extreme,
+            rr=rr)
     for gene in sample1_genes:
         sample1_ids.add(gene.ensembl_id)
     session.close()
 
     session = _create_session()
     sample2_genes, rr = getExpressedGenes(session, opts.sample2,
-            opts.sample2_type, opts.m2, opts.sample_extremes, rr)
+            opts.sample2_type, opts.m2, opts.sample_extremes,
+            ignore_bulk=opts.ignore_bulk,
+            ignore_top_extreme=opts.ignore_top_extreme,
+            ignore_bottom_extreme=opts.ignore_bottom_extreme,
+            rr=rr)
     for gene in sample2_genes:
         sample2_ids.add(gene.ensembl_id)
     session.close()
@@ -406,7 +423,11 @@ def main():
     if opts.sample3 is not None:
         session = _create_session()
         sample3_genes, rr = getExpressedGenes(session, opts.sample3,
-                opts.sample3_type, opts.m3, opts.sample_extremes, rr)
+                opts.sample3_type, opts.m3, opts.sample_extremes,
+                ignore_bulk=opts.ignore_bulk,
+                ignore_top_extreme=opts.ignore_top_extreme,
+                ignore_bottom_extreme=opts.ignore_bottom_extreme,
+                rr=rr)
         for gene in sample3_genes:
             sample3_ids.add(gene.ensembl_id)
         session.close()

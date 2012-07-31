@@ -335,6 +335,10 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     return run_record
 
+def _chunk_id_list(id_list, n):
+    for i in xrange(0, len(id_list), n):
+        yield id_list[i:i+n]
+
 def add_target_genes(session, sample_name, data_path, table,
         ensembl_id_label='ENSEMBL', run_record=None):
     """adds Expression instances into the database from table
@@ -364,13 +368,17 @@ def add_target_genes(session, sample_name, data_path, table,
         #reffile = reffile[0]
     
     ensembl_ids = table.getRawData(ensembl_id_label)
-    genes = session.query(Gene).filter(Gene.ensembl_id.in_(ensembl_ids)).all()
-    for num_genes, gene in enumerate(genes):
-        target = TargetGene()
-        target.gene = gene
-        target.reference_file = reffile
-        target.sample = sample
-        data.append(target)
+
+    num_genes = 0
+    for id_chunk in _chunk_id_list(ensembl_ids, 100):
+        genes = session.query(Gene).filter(Gene.ensembl_id.in_(id_chunk)).all()
+        for gene in genes:
+            target = TargetGene()
+            target.gene = gene
+            target.reference_file = reffile
+            target.sample = sample
+            data.append(target)
+            num_genes += 1
 
     run_record.addMessage('add_target_genes', LOG_INFO,
             'Added target genes from', data_path)

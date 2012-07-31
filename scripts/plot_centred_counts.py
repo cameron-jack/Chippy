@@ -244,10 +244,22 @@ opt_grp_size = make_option('-g', '--group_size', type='string', default='All',
 
 # optional sample choice information
 opt_topgenes = make_option('--topgenes', action='store_true', default = False,
-                    help='Plot only top genes ranked by expressed chromatin')
+        help='Plot only top genes ranked by expressed chromatin')
 opt_smoothing = make_option('--smoothing', type='int', default = 0,
-                help='Window size for smoothing of plot data default: '\
-                     '[default]')
+        help='Window size for smoothing of plot data default: '\
+        '[default]')
+opt_normalise_tags = make_option('--normalise_tags', type='string',
+        default=False, help='The number of mapped bases (reads x length) in ' \
+        'the data set. Is only used with Mean Counts, and only when group_size ' \
+        'is a defined number - not All.')
+opt_normalise_tags2 = make_option('--normalise_tags2', type='string',
+    default=False, help='The number of mapped bases (reads x length) in '\
+                        'the data set. Is only used with Mean Counts, and only when group_size '\
+                        'is a defined number - not All. Normalises 2nd data set.')
+opt_normalise_tags3 = make_option('--normalise_tags3', type='string',
+    default=False, help='The number of mapped bases (reads x length) in '\
+                        'the data set. Is only used with Mean Counts, and only when group_size '\
+                        'is a defined number - not All. Normalises 3rd data set')
 
 # optional plotting information
 opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
@@ -283,32 +295,27 @@ opt_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
 opt_xlabel_interval = make_option('--xlabel_interval', type='int',
         default = 2,
         help='number of blank ticks between labels [default: %default]')
-opt_ylabel_interval = make_option('--ylabel_interval', type='int',
-    default = 2,
-    help='number of blank ticks between labels [default: %default]')
-opt_xlabel_font = make_option('--xfontsize', type='int',
-    default = 12,
-    help='font size for x label [default: %default]')
-opt_ylabel_font = make_option('--yfontsize', type='int',
-    default = 12,
-    help='font size for y label [default: %default]')
+opt_ylabel_interval = make_option('--ylabel_interval', type='int', default = 2,
+        help='number of blank ticks between labels [default: %default]')
+opt_xlabel_font = make_option('--xfontsize', type='int', default = 12,
+        help='font size for x label [default: %default]')
+opt_ylabel_font = make_option('--yfontsize', type='int', default = 12,
+        help='font size for y label [default: %default]')
 opt_vline_style = make_option('--vline_style', type='choice',
-    default = '-.', choices=['-.', '-', '.'],
-    help='line style for centred vertical line [default: %default]')
-opt_vline_width = make_option('--vline_width', type='int',
-    default = 2, 
-    help='line width for centred vertical line [default: %default]')
+        default = '-.', choices=['-.', '-', '.'],
+        help='line style for centred vertical line [default: %default]')
+opt_vline_width = make_option('--vline_width', type='int', default = 2,
+        help='line width for centred vertical line [default: %default]')
 opt_ylabel = make_option('--ylabel',
-    default = 'Normalized counts', help='Label for the y-axis [default: %default]')
+        default = 'Normalized counts', help='Label for the y-axis [default: %default]')
 opt_xlabel = make_option('--xlabel',
-    default = 'Position relative to TSS',
-    help='Label for the x-axis [default: %default]')
+        default = 'Position relative to TSS',
+        help='Label for the x-axis [default: %default]')
 opt_title = make_option('--title', help='Plot title [default: %default]')
 opt_alpha = make_option('--line_alpha', type='float', default=1.0,
-                 help='Opacity of lines [default: %default]')
-opt_plot_filename = make_option('--plot_filename',
-    default = None,
-    help='Name of final plot file (must end with .pdf) [default: %default]')
+        help='Opacity of lines [default: %default]')
+opt_plot_filename = make_option('--plot_filename', default = None,
+        help='Name of final plot file (must end with .pdf) [default: %default]')
 
 # 
 opt_plotseries = make_option('-p', '--plot_series',
@@ -328,7 +335,8 @@ script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_target, opt_chroms, opt_cutoff,
-                 opt_topgenes, opt_smoothing]
+                 opt_topgenes, opt_smoothing, opt_normalise_tags,
+                 opt_normalise_tags2, opt_normalise_tags3]
 save_opts = [opt_plot_filename]
 series_opts = [opt_plotseries, opt_txt_coords]
 plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
@@ -428,7 +436,7 @@ def main():
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
-            
+
     elif opts.metric == 'Frequency counts':
         print 'Collating normalized frequency counts'
         counts_func = column_sum
@@ -472,7 +480,7 @@ def main():
     else:
         try:
             group_size = int(opts.group_size)
-        except:
+        except ValueError:
             print ('Invalid group size: ' + opts.group_size + '. Defaulting to all genes.\n')
             group_size = 'All'
 
@@ -482,7 +490,7 @@ def main():
     labels_set = []
     plottable_lines = 0 # total # of plotted lines
     iteration = 0
-    for data_collection in data_collection_set:
+    for dc_index, data_collection in enumerate(data_collection_set):
         counts, ranks, num_groups, labels, rr = _group_genes(data_collection,
                 group_size=group_size, labels=filenames_set[iteration],
                 counts_func=counts_func, topgenes=opts.topgenes,
@@ -494,6 +502,58 @@ def main():
                 c = smooth(c, opts.smoothing)              
                 smoothed_counts.append(c)
             counts = smoothed_counts
+
+        if group_size == 'All':
+            genes_per_group = data_collection.N
+        else:
+            genes_per_group = group_size
+
+        # Calculate normalised per million mapped reads (RPM)
+        if opts.normalise_tags is not None and dc_index == 0:
+            normalised_counts = []
+            try:
+                normalise_tags = int(opts.normalise_tags)
+            except ValueError:
+                normalise_tags = float(opts.normalise_tags)
+            except ValueError:
+                normalise_tags = 1
+
+            for c in counts:
+                c = c * genes_per_group * 1000000 / normalise_tags
+                normalised_counts.append(c)
+            counts = normalised_counts
+
+        if opts.normalise_tags2 is not None and dc_index == 1:
+            # Calculate normalised per million mapped reads (RPM)
+            # Hack for 3 data sets, G1, M, S in that order
+            normalised_counts = []
+            try:
+                normalise_tags = int(opts.normalise_tags2)
+            except ValueError:
+                normalise_tags = float(opts.normalise_tags2)
+            except ValueError:
+                normalise_tags = 1
+
+            for c in counts:
+                c = c * genes_per_group * 1000000 / normalise_tags
+                normalised_counts.append(c)
+            counts = normalised_counts
+
+        if opts.normalise_tags3 is not None and dc_index == 2:
+            # Calculate normalised per million mapped reads (RPM)
+            # Hack for 3 data sets, G1, M, S in that order
+            normalised_counts = []
+            try:
+                normalise_tags = int(opts.normalise_tags3)
+            except ValueError:
+                normalise_tags = float(opts.normalise_tags3)
+            except ValueError:
+                normalise_tags = 1
+
+            for c in counts:
+                c = c * genes_per_group * 1000000 / normalise_tags
+                normalised_counts.append(c)
+            counts = normalised_counts
 
         count_set.append(counts)
         rank_set.append(ranks)
@@ -601,7 +661,7 @@ def main():
     # Hack time: this is just for David's Cell-cycle plots
     if len(data_collection_set) == 3:
         colour_range = []
-        # We're going to use black/white, green and orange, for G1, S, M
+        # We're going to use black/white, green and magenta, for G1, M, S
         if opts.bgcolor == 'black':
             r = 255
             g = 255
@@ -659,7 +719,7 @@ def main():
                 print 'Count colour for set %d is:' % i
                 print colour
 
-            colour_range.append((colour))
+            colour_range.append(colour)
 
         if not opts.legend:
             labels_set = None
@@ -679,7 +739,7 @@ def main():
             labels=labels_set, labels_size=opts.legend_size)
     
     if opts.plot_filename and not opts.test_run:
-        plot.savefig(opts.plot_filename)
+        plot.savefig(opts.plot_filename, image_format='pdf')
     else:
         print opts.plot_filename
     

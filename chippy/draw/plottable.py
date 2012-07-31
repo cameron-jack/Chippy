@@ -146,8 +146,8 @@ class _Plottable(object):
     def show(self):
         pyplot.show()
     
-    def savefig(self, filename):
-        pyplot.savefig(filename)
+    def savefig(self, filename, image_format='pdf'):
+        pyplot.savefig(filename, format=image_format)
     
     def legend(self, fontsize=None):
         if self._legend_patches:

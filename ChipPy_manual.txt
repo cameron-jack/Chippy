@@ -1,0 +1,570 @@
+﻿ChipPy Manual
+Copyright 2012
+
+ChipPy. All code and associated files including this manual are Copyright 2012 to Gavin Huttley, Anuj Pahwa, Cameron Jack, under the GPL v2.0.
+
+Gavin Huttley: gavin.huttley@anu.edu.au
+Cameron Jack: cameron.jack@anu.edu.au
+
+Contents:
+1. Introduction
+2. ChipPy structure overview
+3. Application scripts
+4. Input file types
+5. Program flags and usage
+6. Example work flows
+7. Organisation of code files
+8. Code file dependence maps
+9. Glossary
+
+1. Introduction
+
+ChipPy is a suite of software tools written in Python for the purpose of exploring the relationship between chromatin mapping and gene expression. It was started in early 2011 to help analyse data generated in collaboration with Professor David Tremethick (JCSMR, ANU) whose interest is in histone modification in DNA nucleosomes. This resulted first in the paper “A unique H2A histone variant occupies the transcriptional start site of active genes” by T.Soboleva et al and published in Nature Structure and Molecular Biology. In this study, gene expression around the transcription start site was mapped per-base again chromatin counts provided by ChIP-Seq.
+
+ChipPy will now export other centred feature counts as well, including Intron and Exon  boundaries. It also offers tools for interrogating expression counts and ranks, and generating lists of features to be selectively included or excluded from further study.
+
+The future of ChipPy lies in online integration with the bio-portal software Galaxy. Ideally ChIP-Seq and RNA-Seq read would be processed on a remote cluster, and the results explored with the ChipPy tool suite before producing the final, publication ready heat-map or line plots with the same tools. 
+
+2. ChipPy structure overview
+
+ChipPy is architected around matching ChIP-Seq mapped nucleotide base counts to gene expression data held in an SQL database. As such the ChIP-Seq must have already been mapped and exported to the BED file format.  A blank ChippyDB is generated for a particular species and its Ensembl release number. Expression data is then added to the database. Expression can be explored for relationships and gene lists built to answer particular questions. We can then choose which features we wish to extract from the database and match these against counts information at the given locations. Finally this data can be combined and selected for to produce line or heatmapped line plots of chromatin mapping around these feature sites.
+
+3. Application scripts
+
+In the ChipPy/scripts directory we have:
+
+add_expression_db.py – adds an expression study, expression difference study or gene list to the ChippyDB.
+
+counts_to_BED.py – converts early ChipPy-prep results from separate chromosome files to BED format.
+
+db_summary.py – gives some limited information on the current status of the ChipPy DB.
+
+diff_abs_plots.py – creates dot plots of difference of expression versus absolute expression for difference component. Has a number of sampling options to highlight particular features.
+
+drop_expression_db.py – removes a study from the current ChipPy DB.
+
+export_centred_counts – extracts feature-centred counts from selected areas of a ChIP-Seq BED file. User selectable window size around Transcription Start Site, Intron, Exon or Intro-Exon boundaries.
+
+expression_plots.py – produces histograms or box plots of expression score or rank data from one or more studies. Useful for checking to see if a group of genes is representative of expected expression behaviour. UNFINISHED
+
+gene_overlap.py – produces gene lists which can be used in an exclusive or inclusive fashion in other studies. Can be used for instance to find the top 100 housekeeping (expressed but not significantly changing) genes in difference studies.
+
+plot_centred_counts.py – produced mutli-study line plots and heat-mapped lines plots of mapped chromatin counts (heat-mapped by expression rank).
+
+start_chippy_db.py – creates a new ChipPyDB given a species and Ensembl release number.
+
+4. Input file types
+
+ChIP-Seq data needs to have been processed into the .BED format (see http://asia.ensembl.org/info/website/upload/bed.html). 
+
+Gene expression data can take one of three forms: absolute expression, difference expression, target gene list. 
+
+Absolute expression must be header-lined, tab-delimited files with columns for Ensembl stableID, probesets (bar separated) and expression.
+e.g.
+gene    probeset        exp
+ENSMUSG00000076824      10414914        3.25885666666667
+ENSMUSG00000054310      10550202|10550183|10550197      4.63337333333333|4.63337333333333|4.47347333333333
+ENSMUSG00000074987      10485643        5.78478
+ENSMUSG00000080859      10600349|10596379|10593320|10581505|10467256|10485654   13.19275|12.8978566666667|13.0906266666667|13.02995|13.0173233333333|13.21584
+
+Difference expression files must be as per absolute expression files but also contain significance (1,0,-1) and p_value columns, although the p_values are currently not used by any of the tools within ChipPy. 
+e.g.
+gene    probeset        exp     sig     rawp
+ENSMUSG00000025056      10600707        2.80699666666667        1       3.17095091658062e-09
+ENSMUSG00000058773      10408081        2.40355333333333        1       7.64303717396477e-10
+ENSMUSG00000074403      10494402|10404065|10404049|10408239|10494405    2.02104666666667        1       1.90241125219974e-11
+ENSMUSG00000069265      10408083|10403941|10404065|10408246|10404049|10408239|10408202|10494405|10404028        2.00936296296297        1       1.9546587904603e-11
+
+Target gene files are simple a text file with the header "gene" and each gene represented by its ENSEMBL stable id on a separate line.
+e.g.
+gene
+ENSMUSG00000025968
+ENSMUSG00000028180
+ENSMUSG00000053211
+ENSMUSG00000002010
+
+5. Program flags and usage
+
+add_expression_db -h:
+
+Usage: add_expression_db.py [options] {-e/--expression_data EXPRESSION_DATA}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Add an expression study from an R export.
+
+Example usage: 
+Print help message and exit
+ add_expression_db.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -g GENE_ID_HEADING, --gene_id_heading=GENE_ID_HEADING
+                        Column containing the Ensembl gene stable ID [default:
+                        gene]
+  -p PROBESET_HEADING, --probeset_heading=PROBESET_HEADING
+                        Column containing the probeset IDs [default: probeset]
+  -o EXPRESSION_HEADING, --expression_heading=EXPRESSION_HEADING
+                        Column containing the expression scores [default: exp]
+  --allow_probeset_many_gene
+                        Allow probesets that map to multiple genes
+  -s SAMPLE, --sample=SAMPLE
+                        Select an existing or use field below to add new
+  -S NEW_SAMPLE, --new_sample=NEW_SAMPLE
+                        Replace the text on the left and right of the ', e.g.
+                        `S : S phase'
+  -y SAMPLE_TYPE, --sample_type=SAMPLE_TYPE
+                        Select the type of data you want entered from
+                        ['Expression data: absolute ranked', 'Expression data:
+                        difference in expression between samples', 'Target
+                        gene list']
+  --reffile1=REFFILE1   Related file 1
+  --reffile2=REFFILE2   Related file 2
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -e EXPRESSION_DATA, --expression_data=EXPRESSION_DATA
+                        Path to the expression data file. Must be tab
+                        delimited. [REQUIRED]
+
+counts_to_bed.py -h:
+
+Usage: counts_to_bed.py [options] {-r/--counts_dir COUNTS_DIR -s/--save_path SAVE_PATH --feature_name FEATURE_NAME}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Converts all counts created by older pipeline to BED format
+
+Example usage: 
+Print help message and exit
+ counts_to_bed.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -f, --force_overwrite
+                        Ignore any saved files
+  -t, --test_run        Test run, don't write output
+  -x MAX_READ_LENGTH, --max_read_length=MAX_READ_LENGTH
+                        Maximum sequence read length [default: 100]
+  -k, --count_max_length
+                        Use maximum read length instead of mapped length
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -r COUNTS_DIR, --counts_dir=COUNTS_DIR
+                        directory containing read counts. Can be a glob
+                        pattern for multiple directories (e.g. for Lap1, Lap2
+                        use Lap*) [REQUIRED]
+    -s SAVE_PATH, --save_path=SAVE_PATH
+                        path to save the output BED file (e.g.
+                        blah//samplename.bed) [REQUIRED]
+    --feature_name=FEATURE_NAME
+                        string describing the mapped feature e.g. H2A.Z
+                        [REQUIRED]
+
+python db_summary.py -h
+
+Usage: db_summary.py [options] {-s/--sample SAMPLE}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Prints a table showing what files have been related to a sample.
+
+Example usage: 
+Print help message and exit
+ db_summary.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -s SAMPLE, --sample=SAMPLE
+                        Choose the expression study [default: none] [REQUIRED]
+
+diff_abs_plots.py -h
+
+Usage: diff_abs_plots.py [options] {-d/--diff_sample DIFF_SAMPLE -s/--sample1 SAMPLE1 -t/--sample2 SAMPLE2 --yaxis_units YAXIS_UNITS --xaxis_units XAXIS_UNITS --xaxis2_units XAXIS2_UNITS}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Creates two dot plots of an expression difference set vs its absolute expression components.
+
+Example usage: 
+Print help message and exit
+ diff_abs_plots.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -n NUM_GENES, --num_genes=NUM_GENES
+                        Number of ranked genes to get expression scores for
+                        [default: none]
+  -r, --use_ranks       Plot expression ranks instead of expression scores
+                        [default: False]
+  -e SAMPLE_EXTREMES, --sample_extremes=SAMPLE_EXTREMES
+                        Proportion of least and most absolute expressed genes
+                        to treat separately. Set to 0.0 to disable [default:
+                        0.0]
+  --title=TITLE         Text for the title of the plot [default: none]
+  --yaxis_text=YAXIS_TEXT
+                        Text for y-axis of plot [default: none]
+  --xaxis_text=XAXIS_TEXT
+                        Text for x-axis of plot [default: none]
+  --xaxis2_text=XAXIS2_TEXT
+                        Text for x-axis of plot2 [default: none]
+  --plot_format=PLOT_FORMAT
+                        Select the plot format to output: 'PNG' or 'PDF'
+                        [default: PDF]
+  --extremes_colour=EXTREMES_COLOUR
+                        Colour of dots for absolute expression marked as
+                        extreme. [default: blue]
+  --signif_colour=SIGNIF_COLOUR
+                        Colour of dots for difference of expression marked as
+                        significant. [default: blue]
+  --bulk_colour=BULK_COLOUR
+                        Colour of dots for all relatively unexceptional
+                        expression values. [default: blue]
+  --hide_extremes       Do not show absolute expression considered extreme
+                        [default: False]
+  --hide_signif         Do not show difference expression considered
+                        significant [default: False]
+  --hide_bulk           Do not show expression valuesconsidered normal
+                        [default: False]
+  -g GENEFILE, --genefile=GENEFILE
+                        Annotated gene list file output path, as pickle.gz
+  -o OUTPUT_PREFIX1, --output_prefix1=OUTPUT_PREFIX1
+                        Output path prefix for first plot
+  -p OUTPUT_PREFIX2, --output_prefix2=OUTPUT_PREFIX2
+                        Output path prefix for second plot
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -d DIFF_SAMPLE, --diff_sample=DIFF_SAMPLE
+                        Choose the expression study [default: none] [REQUIRED]
+    -s SAMPLE1, --sample1=SAMPLE1
+                        Choose the expression study [default: none] [REQUIRED]
+    -t SAMPLE2, --sample2=SAMPLE2
+                        Choose the expression study [default: none] [REQUIRED]
+    --yaxis_units=YAXIS_UNITS
+                        Text showing units of y-axis of plot [default: none]
+                        [REQUIRED]
+    --xaxis_units=XAXIS_UNITS
+                        Text showing units of x-axis of plot [default: none]
+                        [REQUIRED]
+    --xaxis2_units=XAXIS2_UNITS
+                        Text showing units of x-axis of plot2 [default: none]
+                        [REQUIRED]
+
+drop_expression_db.py -h
+
+Usage: drop_expression_db.py [options] {-s/--sample_reffile SAMPLE_REFFILE}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Remove an expression study and all associated linked objects.
+
+Example usage: 
+Print help message and exit
+ drop_expression_db.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -s SAMPLE_REFFILE, --sample_reffile=SAMPLE_REFFILE
+                        Select an sample+reffile combo to drop [REQUIRED]
+
+export_centred_counts.py -h
+Usage: export_centred_counts.py [options] {-c/--sample SAMPLE -y/--sample_type SAMPLE_TYPE -e/--expression_area EXPRESSION_AREA -r/--counts_dir COUNTS_DIR -s/--collection COLLECTION}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Saves centred counts for TSS and Exon-3prime, Intron-3prime or Exon 3&5-prime boundaries for a given window size
+
+Example usage: 
+Print help message and exit
+ export_centred_counts.py -h 
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -f, --overwrite       Ignore any saved files
+  -d, --tab_delimited   output to tab delimited format
+  -t, --test_run        Test run, don't write output
+  -x MAX_READ_LENGTH, --max_read_length=MAX_READ_LENGTH
+                        Maximum sequence read length [default: 75]
+  -k, --count_max_length
+                        Use maximum read length instead of mapped length
+  -w WINDOW_SIZE, --window_size=WINDOW_SIZE
+                        Region size around TSS [default: 1000]
+  -m MULTITEST_SIGNIF_VAL, --multitest_signif_val=MULTITEST_SIGNIF_VAL
+                        Restrict plot to genes that pass multitest
+                        signficance,valid values: 1, 0, -1
+  --include_target=INCLUDE_TARGET
+                        A Target Gene List in ChipPyDB
+  --exclude_target=EXCLUDE_TARGET
+                        Path to pickle.gz file of ensembl gene ids that will
+                        be specifically excluded from study
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -c SAMPLE, --sample=SAMPLE
+                        Choose the expression study  [REQUIRED]
+    -y SAMPLE_TYPE, --sample_type=SAMPLE_TYPE
+                        Select the type of data you want entered from
+                        ['Expression data: absolute ranked', 'Expression data:
+                        difference in expression between samples', 'Target
+                        gene list'] [REQUIRED]
+    -e EXPRESSION_AREA, --expression_area=EXPRESSION_AREA
+                        Expression area options: TSS, Exon_3p, Intron-3p,
+                        Both-3p [REQUIRED]
+    -r COUNTS_DIR, --counts_dir=COUNTS_DIR
+                        directory containing read counts. Can be a glob
+                        pattern for multiple directories (e.g. for Lap1, Lap2
+                        use Lap*) [REQUIRED]
+    -s COLLECTION, --collection=COLLECTION
+                        path to save the plottable collection data (e.g.
+                        samplename-readsname-windowsize.gz) [REQUIRED]
+
+gene_overlap.py -h
+
+Usage: gene_overlap.py [options] {-s/--sample1 SAMPLE1 -t/--sample2 SAMPLE2 -w/--sample1_type SAMPLE1_TYPE -x/--sample2_type SAMPLE2_TYPE -c/--comparison_type COMPARISON_TYPE --genefile GENEFILE}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Investigate intersections or unions between up to 3 expression or expression_diff databases by rank or measured expression.
+
+Example usage: 
+Print help message and exit
+ gene_overlap.py -h 
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -u SAMPLE3, --sample3=SAMPLE3
+                        Choose the expression study [default: none]
+  -y SAMPLE3_TYPE, --sample3_type=SAMPLE3_TYPE
+                        Select the type of data you want entered from
+                        ['Expression data: absolute ranked', 'Expression data:
+                        difference in expression between samples', 'Target
+                        gene list']
+  --expression_sample1=EXPRESSION_SAMPLE1
+                        Choose the expression study matching sample1 (for when
+                        you want to select by top expressing genes for
+                        instance [default: none]
+  --expression_sample2=EXPRESSION_SAMPLE2
+                        Choose the expression study matching sample2 (for when
+                        you want to select by top expressing genes for
+                        instance [default: none]
+  --expression_sample3=EXPRESSION_SAMPLE3
+                        Choose the expression study matching sample3 (for when
+                        you want to select by top expressing genes for
+                        instance [default: none]
+  --favoured_expression_sample=FAVOURED_EXPRESSION_SAMPLE
+                        Whenever a gene in found in multiplestudies, choose
+                        which numbered expression study to draw expressedrank
+                        from. [default: 1]
+  -n NUM_GENES, --num_genes=NUM_GENES
+                        Number of ranked genes to get expression scores for.
+                        You must also give --expression_sampleX for each
+                        sample so that expression scores can be selected.
+                        [default: none]
+  -e SAMPLE_EXTREMES, --sample_extremes=SAMPLE_EXTREMES
+                        Proportion of least and most absolute expressed genes
+                        to treat separately. Set to 0.0 to disable [default:
+                        0.0]
+  --m1=M1               Restrict plot to genes that pass multitest
+                        significance,valid values: 1, 0, -1
+  --m2=M2               Restrict plot to genes that pass multitest
+                        significance,valid values: 1, 0, -1
+  --m3=M3               Restrict plot to genes that pass multitest
+                        significance,valid values: 1, 0, -1
+  --ignore_bulk         If sample extremes are set then this will throw away
+                        the non-extreme gene ids
+  --ignore_top_extreme  If you set sample extremes then this will throw away
+                        the high expressing portion of extreme expressing
+                        genes
+  --ignore_bottom_extreme
+                        If you set sample extremes then this will throw away
+                        the low expressing portion of extreme expressing genes
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -s SAMPLE1, --sample1=SAMPLE1
+                        Choose the expression study [default: none] [REQUIRED]
+    -t SAMPLE2, --sample2=SAMPLE2
+                        Choose the expression study [default: none] [REQUIRED]
+    -w SAMPLE1_TYPE, --sample1_type=SAMPLE1_TYPE
+                        Select the type of data you want entered from
+                        ['Expression data: absolute ranked', 'Expression data:
+                        difference in expression between samples', 'Target
+                        gene list'] [REQUIRED]
+    -x SAMPLE2_TYPE, --sample2_type=SAMPLE2_TYPE
+                        Select the type of data you want entered from
+                        ['Expression data: absolute ranked', 'Expression data:
+                        difference in expression between samples', 'Target
+                        gene list'] [REQUIRED]
+    -c COMPARISON_TYPE, --comparison_type=COMPARISON_TYPE
+                        Select the type of comparison you want to conduct from
+                        ['Intersection: the genes in common between samples',
+                        'Union: the superset of all genes found in given
+                        samples', 'Complement: all genes NOT in common between
+                        all samples', 'Specific: genes that are expressed in
+                        only one sample'] [REQUIRED]
+    --genefile=GENEFILE
+                        Final gene list file output path. Text file with one
+                        stableID per line [REQUIRED]
+
+plot_centred_counts.py -h
+
+Usage: plot_centred_counts.py [options] {-s/--collection COLLECTION -m/--metric METRIC}
+
+[] indicates optional input (order unimportant)
+{} indicates required input (order unimportant)
+
+Takes read counts that are centred on on a gene TSS, sorted from high to low gene expression and makes a heat-map plot.
+
+Example usage: 
+Print help message and exit
+ plot_centred_counts.py -h
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -v, --verbose         Print information during execution -- useful for
+                        debugging [default: False]
+  -t, --test_run        Test run, don't write output
+  -g GROUP_SIZE, --group_size=GROUP_SIZE
+                        Number of genes to group to estimate statistic - All
+                        or a specific number [default: All]
+  -T TARGET_SAMPLE, --target_sample=TARGET_SAMPLE
+                        Target sample
+  -C CHROM, --chrom=CHROM
+                        Choose a chromosome [default: All]
+  -k CUTOFF, --cutoff=CUTOFF
+                        Probability cutoff. Exclude genes if the probability
+                        of the observed tag count is at most this value
+                        [default: 0.05]
+  --topgenes            Plot only top genes ranked by expressed chromatin
+  --smoothing=SMOOTHING
+                        Window size for smoothing of plot data default:
+                        [default]
+  --normalise_tags=NORMALISE_TAGS
+                        The number of mapped bases (reads x length) in the
+                        data set. Is only used with Mean Counts, and only when
+                        group_size is a defined number - not All.
+  --normalise_tags2=NORMALISE_TAGS2
+                        The number of mapped bases (reads x length) in the
+                        data set. Is only used with Mean Counts, and only when
+                        group_size is a defined number - not All. Normalises
+                        2nd data set.
+  --normalise_tags3=NORMALISE_TAGS3
+                        The number of mapped bases (reads x length) in the
+                        data set. Is only used with Mean Counts, and only when
+                        group_size is a defined number - not All. Normalises
+                        3rd data set
+  --plot_filename=PLOT_FILENAME
+                        Name of final plot file (must end with .pdf) [default:
+                        none]
+  -p, --plot_series     Plot series of figures. A directory called
+                        plot_filename-series will be created. Requires
+                        plot_filename be defined.
+  --text_coords=TEXT_COORDS
+                        x, y coordinates of series text (e.g. 600,3.0)
+  --title=TITLE         Plot title [default: none]
+  --ylabel=YLABEL       Label for the y-axis [default: Normalized counts]
+  --xlabel=XLABEL       Label for the x-axis [default: Position relative to
+                        TSS]
+  --colorbar            Add colorbar to figure
+  -l, --legend          Automatically generate a figure legend. [default:
+                        False
+  --legend_size=LEGEND_SIZE
+                        Point size for legend characters [default: 12]
+  -y YLIM, --ylim=YLIM  comma separated minimum-maximum yaxis values (e.g.
+                        0,3.5)
+  -H FIG_HEIGHT, --fig_height=FIG_HEIGHT
+                        Figure height (cm) [default: 15.0]
+  -W FIG_WIDTH, --fig_width=FIG_WIDTH
+                        Figure width (cm) [default: 30.0]
+  --xgrid_lines=XGRID_LINES
+                        major grid-line spacing on x-axis [default: 100]
+  --ygrid_lines=YGRID_LINES
+                        major grid-line spacing on y-axis [default: none]
+  --xlabel_interval=XLABEL_INTERVAL
+                        number of blank ticks between labels [default: 2]
+  --ylabel_interval=YLABEL_INTERVAL
+                        number of blank ticks between labels [default: 2]
+  -b BGCOLOR, --bgcolor=BGCOLOR
+                        Plot background color [default: black]
+  --line_alpha=LINE_ALPHA
+                        Opacity of lines [default: 1.0]
+  --vline_style=VLINE_STYLE
+                        line style for centred vertical line [default: -.]
+  --vline_width=VLINE_WIDTH
+                        line width for centred vertical line [default: 2]
+  --xfontsize=XFONTSIZE
+                        font size for x label [default: 12]
+  --yfontsize=YFONTSIZE
+                        font size for y label [default: 12]
+  --grid_off            Turn grid lines off
+  --clean_plot          Remove tick marks and top and right borders [default:
+                        False]
+
+  REQUIRED options:
+    The following options must be provided under all circumstances.
+
+    -s COLLECTION, --collection=COLLECTION
+                        Path to the plottable data [REQUIRED]
+    -m METRIC, --metric=METRIC
+                        Select the metric (note you will need to change your
+                        ylim accordingly if providing via --ylim [REQUIRED]
+
+6. Example work flows
+
+7. Organisation of code files
+
+8. Code file dependence maps
+
+9. Glossary
+
+Plot specific:
+
+Frequnecy counts - The (ranked) summed expression score of a group of expressed genes as a fraction of the total tagged bases present.
+Mean counts - The average expression rank or score of a group of expressed genes.
+(Freq) Normalised counts - Frequency counts, less the mean and divided by the standard deviation.
+Normalised RPM - The mean counts are converted to sum counts by multiplying by the number of genes in the group before multiplying by 1 million and dividing by the sum of all tagged nucleotides in the study.
+RPM - Reads Per Million mapped. A way of normalising tag counts.

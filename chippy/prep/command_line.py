@@ -916,8 +916,9 @@ def dedup_filtered_bam(bam_in_fn, bed_out_fn, run_record, test):
 
 def filter_sorted_bam(bam_in_fn, bam_out_fn, run_record, test):
     """Removes unmapped and poorly mapped reads . Requires Samtools and awk"""
+    # removed $5 > 10 uniqueness requirement
     command = "samtools view -h -F 4 %s | awk '$1~/@SQ/ || $1~/@PG/ || $1~/@RG/ || (($2~/83/ "\
-              "|| $2~/147/ || $2~/99/ || $2~/163/) && $5>10)' "\
+              "|| $2~/147/ || $2~/99/ || $2~/163/))' "\
               "| samtools view -Sb - > %s" % (bam_in_fn, bam_out_fn)
     if test:
         print "=== The command ==="

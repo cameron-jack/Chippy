@@ -69,8 +69,9 @@ def mapped_coords(samfile, min_quality, limit, dry_run):
 
         optional_field = record[11] # 12th SAM field gives optional strings
 
-        if ((optional_field == unique_str_bowtie) or (optional_field == unique_str_bwa))\
-        and min_quality <= mapQ < 255:
+        #if ((optional_field == unique_str_bowtie) or (optional_field == unique_str_bwa))\
+        #and min_quality <= mapQ < 255:
+        if True:
             count_records += 1
 
                     

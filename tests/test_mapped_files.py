@@ -1,4 +1,5 @@
 import sys
+from shutil import rmtree
 sys.path.extend(['..', '../src'])
 
 from chippy.prep.mapped_files import mapped_file_handle, internal_instantiation,\
@@ -68,9 +69,11 @@ class MappedFilesTest(TestCase):
     
     def test_fn_endswith_gz(self):
         '''should handle filenames that end with gzip suffix'''
-        mf = MappedFiles('known_sequence.fq.gz', 'blah', 'blah-workin')
-        self.assertEqual(mf.trimmed_fn, 'blah-workin/known_sequence_trimmed.fq.gz')
-        self.assertEqual(mf.pristine_fn, 'blah-workin/known_sequence_pristine.fq.gz')
+        mf = MappedFiles('known_sequence.fq.gz', 'blah', 'blah-working')
+        self.assertEqual(mf.trimmed_fn, 'blah-working/known_sequence_trimmed.fq.gz')
+        self.assertEqual(mf.pristine_fn, 'blah-working/known_sequence_pristine.fq.gz')
+        rmtree ('blah')
+        rmtree ('blah-working')
 
 if __name__ == '__main__':
     main()

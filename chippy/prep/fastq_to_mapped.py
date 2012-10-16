@@ -30,12 +30,13 @@ script_info = fastq_to_fasta.script_info
 
 optional = script_info['optional_options']
 optional.extend([make_option('-p', '--pval_cutoff',
-                type='float', default=0.001,
-                help='Minimum p-value for mapping quality of reads '\
-                '[default: %default]'),
-                make_option('-w','--work_dir', type='string', default = '',
-                help='specify temporary working directory '\
-                '[default: %default]')])
+        type='float', default=0.001,
+        help='Minimum p-value for mapping quality of reads '\
+        '[default: %default]'),
+        make_option('-w','--work_dir', type='string', default = '',
+        help='specify temporary working directory [default: %default]'),
+        make_option('-r', '--reduce', action='store_true', default=False,
+        help='Only do reduce step')])
 
 required = script_info['required_options']
 required.append(make_option('--blat_adapters',
@@ -91,7 +92,7 @@ def main():
         # exist. Rewrite fastq=true
         print 'Prepping for blat (fastq to fasta)'
         run_record = fastq_to_fasta.run(fastq_fn, fasta_fn,
-            opts.minimum_length, True, run_record, opts.test_run)
+                opts.minimum_length, True, run_record, opts.test_run)
     
         print 'Running blat'
         run_record = command_line.run_blat(opts.blat_adapters,
@@ -99,46 +100,48 @@ def main():
     
         print 'Writing seqs without adapters'
         run_record = pristine_seqs.main(psl_fn, trimmed_fn, run_record,
-                     opts.test_run)
+                opts.test_run)
 
         # concatenate the pristine and contaminated fastq files
         print 'Concatenating contaminated and pristine fastq files'
         run_record = command_line.concatenate(pristine_fn, contaminated_fn,
-                    combined_fn, run_record, opts.test_run)
+                combined_fn, run_record, opts.test_run)
     elif opts.adapter_clipper.lower() == 'fastx':
         # We aren't separating pristine and contaminated with fastx
         # so write straight to 'combined' file
         print 'Running fastx adapter clipping'
         run_record = command_line.run_fastx_clipper(opts.blat_adapters,
-                    fastq_fn, trimmed_fn, run_record, 1, opts.test_run)
+                fastq_fn, trimmed_fn, run_record, 1, opts.test_run)
 
         print 'Running fastq_quality_trimmer'
         run_record = command_line.run_fastq_qual_trim(trimmed_fn, combined_fn,
                      run_record, 1, opts.test_run)
     else:
         raise RuntimeError('Unknown adapter clipper choice %s' \
-                % opts.adapter_clipper)
+                    % opts.adapter_clipper)
 
     if opts.aligner.lower() == 'bowtie':
         print 'Mapping seqs with bowtie'
         run_record = command_line.run_bowtie(opts.index,
-            combined_fn, combined_sam_fn, run_record, opts.test_run)
+                    combined_fn, combined_sam_fn, run_record, opts.test_run)
     elif opts.aligner.lower() == 'bwa':
         print 'Aligning seqs with bwa aln'
         # hard coded for 1 thread and Casava v1.7
         run_record = command_line.run_bwa_aln(opts.index,
-            combined_fn, combined_sai_fn, 1.7, run_record, 1, opts.test_run)
+                    combined_fn, combined_sai_fn, 1.7, run_record, 6, opts.test_run)
         print 'Finding chromosomal coordinates with bwa samse'
-        run_record = command_line.run_bwa_samse(opts.index, 
-            combined_sai_fn, combined_fn, combined_sam_fn,
-            run_record, opts.test_run)
+        run_record = command_line.run_bwa_samse(opts.index,
+                    combined_sai_fn, combined_fn, combined_sam_fn,
+                    run_record, opts.test_run)
     else:
         raise RuntimeError('Unknown aligner choice %s' % opts.aligner)
 
     # minimal_read map the concatenated file
     run_record = reduce.run(infile_name=combined_sam_fn,
-        outdir=opts.save_dir, chroms='Do All', pval_cutoff=opts.pval_cutoff,
-        limit=numpy.inf, run_record=run_record, dry_run=opts.test_run)
+            outdir=opts.save_dir, chroms='Do All',
+            pval_cutoff=opts.pval_cutoff,
+            limit=numpy.inf, run_record=run_record,
+            dry_run=opts.test_run)
     # display/write synopsis of run
     run_record.display()
     table = run_record.getMessageTable()

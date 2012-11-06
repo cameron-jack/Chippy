@@ -2,6 +2,7 @@ from __future__ import division
 from math import log10, floor, ceil
 
 import os, sys, glob
+
 sys.path.extend(['..', '../src'])
 
 import numpy
@@ -155,6 +156,7 @@ def _filter_collection(data_collection, cutoff, target_sample, stable_ids, rr):
     return data_collection, window_size, rr
 
 def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plot_series, rr):
+
     if group_size=='All':
         counts, ranks = data_collection.transformed(counts_func=counts_func)
         num_groups = 1
@@ -239,27 +241,31 @@ opt_target = make_option('-T', '--target_sample', type='choice',
 
 # essential plotting information
 opt_grp_size = make_option('-g', '--group_size', type='string', default='All',
-   help='Number of genes to group to estimate statistic - All or a specific '\
+        help='Number of genes to group to estimate statistic - All or a specific '\
         'number [default: %default]')
 
 # optional sample choice information
 opt_topgenes = make_option('--topgenes', action='store_true', default = False,
         help='Plot only top genes ranked by expressed chromatin')
+opt_div_denom_group = make_option('--div', type='int', default = None,
+        help='For use only with --topgenes and 2 plottable groups, divides ' \
+        'one of the lines by the other. Takes an integer which is the number ' \
+        'of the data set in alphabetical order')
 opt_smoothing = make_option('--smoothing', type='int', default = 0,
         help='Window size for smoothing of plot data default: '\
         '[default]')
-opt_normalise_tags = make_option('--normalise_tags', type='string',
-        default=False, help='The number of mapped bases (reads x length) in ' \
+opt_normalise_tags = make_option('--normalise_tags', type='int',
+        default=None, help='The number of mapped bases (reads x length) in ' \
         'the data set. Is only used with Mean Counts, and only when group_size ' \
         'is a defined number - not All.')
-opt_normalise_tags2 = make_option('--normalise_tags2', type='string',
-    default=False, help='The number of mapped bases (reads x length) in '\
-                        'the data set. Is only used with Mean Counts, and only when group_size '\
-                        'is a defined number - not All. Normalises 2nd data set.')
-opt_normalise_tags3 = make_option('--normalise_tags3', type='string',
-    default=False, help='The number of mapped bases (reads x length) in '\
-                        'the data set. Is only used with Mean Counts, and only when group_size '\
-                        'is a defined number - not All. Normalises 3rd data set')
+opt_normalise_tags2 = make_option('--normalise_tags2', type='int',
+        default=None, help='The number of mapped bases (reads x length) in '\
+        'the data set. Is only used with Mean Counts, and only when group_size '\
+        'is a defined number - not All. Normalises 2nd data set.')
+opt_normalise_tags3 = make_option('--normalise_tags3', type='int',
+        default=None, help='The number of mapped bases (reads x length) in '\
+        'the data set. Is only used with Mean Counts, and only when group_size '\
+        'is a defined number - not All. Normalises 3rd data set')
 
 # optional plotting information
 opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
@@ -335,8 +341,8 @@ script_info['required_options'] = [opt_collection, opt_metric]
 
 run_opts = [opt_test_run]
 sampling_opts = [opt_grp_size, opt_target, opt_chroms, opt_cutoff,
-                 opt_topgenes, opt_smoothing, opt_normalise_tags,
-                 opt_normalise_tags2, opt_normalise_tags3]
+                 opt_topgenes, opt_div_denom_group, opt_smoothing,
+                 opt_normalise_tags, opt_normalise_tags2, opt_normalise_tags3]
 save_opts = [opt_plot_filename]
 series_opts = [opt_plotseries, opt_txt_coords]
 plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
@@ -509,51 +515,38 @@ def main():
             genes_per_group = group_size
 
         # Calculate normalised per million mapped reads (RPM)
-        if opts.normalise_tags is not None and dc_index == 0:
-            normalised_counts = []
-            try:
-                normalise_tags = int(opts.normalise_tags)
-            except ValueError:
-                normalise_tags = float(opts.normalise_tags)
-            except ValueError:
-                normalise_tags = 1
+        if opts.metric.lower() == 'mean counts':
+            if opts.normalise_tags is not None and dc_index == 0:
+                normalised_counts = []
+                norm_tags = opts.normalise_tags
+                for c in counts:
+                    # Which is better, per line or per gene normalisation?
+                    c = c * genes_per_group * 1000000 / norm_tags # This is per group/line normalisation
+                    #c = c * 1000000 / norm_tags # This is per gene normalisation
+                    normalised_counts.append(c)
+                counts = normalised_counts
 
-            for c in counts:
-                c = c * genes_per_group * 1000000 / normalise_tags
-                normalised_counts.append(c)
-            counts = normalised_counts
+            if opts.normalise_tags2 is not None and dc_index == 1:
+                # Calculate normalised per million mapped reads (RPM)
+                # Hack for 3 data sets, G1, M, S in that order
+                normalised_counts = []
+                norm_tags = opts.normalise_tags2
 
-        if opts.normalise_tags2 is not None and dc_index == 1:
-            # Calculate normalised per million mapped reads (RPM)
-            # Hack for 3 data sets, G1, M, S in that order
-            normalised_counts = []
-            try:
-                normalise_tags = int(opts.normalise_tags2)
-            except ValueError:
-                normalise_tags = float(opts.normalise_tags2)
-            except ValueError:
-                normalise_tags = 1
+                for c in counts:
+                    c = c * genes_per_group * 1000000 / norm_tags
+                    normalised_counts.append(c)
+                counts = normalised_counts
 
-            for c in counts:
-                c = c * genes_per_group * 1000000 / normalise_tags
-                normalised_counts.append(c)
-            counts = normalised_counts
+            if opts.normalise_tags3 is not None and dc_index == 2:
+                # Calculate normalised per million mapped reads (RPM)
+                # Hack for 3 data sets, G1, M, S in that order
+                normalised_counts = []
+                norm_tags = opts.normalise_tags3
 
-        if opts.normalise_tags3 is not None and dc_index == 2:
-            # Calculate normalised per million mapped reads (RPM)
-            # Hack for 3 data sets, G1, M, S in that order
-            normalised_counts = []
-            try:
-                normalise_tags = int(opts.normalise_tags3)
-            except ValueError:
-                normalise_tags = float(opts.normalise_tags3)
-            except ValueError:
-                normalise_tags = 1
-
-            for c in counts:
-                c = c * genes_per_group * 1000000 / normalise_tags
-                normalised_counts.append(c)
-            counts = normalised_counts
+                for c in counts:
+                    c = c * genes_per_group * 1000000 / norm_tags
+                    normalised_counts.append(c)
+                counts = normalised_counts
 
         count_set.append(counts)
         rank_set.append(ranks)
@@ -561,6 +554,35 @@ def main():
         for label in labels:
             labels_set.append(label)
         iteration += 1
+
+    if opts.div and opts.topgenes and len(count_set) == 2:
+        # divide one set of counts by the other.
+        # top100 genes is essential to keep plots comparable
+        div_c = []
+        if opts.div == 1:
+            # the first set is the divisor
+            denominator_counts = count_set[0]
+            numerator_counts = count_set[1]
+        else:
+            # the second set is the divisor
+            denominator_counts = count_set[1]
+            numerator_counts = count_set[0]
+
+        d_counts = denominator_counts[0]
+        n_counts = numerator_counts[0]
+
+        for i in range(d_counts.size):
+            try:
+                div_c.append((float(n_counts[i])/float(d_counts[i])))
+            except ZeroDivisionError:
+                div_c.append(1.0)
+
+        div_counts = numpy.array(div_c)
+        counts = [div_counts]
+        count_set = [counts]
+        rank_set = [rank_set[0]]
+        labels_set = [labels_set[0]]
+
 
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'Total number of plottable lines', plottable_lines)
@@ -617,31 +639,31 @@ def main():
     minY_str = '%e' % min(ylim)
     ygrid_line_str = '%e' % opts.ygrid_lines
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-max plot limit',
-                    maxY_str)
+            maxY_str)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-min plot limit',
-                    minY_str)
+            minY_str)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-grid-line spacing',
-                    ygrid_line_str)
+            ygrid_line_str)
 
     # Rather than have everything that follows simply dump into
     # PlottableGroups, it might be better to have multiple calls
     # to PlottableSingle
     
     plot = PlottableGroups(height=opts.fig_height/2.5,
-        width=opts.fig_width/2.5,
-        bgcolor=bgcolor, grid=grid,
-        ylim=ylim, xlim=(-window_size, window_size),
-        xtick_space=opts.xgrid_lines, ytick_space=opts.ygrid_lines,
-        xtick_interval=opts.xlabel_interval,
-        ytick_interval=opts.ylabel_interval,
-        xlabel_fontsize=opts.xfontsize, ylabel_fontsize=opts.yfontsize,
-        vline=vline, ioff=True, colorbar=opts.colorbar, clean=opts.clean_plot)
+            width=opts.fig_width/2.5, bgcolor=bgcolor, grid=grid,
+            ylim=ylim, xlim=(-window_size, window_size),
+            xtick_space=opts.xgrid_lines, ytick_space=opts.ygrid_lines,
+            xtick_interval=opts.xlabel_interval,
+            ytick_interval=opts.ylabel_interval,
+            xlabel_fontsize=opts.xfontsize, ylabel_fontsize=opts.yfontsize,
+            vline=vline, ioff=True, colorbar=opts.colorbar,
+            clean=opts.clean_plot)
     
     x = numpy.arange(-window_size, window_size)
 
     all_ranks = []
     all_counts = []
-    if len(data_collection_set) > 1:
+    if len(count_set) > 1:
         all_ranks = range(plottable_lines)
         for counts in count_set:
             for count in counts:
@@ -659,7 +681,7 @@ def main():
             print 'Number of rank sets: %d' % len(all_ranks)
 
     # Hack time: this is just for David's Cell-cycle plots
-    if len(data_collection_set) == 3:
+    if len(count_set) == 3:
         colour_range = []
         # We're going to use black/white, green and magenta, for G1, M, S
         if opts.bgcolor == 'black':
@@ -688,13 +710,14 @@ def main():
         if not opts.legend:
             labels_set = None
 
-        plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
-            filename_series=filename_series, label_coords=label_coords,
-            alpha=opts.line_alpha, xlabel=opts.xlabel,
-            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
-            labels=labels_set, labels_size=opts.legend_size)
+        plot(x, y_series=all_counts, color_series=colour_range,
+                series_labels=series_labels, filename_series=filename_series,
+                label_coords=label_coords, alpha=opts.line_alpha,
+                xlabel=opts.xlabel, ylabel=opts.ylabel, title=opts.title,
+                colorbar=opts.colorbar, labels=labels_set,
+                labels_size=opts.legend_size)
         
-    elif len(data_collection_set) > 1:
+    elif len(count_set) > 1:
         # spread colours almost evenly throughout the 256^3 colour-space
         colour_range = []
         halfway = floor(len(all_counts)/2)

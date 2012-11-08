@@ -369,7 +369,6 @@ def add_target_genes(session, sample_name, data_path, table,
     
     ensembl_ids = table.getRawData(ensembl_id_label)
 
-    num_genes = 0
     for id_chunk in _chunk_id_list(ensembl_ids, 100):
         genes = session.query(Gene).filter(Gene.ensembl_id.in_(id_chunk)).all()
         for gene in genes:
@@ -378,12 +377,11 @@ def add_target_genes(session, sample_name, data_path, table,
             target.reference_file = reffile
             target.sample = sample
             data.append(target)
-            num_genes += 1
 
     run_record.addMessage('add_target_genes', LOG_INFO,
             'Added target genes from', data_path)
     run_record.addMessage('add_target_genes', LOG_INFO,
-            'No. genes added', num_genes+1)
+            'No. genes added', len(data))
     session.add_all(data)
     session.commit()
     return run_record

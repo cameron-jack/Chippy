@@ -21,7 +21,7 @@ class Args(object):
         """returns the available choices for samples in the DB"""
         if self.db_path is None:
             return None
-        session = db_query.make_session('sqlite:///%s' % self.db_path)
+        session = db_query.make_session('sqlite:///' + str(self.db_path))
         samples = ['%s : %s' % (s.name, s.description)
                 for s in db_query.get_target_sample(session)]
         # These are valid null samples
@@ -75,7 +75,7 @@ class Args(object):
         target_genes = 'Target gene list'
         self._inc_arg('--sample_type',
             choices=[exp_absolute, exp_diff, target_genes],
-            help='Select the type of data you want entered from %s' %\
+            help='Select the type of data you want entered from '+\
                  str([exp_absolute, exp_diff, target_genes]))
 
         self._inc_arg('--reffile1', default=None, help='Related file 1')
@@ -86,6 +86,11 @@ class Args(object):
                 help='directory containing read counts. Can be a glob '\
                 'pattern for multiple directories '\
                 '(e.g. for Lap1, Lap2 use Lap*)')
+
+        self._inc_arg('-f', '--overwrite', action='store_true',
+                help='Ignore any saved files', default=False)
+        self._inc_arg('--tab_delimited', action='store_true',
+                help='output to tab delimited format', default=False)
 
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
@@ -129,9 +134,30 @@ class Args(object):
                  'e.g. 0.05.')
 
         # Export Centred Counts args
-        self._inc_arg('-e', '--expression_area', choices=['TSS', 'Exon_3p',
+        self._inc_arg('--expression_area', choices=['TSS', 'Exon_3p',
                 'Intron_3p', 'Both_3p'], help='Expression area options: ' \
                 'TSS, Exon_3p, Intron-3p, Both-3p')
+
+        self._inc_arg('--max_read_length', type=int,
+            default=75, help='Maximum sequence read length')
+
+        self._inc_arg('--count_max_length',
+                action='store_false', help='Use maximum read length instead '\
+                          'of mapped length', default=True)
+
+        self._inc_arg('--window_size', type=int, default=1000,
+                help='Region size around TSS')
+
+        self._inc_arg('--multitest_signif_val', type=int,
+                help='Restrict plot to genes that pass multitest signficance,'\
+                'valid values: 1, 0, -1', default=None)
+
+        self._inc_arg('--include_target', default=None,
+                help='A Target Gene List in ChipPyDB',
+                choices=[str(s) for s in self._make_sample_choices()])
+        self._inc_arg('--exclude_target', default=None,
+                help='A Target Gene List in ChipPyDB',
+                choices=[str(s) for s in self._make_sample_choices()])
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """

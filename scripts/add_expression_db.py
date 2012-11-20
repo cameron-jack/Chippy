@@ -46,10 +46,10 @@ def set_environment():
     inputs = command_args.Args()
     # sample and new_sample are mutually exclusive
     inputs.add_args(['expression_data', 'sample', 'new_sample',
-            'sample_type'], required=True)
+            'sample_type'], db_path=db_path, required=True)
     inputs.add_args(['reffile1', 'reffile2', 'allow_probeset_many_gene',
             'gene_id_heading', 'probeset_heading', 'expression_heading',
-            'test_run'], db_path=db_path)
+            'test_run'])
     args = inputs.parser.parse_args()
 
     return args, db_path, script_info

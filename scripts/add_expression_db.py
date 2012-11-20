@@ -42,17 +42,16 @@ def set_environment():
     script_info['authors'] = __author__
     script_info['output_description']= 'None.'
 
-    ### All inputs are divided into logical groupings
-    inputs = command_args.Args()
-    # sample and new_sample are mutually exclusive
-    inputs.add_args(['expression_data', 'sample', 'new_sample',
-            'sample_type'], db_path=db_path, required=True)
-    inputs.add_args(['reffile1', 'reffile2', 'allow_probeset_many_gene',
-            'gene_id_heading', 'probeset_heading', 'expression_heading',
-            'test_run'])
-    args = inputs.parser.parse_args()
+    # Process command-line arguments
+    req_args = ['expression_data', 'sample', 'new_sample',
+                    'sample_type']
+    opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
+                'gene_id_heading', 'probeset_heading', 'expression_heading',
+                'test_run']
+    inputs = command_args.Args(required_args=req_args,
+            optional_args=opt_args, db_path=db_path)
 
-    return args, db_path, script_info
+    return inputs.parsed_args, db_path, script_info
 
 def _get_name_description(value):
     """returns the name and description of a : separated sample"""

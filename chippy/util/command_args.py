@@ -21,7 +21,7 @@ class Args(object):
         """returns the available choices for samples in the DB"""
         if self.db_path is None:
             return None
-        session = db_query.make_session('sqlite:///%s' % db_path)
+        session = db_query.make_session('sqlite:///%s' % self.db_path)
         samples = ['%s : %s' % (s.name, s.description)
                 for s in db_query.get_target_sample(session)]
         # These are valid null samples
@@ -35,14 +35,15 @@ class Args(object):
         the user provided list """
         for arg in args:
             tmp_arg = arg.lstrip('-')
-            if tmp_arg in self.arg_names:
-                if self.required:
-                    self.parser.add_argument(*args, required=True, **kwargs)
-                else:
-                    self.parser.add_argument(*args, **kwargs)
+            if self.required_args and tmp_arg in self.required_args:
+                self.parser.add_argument(*args, required=True, **kwargs)
+            elif self.optional_args and tmp_arg in self.optional_args:
+                self.parser.add_argument(*args, **kwargs)
 
     def _add_load_save_args(self):
         """ All loading and saving related arguments should go here """
+
+        # Plot centred counts args
         self._inc_arg('-c', '--collection', help='Path to the plottable data')
         # Output filename
         self._inc_arg('--plot_filename',
@@ -61,12 +62,13 @@ class Args(object):
             default='exp',
             help='Column containing the expression scores')
 
-        self._inc_arg('-s','--sample', default=None,
-            choices=self._make_sample_choices(db_path),
-            help='Select an existing sample to use')
-        self._inc_arg('-S','--new_sample', default=None,
-            help="Replace the text on the left and right of the ', "\
-                 "e.g. `S : S phase'")
+        if self.db_path:
+            self._inc_arg('-s','--sample', default=None,
+                    choices=self._make_sample_choices(),
+                    help='Select an existing sample to use')
+            self._inc_arg('-S','--new_sample', default=None,
+                    help="Replace the text on the left and right of the ', "\
+                     "e.g. `S : S phase'")
 
         exp_absolute = 'Expression data: absolute ranked'
         exp_diff = 'Expression data: difference in expression between samples'
@@ -79,6 +81,12 @@ class Args(object):
         self._inc_arg('--reffile1', default=None, help='Related file 1')
         self._inc_arg('--reffile2', default=None, help='Related file 2')
 
+        # Export Centred Counts args
+        self._inc_arg('-r', '--counts_dir',
+                help='directory containing read counts. Can be a glob '\
+                'pattern for multiple directories '\
+                '(e.g. for Lap1, Lap2 use Lap*)')
+
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
         # chrom choice
@@ -88,9 +96,9 @@ class Args(object):
 
         # or external sample (gene) choice
         # NOTE: Should be target_sample
-        if db_path:
+        if self.db_path:
             self._inc_arg('-E', '--external_sample', default=None,
-                choices=self._make_sample_choices(db_path),
+                choices=self._make_sample_choices(),
                 help='External sample')
 
         # group genes into sets ranked by expression
@@ -119,6 +127,11 @@ class Args(object):
             help='Probability cutoff. Exclude genes if the probability of '\
                  'the observed tag count is less than or equal to this value '\
                  'e.g. 0.05.')
+
+        # Export Centred Counts args
+        self._inc_arg('-e', '--expression_area', choices=['TSS', 'Exon_3p',
+                'Intron_3p', 'Both_3p'], help='Expression area options: ' \
+                'TSS, Exon_3p, Intron-3p, Both-3p')
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
@@ -193,13 +206,31 @@ class Args(object):
         self._inc_arg('--text_coords', default=None,
             help='x, y coordinates of series text (e.g. 600,3.0)')
 
-    def add_args(self, arg_names, db_path=None, required=False):
-        """ calls _inc_args on every possible argument """
+    def _add_misc_args(self):
+        """ various options that don't fall into a category above """
 
-        # Sets whether the options below will be required inputs
-        self.required = required
-        self.arg_names = arg_names
+        self._inc_arg('-m', '--metric',
+            choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
+            default='Frequency counts',
+            help='Select the metric (note you will need to change your ylim '\
+                 'accordingly if providing via --ylim)')
+
+        self._inc_arg('-t', '--test_run', action='store_true',
+            help="Test run, don't write output",
+            default=False)
+
+    def __init__(self, positional_args=None, required_args=None,
+                optional_args=None, db_path=None):
+        """ calls _inc_args on every possible argument """
+        self.parser = argparse.ArgumentParser(description='All ChipPy options')
         self.db_path = db_path
+
+        if positional_args:
+            for arg in positional_args:
+                pass # these aren't implemented yet
+
+        self.required_args = required_args
+        self.optional_args = optional_args
 
         # process arguments for loading or saving
         self._add_load_save_args()
@@ -207,27 +238,16 @@ class Args(object):
         self._add_sampling_args()
         # process arguments for graphical plotting
         self._add_plot_args()
+        # process misc arguments
+        self._add_misc_args()
 
-        self._inc_arg('-m', '--metric',
-                choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
-                default='Frequency counts',
-                help='Select the metric (note you will need to change your ylim '\
-                'accordingly if providing via --ylim)')
+        self.parsed_args = self.parser.parse_args()
 
-        self._inc_arg('-t', '--test_run', action='store_true',
-                help="Test run, don't write output",
-                default=False)
+    # Reworked interface
+    # def __init__(self, positional_args=None, required_args=None,
+    #       optional_args=None, db_path=None):
+    # self.args = self.parser.parse_args()
+    # Usage: args = command_args.Args([pos_args],[req_args],[opt_args],
+    #               db_path=db_path)
+    #        args = args.parsed_args
 
-
-
-
-
-
-    def __init__(self):
-        self.parser = argparse.ArgumentParser(description='All ChipPy options')
-
-    # Usage
-    # blah = Args()
-    # blah.add_args(['collection', 'plot_filename'], required=True)
-    # blah.add_args(['ylim', 'xlim'])
-    # blah.parser.parse_args()

@@ -45,11 +45,12 @@ def successful_commit(session, data, debug=False):
     
     if debug:
         print data
-    
-    session.add_all(data)
+
     try:
+        session.add_all(data)
         session.commit()
     except IntegrityError, msg:
+        session.rollback()
         if debug:
             print msg
         return False
@@ -124,7 +125,7 @@ def add_samples(session, names_descriptions, run_record=None):
             run_record.addMessage('add_samples',
                 LOG_INFO, 'Sample already exists in db', name)
             successes.append(False)
-            session.rollback()
+            # session.rollback() # takes place in successful_commit
         else:
             successes.append(True)
 

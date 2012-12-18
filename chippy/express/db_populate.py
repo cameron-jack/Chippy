@@ -2,6 +2,7 @@ import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
 import datetime, sys
+sys.path.extend(['..'])
 from sqlalchemy import create_engine, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
@@ -383,13 +384,15 @@ def add_target_genes(session, sample_name, data_path, table,
     session.commit()
     return run_record
 
-def upload_data(session, name, description, path, expr_table,
+def add_data(session, name, description, path, expr_table,
                 gene_id_heading='gene', probeset_heading='probeset',
                 expr_heading='exp',
                 sample_type=sample_types['exp_absolute'],
-                reffile1=None, reffile2=None, rr=RunRecord()):
-
+                reffile1=None, reffile2=None, rr=None):
     """ A unified interface for adding data to the DB """
+
+    if rr is None:
+        rr=RunRecord()
 
     success, rr = add_sample(session, name, description, rr=rr)
     if not success:
@@ -397,26 +400,63 @@ def upload_data(session, name, description, path, expr_table,
 
     if sample_types[sample_type] == sample_types['exp_absolute']:
         success, rr = add_expression_study(session, name, path, expr_table,
-            probeset_label=probeset_heading,
-            ensembl_id_label=gene_id_heading,
-            expression_label=expr_heading,
-            run_record=rr)
+                probeset_label=probeset_heading,
+                ensembl_id_label=gene_id_heading,
+                expression_label=expr_heading,
+                run_record=rr)
     elif sample_types[sample_type] == sample_types['exp_diff']:
-    # diff between two files, check we got the related files
+        # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\
         'files that contain the absolute measures.'
         rr = add_expression_diff_study(session, name, path,
-            expr_table, reffile1, reffile2,
-            probeset_label=probeset_heading,
-            ensembl_id_label=gene_id_heading,
-            expression_label=expr_heading,
-            prob_label='rawp', sig_label='sig', run_record=rr)
+                expr_table, reffile1, reffile2,
+                probeset_label=probeset_heading,
+                ensembl_id_label=gene_id_heading,
+                expression_label=expr_heading,
+                prob_label='rawp', sig_label='sig', run_record=rr)
     elif sample_types[sample_type] == sample_types['target_genes']:
         rr = add_target_genes(session, name, path, expr_table,
-            ensembl_id_label=gene_id_heading, run_record=rr)
+                ensembl_id_label=gene_id_heading, run_record=rr)
     else:
         rr.display()
         raise RuntimeError('Unknown sample type')
 
     return success, rr
+
+def create_dummy_expr(session, rr=RunRecord()):
+    """ create flat and spread dummy data """
+    genes_dict = get_stable_id_genes_mapping(session)
+
+    # flat expression dummy
+    expr_table_rows = []
+    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
+    for i, gene_id in enumerate(genes_dict):
+        expr_table_rows.append(['gene_id', 'P'+str(i), '1'])
+
+    success, rr = add_data(session, 'dummy_flat',
+            'each gene has expression score of 1',
+            'None', expr_table_rows, gene_id_heading='gene',
+            probeset_heading='probeset', expr_heading='exp',
+            sample_type=sample_types['exp_absolute'],
+            reffile1=None, reffile2=None, rr=rr)
+    if not success:
+        return success, rr
+
+    # spread expression dummy
+    expr_table_rows = []
+    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
+    for i, gene_id in enumerate(genes_dict):
+        expr_table_rows.append(['gene_id', 'P'+str(i), i])
+
+    success, rr = add_data(session, 'dummy_spread',
+            'each gene has unique expression score',
+            'None', expr_table_rows, gene_id_heading='gene',
+            probeset_heading='probeset', expr_heading='exp',
+            sample_type=sample_types['exp_absolute'],
+            reffile1=None, reffile2=None, rr=rr)
+    if not success:
+        return success, rr
+
+    return success, rr
+

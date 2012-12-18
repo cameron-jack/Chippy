@@ -257,18 +257,26 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
 
     return genes
 
-def get_ranked_genes_per_chrom(session, sample_name, chrom, biotype='protein_coding', data_path=None, test_run=False):
+#def get_ranked_genes_per_chrom(session, sample_name, species, chrom,
+#        biotype='protein_coding', data_path=None, test_run=False):
+def get_ranked_genes_per_chrom(session, sample_name, chrom,
+        biotype='protein_coding', data_path=None, test_run=False):
     """returns genes from a chromosome"""
-    # TODO remove hardcoding for mouse!
+    # assert chrom in chroms[species]
     assert chrom in chroms['mouse']
     genes = get_ranked_expression(session, sample_name,
-                    biotype=biotype, data_path=data_path, test_run=test_run)
+            biotype=biotype, data_path=data_path, test_run=test_run)
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
-def get_diff_ranked_genes_per_chrom(session, sample_name, multitest_signif_val, chrom, biotype='protein_coding', data_path=None, test_run=False):
+#def get_diff_ranked_genes_per_chrom(session, sample_name,
+#        multitest_signif_val, species, chrom, biotype='protein_coding',
+#        data_path=None, test_run=False):
+def get_diff_ranked_genes_per_chrom(session, sample_name,
+        multitest_signif_val, chrom, biotype='protein_coding',
+        data_path=None, test_run=False):
     """returns difference experiment genes from a chromosome"""
-    # TODO remove hardcoding for mouse!
+    # assert chrom in chroms[species]
     assert chrom in chroms['mouse']
     genes = get_ranked_expression_diff(session, sample_name,
             multitest_signif_val, biotype=biotype, data_path=data_path,

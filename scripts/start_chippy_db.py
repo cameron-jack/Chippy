@@ -12,9 +12,8 @@ from cogent.util.misc import parse_command_line_parameters
 from chippy.util.util import create_path
 
 from chippy.express.db_schema import make_session
-from chippy.express.db_populate import add_ensembl_gene_data, upload_data
-from chippy.express.db_query import get_stable_id_genes_mapping
-from chippy.express.util import sample_types
+from chippy.express.db_populate import add_ensembl_gene_data, \
+        create_dummy_expr
 from chippy.util.run_record import RunRecord
 
 __author__ = "Gavin Huttley, Cameron Jack"
@@ -53,42 +52,6 @@ script_info['optional_options'] = [
     make_option('--port', default=None,
         help='Port for MySQL Ensembl server')
 ]
-
-def create_dummy_expr(session, rr=RunRecord()):
-    """ create flat and spread dummy data """
-    genes_dict = get_stable_id_genes_mapping(session)
-
-    # flat expression dummy
-    expr_table_rows = []
-    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
-    for i, gene_id in enumerate(genes_dict):
-        expr_table_rows.append(['gene_id', 'P'+str(i), '1'])
-
-    success, rr = upload_data(session, 'dummy_flat',
-            'each gene has expression score of 1',
-            'None', expr_table_rows, gene_id_heading='gene',
-            probeset_heading='probeset', expr_heading='exp',
-            sample_type=sample_types['exp_absolute'],
-            reffile1=None, reffile2=None, rr=rr)
-    if not success:
-        return success, rr
-
-    # spread expression dummy
-    expr_table_rows = []
-    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
-    for i, gene_id in enumerate(genes_dict):
-        expr_table_rows.append(['gene_id', 'P'+str(i), i])
-
-    success, rr = upload_data(session, 'dummy_spread',
-            'each gene has unique expression score',
-            'None', expr_table_rows, gene_id_heading='gene',
-            probeset_heading='probeset', expr_heading='exp',
-            sample_type=sample_types['exp_absolute'],
-            reffile1=None, reffile2=None, rr=rr)
-    if not success:
-        return success, rr
-
-    return success, rr
 
 def main():
     option_parser, opts, args =\

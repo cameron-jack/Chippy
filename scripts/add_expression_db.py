@@ -7,7 +7,7 @@ import os
 from cogent import LoadTable
 
 from chippy.express import db_query
-from chippy.express.db_populate import upload_data
+from chippy.express.db_populate import add_data
 from chippy.express.util import sample_types
 from chippy.parse.r_dump import SimpleRdumpToTable
 from chippy.util import command_args
@@ -86,7 +86,7 @@ def main():
     else:
         expr_table = LoadTable(args.expression_data, sep='\t')
 
-    success, rr = upload_data(session, name, description,
+    success, rr = add_data(session, name, description,
         args.expression_data, expr_table,
         probeset_heading=args.probeset_heading,
         ensembl_id_label=args.gene_id_heading,

@@ -14,6 +14,7 @@ from chippy.express.db_schema import Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.express.db_query import  get_stable_id_genes_mapping
+from chippy.express.util import sample_types
 from chippy.ref.util import chroms
 from chippy.express.util import _one
 from chippy.util.run_record import RunRecord
@@ -113,29 +114,22 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
     session.add_all(data)
     session.commit()
 
-def add_samples(session, names_descriptions, run_record=None):
-    """add basic sample type"""
-    if run_record is None:
-        run_record = RunRecord()
-
-    successes = []
-    for name, description in names_descriptions:
-        sample = Sample(name, description)
-        if not successful_commit(session, sample):
-            run_record.addMessage('add_samples',
-                LOG_INFO, 'Sample already exists in db', name)
-            successes.append(False)
-            # session.rollback() # takes place in successful_commit
-        else:
-            successes.append(True)
-
-    return successes, run_record
-
+def add_sample(session, name, description, rr=RunRecord()):
+    """add a basic sample"""
+    sample = Sample(name, description)
+    if not successful_commit(session, sample):
+        rr.addMessage('add_samples', LOG_INFO,
+                'Sample already exists in db', name)
+        return False, rr
+    else:
+        rr.addMessage('add_samples', LOG_INFO,
+                'Sample created in db', name)
+        return True, rr
 
 @display_wrap
 def add_expression_study(session, sample_name, data_path, table,
         probeset_label='probeset', ensembl_id_label='ENSEMBL',
-        expression_label='exp', run_record=None,
+        expression_label='exp', run_record=RunRecord(),
         ui=None):
     """adds Expression instances into the database from table
     
@@ -148,9 +142,7 @@ def add_expression_study(session, sample_name, data_path, table,
         - expression_label: label of the column containing absolute measure
           of expression
     """
-    if run_record is None:
-        run_record = RunRecord()
-    
+
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
@@ -176,7 +168,7 @@ def add_expression_study(session, sample_name, data_path, table,
             LOG_WARNING,
             'Already added this data for this sample / file combo',
             (sample.name, data_path))
-        return run_record
+        return False, run_record
     
     # get all gene ID data for the specified Ensembl release
     ensembl_genes = get_stable_id_genes_mapping(session)
@@ -202,15 +194,19 @@ def add_expression_study(session, sample_name, data_path, table,
         expressed.gene = gene
         data.append(expressed)
         total += 1
-    
-    session.add_all(data)
-    session.commit()
+
+    try:
+        session.add_all(data)
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        return False, run_record
     
     run_record.addMessage('add_expression_study',
         LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
     run_record.addMessage('add_expression_study',
         LOG_INFO, 'Total genes', total)
-    return run_record
+    return True, run_record
 
 @display_wrap
 def add_expression_diff_study(session, sample_name, data_path, table,
@@ -386,3 +382,41 @@ def add_target_genes(session, sample_name, data_path, table,
     session.add_all(data)
     session.commit()
     return run_record
+
+def upload_data(session, name, description, path, expr_table,
+                gene_id_heading='gene', probeset_heading='probeset',
+                expr_heading='exp',
+                sample_type=sample_types['exp_absolute'],
+                reffile1=None, reffile2=None, rr=RunRecord()):
+
+    """ A unified interface for adding data to the DB """
+
+    success, rr = add_sample(session, name, description, rr=rr)
+    if not success:
+        return False, rr
+
+    if sample_types[sample_type] == sample_types['exp_absolute']:
+        success, rr = add_expression_study(session, name, path, expr_table,
+            probeset_label=probeset_heading,
+            ensembl_id_label=gene_id_heading,
+            expression_label=expr_heading,
+            run_record=rr)
+    elif sample_types[sample_type] == sample_types['exp_diff']:
+    # diff between two files, check we got the related files
+        assert reffile1 is not None and reffile2 is not None,\
+        'To enter differences in gene expression you must specify the 2'\
+        'files that contain the absolute measures.'
+        rr = add_expression_diff_study(session, name, path,
+            expr_table, reffile1, reffile2,
+            probeset_label=probeset_heading,
+            ensembl_id_label=gene_id_heading,
+            expression_label=expr_heading,
+            prob_label='rawp', sig_label='sig', run_record=rr)
+    elif sample_types[sample_type] == sample_types['target_genes']:
+        rr = add_target_genes(session, name, path, expr_table,
+            ensembl_id_label=gene_id_heading, run_record=rr)
+    else:
+        rr.display()
+        raise RuntimeError('Unknown sample type')
+
+    return success, rr

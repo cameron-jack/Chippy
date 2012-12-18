@@ -107,8 +107,9 @@ class Gene(Base):
         self._rank_stats = None
     
     def __repr__(self):
-        return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
-                % (self.ensembl_id, self.coord_name, self.start, self.strand)
+        #return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
+        #        % (self.ensembl_id, self.coord_name, self.start, self.strand)
+        return ((self.ensembl_id, self.coord_name, self.start, self.strand, self.Rank))
     
     @property
     def Rank(self):

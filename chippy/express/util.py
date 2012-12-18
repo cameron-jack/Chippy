@@ -33,3 +33,8 @@ def _one(query):
     
     return result
 
+sample_types = {
+    'exp_absolute' : 'Expression data: absolute ranked',
+    'exp_diff' : 'Expression data: difference in expression between samples',
+    'target_genes' : 'Target gene list'
+}

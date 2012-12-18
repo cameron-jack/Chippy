@@ -19,7 +19,7 @@ from chippy.express.db_query import get_total_gene_counts, \
         get_ranked_expression, get_ranked_genes_per_chrom, get_genes,\
         get_expression_diff_genes, get_ranked_expression_diff
 
-from chippy.express.db_populate import add_expression_diff_study, add_samples
+from chippy.express.db_populate import add_expression_diff_study, add_sample
 from chippy.parse.r_dump import SimpleRdumpToTable
 
 __author__ = "Gavin Huttley"
@@ -697,7 +697,9 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         # setting up some starting values
         reffile1 = ReferenceFile(self.reffile_path1, today)
         reffile2 = ReferenceFile(self.reffile_path2, today)
-        rr = add_samples(self.session, [self.sample])
+        name, desc = self.sample
+        success, rr = add_sample(self.session, name, desc)
+        self.assertTrue(success)
         self.session.add_all([reffile1, reffile2])
         self.session.commit()
         table, rr = SimpleRdumpToTable(self.dpath, stable_id_label='gene',

@@ -716,7 +716,7 @@ def main():
                 xlabel=opts.xlabel, ylabel=opts.ylabel, title=opts.title,
                 colorbar=opts.colorbar, labels=labels_set,
                 labels_size=opts.legend_size)
-        
+
     elif len(count_set) > 1:
         # spread colours almost evenly throughout the 256^3 colour-space
         colour_range = []
@@ -755,11 +755,36 @@ def main():
         if not opts.legend:
             labels_set = None
 
-        plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
-            filename_series=filename_series, label_coords=label_coords,
-            alpha=opts.line_alpha, xlabel=opts.xlabel,
-            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
-            labels=labels_set, labels_size=opts.legend_size)
+        if len(counts) == 4: #quartile plot
+            # do a b&w colour scheme
+            color_range = []
+            if opts.bgcolor == 'black':
+                for i in xrange(4):
+                    r = 60 + (60*i)
+                    g = 60 + (60*i)
+                    b = 60 + (60*i)
+                    color = '#%02x%02x%02x' % (r, g, b)
+                    color_range.append(color)
+            else: # white background
+                for i in xrange(4):
+                    r = 180 - (60*i)
+                    g = 180 - (60*i)
+                    b = 180 - (60*i)
+                    color = '#%02x%02x%02x' % (r, g, b)
+                    color_range.append(color)
+
+            plot(x, y_series=counts, color_series=color_range, series_labels=series_labels,
+                filename_series=filename_series, label_coords=label_coords,
+                alpha=opts.line_alpha, xlabel=opts.xlabel,
+                ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
+                labels=labels_set, labels_size=opts.legend_size)
+
+        else:
+            plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
+                filename_series=filename_series, label_coords=label_coords,
+                alpha=opts.line_alpha, xlabel=opts.xlabel,
+                ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
+                labels=labels_set, labels_size=opts.legend_size)
     
     if opts.plot_filename and not opts.test_run:
         plot.savefig(opts.plot_filename, image_format='pdf')

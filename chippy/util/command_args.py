@@ -22,11 +22,11 @@ class Args(object):
         if self.db_path is None:
             return None
         session = db_query.make_session('sqlite:///' + str(self.db_path))
-        samples = ['%s : %s' % (s.name, s.description)
-                for s in db_query.get_target_sample(session)]
+        samples = ['%s : %s' % (str(s.name), str(s.description))
+                for s in db_query.get_samples(session)]
         # These are valid null samples
-        samples.insert(0, 'None')
-        samples.insert(0, 'none')
+        samples.insert(-1, 'None')
+        samples.insert(-1, 'none')
         session.close()
         return samples
 

@@ -7,12 +7,11 @@ import os
 from cogent import LoadTable
 
 from chippy.express import db_query
-from chippy.express.db_populate import add_ensembl_gene_data, \
-        add_expression_study, add_expression_diff_study, add_samples,\
-        ReferenceFile, add_target_genes, add_samples
-from chippy.express.db_schema import make_session
+from chippy.express.db_populate import upload_data
+from chippy.express.util import sample_types
 from chippy.parse.r_dump import SimpleRdumpToTable
 from chippy.util import command_args
+from chippy.util.run_record import RunRecord
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
@@ -68,61 +67,35 @@ def _get_name_description(value):
 def main():
     args, db_path, script_info = set_environment()
     session = db_query.make_session('sqlite:///' + db_path)
+    rr = RunRecord()
 
     if args.new_sample.count(':') == 1:
         name, description = _get_name_description(args.new_sample)
-        successes, rr = add_samples(session, [(name, description)])
-        # We try to added a single sample and fail
-        if len(successes) == 1 and successes[0] == False:
-            rr.display()
-            sys.exit(-1)
-
     elif args.sample is None:
         raise RuntimeError('No sample specified')
     else:
-        name, description = _get_name_description(args.sample)
-        rr = None
+        raise RuntimeError("Please provide 'Name : Description'")
 
-    sample_type = args.sample_type
-
-    exp_absolute = 'Expression data: absolute ranked'
-    exp_diff = 'Expression data: difference in expression between samples'
-    target_genes = 'Target gene list'
-
-    if sample_type in (exp_absolute, exp_diff):
-        data, rr = SimpleRdumpToTable(args.expression_data,
+    if sample_types[args.sample_type] in\
+            (sample_types['exp_absolute'], sample_types['exp_diff']):
+        expr_table, rr = SimpleRdumpToTable(args.expression_data,
                 stable_id_label=args.gene_id_heading,
                 probeset_label=args.probeset_heading,
                 exp_label=args.expression_heading, validate=True,
                 run_record=rr)
     else:
-        data = LoadTable(args.expression_data, sep='\t')
+        expr_table = LoadTable(args.expression_data, sep='\t')
 
-    if sample_type == exp_absolute:
-        rr = add_expression_study(session, name, args.expression_data, data,
-            probeset_label=args.probeset_heading,
-            ensembl_id_label=args.gene_id_heading, run_record=rr)
-    elif sample_type == exp_diff:
-        # diff between two files, check we got the related files
-        assert args.reffile1 is not None and args.reffile2 is not None,\
-            'To enter differences in gene expression you must specify the 2'\
-            'files that contain the absolute measures.'
-        rr = add_expression_diff_study(session, name,
-            args.expression_data, data, args.reffile1, args.reffile2,
-            probeset_label=args.probeset_heading,
-            ensembl_id_label=args.gene_id_heading,
-            expression_label=args.expression_heading,
-            prob_label='rawp', sig_label='sig', run_record=rr)
-    elif sample_type == target_genes:
-        rr = add_target_genes(session, name, args.expression_data, data,
-                    ensembl_id_label=args.gene_id_heading, run_record=rr)
-    else:
-        raise RuntimeError('Unknown sample type')
-    
+    success, rr = upload_data(session, name, description,
+        args.expression_data, expr_table,
+        probeset_heading=args.probeset_heading,
+        ensembl_id_label=args.gene_id_heading,
+        expr_heading=args.expression_heading,
+        sample_type=args.sample_type, reffile1=args.reffile1,
+        reffile2=args.reffile2, rr=RunRecord())
+
+    rr.addInfo('add_expression_db', name+' added to DB', success)
     rr.display()
-    
-    session.commit()
 
 if __name__ == "__main__":
     main()
-

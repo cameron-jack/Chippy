@@ -136,8 +136,7 @@ def get_genes(session, chrom=None, biotype='protein_coding', stable_ids=None):
 def get_stable_id_genes_mapping(session):
     """get ensembl genes for a release"""
     genes = session.query(Gene).all()
-    ensembl_id_genes = dict([(g.ensembl_id, g) for g in genes])
-    return ensembl_id_genes
+    return dict([(g.ensembl_id, g) for g in genes])
 
 def get_ranked_expression(session, sample_name, biotype='protein_coding',
         data_path=None, include_target=None, exclude_target=None, rank_by='mean',

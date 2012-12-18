@@ -17,7 +17,7 @@ from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from chippy.express.db_schema import make_session
 from chippy.draw.plottable import PlottableGroups
-from chippy.ref.util import chroms
+from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util import command_args
 
@@ -72,15 +72,14 @@ def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
 
     if not os.path.exists(filename) or overwrite:
         data_collection = None
-        if sample_type == 'Expression data: absolute ranked':
+        if sample_type == sample_types['exp_absolute']:
             print "Collecting data for absolute expression experiment"
             data_collection, run_record = centred_counts_for_genes(session,
                     sample_name, expr_area, 'mouse', None, counts_dir,
                     max_read_length, count_max_length, window_size,
                     include_target, exclude_target, run_record, test_run)
         
-        elif sample_type == 'Expression data: difference in expression '\
-                'between samples':
+        elif sample_type == sample_types['exp_diff']:
             print "Collecting data for difference expression experiment"
             data_collection, run_record = centred_diff_counts_for_genes(
                     session, sample_name, expr_area, 'mouse', None,
@@ -117,9 +116,6 @@ def main():
     basename = os.path.basename(counts_dirs)
     counts_dirs = [os.path.join(dirname, p) for p in glob.glob1(dirname,
                                                     basename)]
-    exp_absolute = 'Expression data: absolute ranked'
-    exp_diff = 'Expression data: difference in expression between samples'
-    target_genes ='Target gene list'
     sample_type = args.sample_type
 
     include_name = None
@@ -134,7 +130,7 @@ def main():
         raise RuntimeError('multitest_signif_val is not -1, 0, 1 or None. Halting execution.')
 
     session = db_query.make_session('sqlite:///' + str(db_path))
-    if sample_type == exp_absolute or exp_diff:
+    if sample_type in [sample_types['exp_absolute'], sample_types['exp_diff']]:
         data_collection, rr = get_collection(session, sample_name,
                 args.expression_area, counts_dirs, args.max_read_length,
                 args.count_max_length, args.window_size,
@@ -144,7 +140,8 @@ def main():
 
     else:
         print 'Other options not defined yet, choose from %s '\
-              'or %s' % exp_absolute, exp_diff
+                'or %s' % sample_types['exp_absolute'], \
+                sample_types['exp_diff']
 
     session.close()
     rr.display()

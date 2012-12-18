@@ -5,18 +5,11 @@ import os, sys, glob, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
-import numpy
-
-from optparse import make_option
-from cogent.util.misc import parse_command_line_parameters
-
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_diff_counts_for_genes,\
             centred_counts_target_genes
 from chippy.core.collection import RegionCollection
 from chippy.express import db_query
-from chippy.express.db_schema import make_session
-from chippy.draw.plottable import PlottableGroups
 from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util import command_args
@@ -25,12 +18,10 @@ __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
 __status__ = "alpha"
 __version__ = '0.1'
-
-
 
 def set_environment():
     """ create all command-line option groups and set script_info """
@@ -61,8 +52,7 @@ def set_environment():
 
     return inputs.parsed_args, db_path, script_info
 
-# TODO: fix hard-wiring to Mouse
-def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
+def get_collection(session, sample_name, expr_area, species, counts_dir, max_read_length,
         count_max_length, window_size, multitest_signif_val, filename, overwrite,
         sample_type, tab_delimited, include_target=None, exclude_target=None,
         run_record=None, test_run=False):
@@ -75,14 +65,14 @@ def get_collection(session, sample_name, expr_area, counts_dir, max_read_length,
         if sample_type == sample_types['exp_absolute']:
             print "Collecting data for absolute expression experiment"
             data_collection, run_record = centred_counts_for_genes(session,
-                    sample_name, expr_area, 'mouse', None, counts_dir,
+                    sample_name, expr_area, species, None, counts_dir,
                     max_read_length, count_max_length, window_size,
                     include_target, exclude_target, run_record, test_run)
         
         elif sample_type == sample_types['exp_diff']:
             print "Collecting data for difference expression experiment"
             data_collection, run_record = centred_diff_counts_for_genes(
-                    session, sample_name, expr_area, 'mouse', None,
+                    session, sample_name, expr_area, species, None,
                     counts_dir, max_read_length, count_max_length,
                     window_size, multitest_signif_val, include_target,
                     exclude_target, run_record, test_run)
@@ -108,6 +98,9 @@ def main():
         
     if args.sample is None:
         raise RuntimeError('No samples available')
+
+    db_name = str(db_path).split('/')[-1]
+    species = db_name.split('_')[-1].rstrip('.db')
     
     sample_name = args.sample.split(' : ')[0]
     print "Loading counts data for '%s'" % sample_name
@@ -132,7 +125,7 @@ def main():
     session = db_query.make_session('sqlite:///' + str(db_path))
     if sample_type in [sample_types['exp_absolute'], sample_types['exp_diff']]:
         data_collection, rr = get_collection(session, sample_name,
-                args.expression_area, counts_dirs, args.max_read_length,
+                args.expression_area, species, counts_dirs, args.max_read_length,
                 args.count_max_length, args.window_size,
                 args.multitest_signif_val, args.collection, args.overwrite,
                 args.sample_type, args.tab_delimited, include_name,

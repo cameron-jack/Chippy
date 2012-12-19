@@ -74,8 +74,10 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
     total_objects = 0
     for biotype in biotypes:
         for gene in genome.getGenesMatching(BioType=biotype):
+            # gene.Location.CoordName is the chromosome name
             if gene.Location.CoordName not in species_chroms:
-                continue
+                #print gene.Location.CoordName
+                pass
 
             if gene.StableId not in unique_gene_ids:
 

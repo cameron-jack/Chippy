@@ -89,7 +89,7 @@ def main():
     success, rr = add_data(session, name, description,
         args.expression_data, expr_table,
         probeset_heading=args.probeset_heading,
-        ensembl_id_label=args.gene_id_heading,
+        gene_id_heading=args.gene_id_heading,
         expr_heading=args.expression_heading,
         sample_type=args.sample_type, reffile1=args.reffile1,
         reffile2=args.reffile2, rr=RunRecord())

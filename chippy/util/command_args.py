@@ -1,6 +1,7 @@
 import argparse
 from chippy.ref.util import chroms
 from chippy.express import db_query
+from chippy.express.util import sample_types
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
@@ -70,13 +71,10 @@ class Args(object):
                     help="Replace the text on the left and right of the ', "\
                      "e.g. `S : S phase'")
 
-        exp_absolute = 'Expression data: absolute ranked'
-        exp_diff = 'Expression data: difference in expression between samples'
-        target_genes = 'Target gene list'
         self._inc_arg('--sample_type',
-            choices=[exp_absolute, exp_diff, target_genes],
+            choices=[k for k in sample_types.keys()],
             help='Select the type of data you want entered from '+\
-                 str([exp_absolute, exp_diff, target_genes]))
+                     ' '.join([str(k) for k in sample_types.keys()]) )
 
         self._inc_arg('--reffile1', default=None, help='Related file 1')
         self._inc_arg('--reffile2', default=None, help='Related file 2')

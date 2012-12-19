@@ -230,6 +230,24 @@ class Args(object):
         self._inc_arg('--text_coords', default=None,
             help='x, y coordinates of series text (e.g. 600,3.0)')
 
+    def _add_db_args(self):
+        """ options for starting a ChipPy DB """
+        self._inc_arg('--save_db_path',
+                help='path to directory where chippy.db will be saved.')
+        self._inc_arg('--ensembl_release', type=int,
+                help='Ensembl release to use.')
+        self._inc_arg('--species', type='choice', default='mouse',
+                choices=['mouse', 'human', 'yeast'],
+                help='Create for species')
+        self._inc_arg('--hostname', default=None,
+                help='hostname for MySQL Ensembl server')
+        self._inc_arg('--username', default=None,
+                help='username MySQL Ensembl server')
+        self._inc_arg('--password', default=None,
+                help='password for MySQL Ensembl server')
+        self._inc_arg('--port', default=None, type=int,
+                help='Port for MySQL Ensembl server')
+
     def _add_misc_args(self):
         """ various options that don't fall into a category above """
 
@@ -262,16 +280,9 @@ class Args(object):
         self._add_sampling_args()
         # process arguments for graphical plotting
         self._add_plot_args()
+        # process arguments for creating the DB
+        self._add_db_args()
         # process misc arguments
         self._add_misc_args()
 
         self.parsed_args = self.parser.parse_args()
-
-    # Reworked interface
-    # def __init__(self, positional_args=None, required_args=None,
-    #       optional_args=None, db_path=None):
-    # self.args = self.parser.parse_args()
-    # Usage: args = command_args.Args([pos_args],[req_args],[opt_args],
-    #               db_path=db_path)
-    #        args = args.parsed_args
-

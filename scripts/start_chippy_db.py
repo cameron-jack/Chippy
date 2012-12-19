@@ -15,6 +15,7 @@ from chippy.express.db_schema import make_session
 from chippy.express.db_populate import add_ensembl_gene_data, \
         create_dummy_expr
 from chippy.util.run_record import RunRecord
+from chippy.util import command_args
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2012"
@@ -25,54 +26,38 @@ __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 
-script_info = {}
+def set_environment():
+    script_info = {}
+    script_info['title'] = 'Creates a chippy project'
+    script_info['script_description'] = "Makes a chippy SQLite database."
+    script_info['version'] = __version__
 
-script_info['title'] = 'Creates a chippy project'
-script_info['script_description'] = "Makes a chippy SQLite database."
-script_info['version'] = __version__
+    # Process command-line arguments
+    req_args = ['save_db_path', 'ensembl_release', 'species',
+            'hostname', 'username', 'password', 'port']
+    inputs = command_args.Args(required_args=req_args)
 
-script_info['required_options'] = [
-    make_option('-S','--save_db_path',
-        help='path to directory where chippy.db will be saved.'),
-    make_option('-R','--ensembl_release', type='int',
-        help='Ensembl release to use.'),
-    make_option('-s','--species', type='choice', default='mouse',
-        choices=['mouse', 'human'],
-        help='Create for species'),
-]
-
-_mysql_msg = '(uses ENSEMBL_ACCOUNT if not provided)'
-script_info['optional_options'] = [
-    make_option('--hostname', default=None,
-            help='hostname for MySQL Ensembl server %s' % _mysql_msg),
-    make_option('--username', default=None,
-            help='username MySQL Ensembl server %s' % _mysql_msg),
-    make_option('--password', default=None,
-            help='password for MySQL Ensembl server %s' % _mysql_msg),
-    make_option('--port', default=None,
-        help='Port for MySQL Ensembl server')
-]
+    return inputs.parsed_args, script_info
 
 def main():
-    option_parser, opts, args =\
-    parse_command_line_parameters(**script_info)
-    rr= RunRecord()
+    args, script_info = set_environment()
+    rr = RunRecord()
     
-    if opts.species != 'mouse':
+    if args.species != 'mouse':
         raise RuntimeError('Currently only support mouse, sorry!')
 
-    create_path(opts.save_db_path)
+    create_path(args.save_db_path)
 
-    if not os.path.isdir(opts.save_db_path):
+    if not os.path.isdir(args.save_db_path):
         sys.stderr.write('The save_db_path must be a directory.\n')
         return
 
-    chippy_db_name = 'chippy_%d_%s.db' % (opts.ensembl_release, opts.species)
-    db_path = os.path.join(opts.save_db_path, chippy_db_name)
+    chippy_db_name = 'chippy_%d_%s.db' % (args.ensembl_release, args.species)
+    db_path = os.path.join(args.save_db_path, chippy_db_name)
     session = make_session("sqlite:///%s" % db_path)
-    hostname = opts.hostname
-    username = opts.username 
-    password = opts.password
+    hostname = args.hostname
+    username = args.username
+    password = args.password
     if None in (hostname, username, password):
         try:
             hostname, username, password = os.environ['ENSEMBL_ACCOUNT'].split()
@@ -81,9 +66,9 @@ def main():
                     'ENSEMBL_ACCOUNT environment variable\n')
             return
     
-    account = HostAccount(hostname, username, password, port=opts.port)
-    add_ensembl_gene_data(session, opts.species,
-            ensembl_release=opts.ensembl_release, account=account)
+    account = HostAccount(hostname, username, password, port=args.port)
+    add_ensembl_gene_data(session, args.species,
+            ensembl_release=args.ensembl_release, account=account)
 
     success, rr = create_dummy_expr(session, rr=rr)
     if success:

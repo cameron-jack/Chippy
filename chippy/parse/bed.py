@@ -11,10 +11,10 @@ __author__ = "Cameron Jack, Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Cameron Jack, Gavin Huttley"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
 
-__status__ = "alpha"
+__status__ = "pre-release"
 __version__ = '0.1'
 
 # The following describes a BED file. ChipPy uses BED6.
@@ -61,7 +61,7 @@ def _get_strand(val):
 
 def _get_chrom(val):
     """ returns the int component of a chromosome number """
-    pattern = re.compile(r'[0-9,X,Y]+')
+    pattern = re.compile(r'[0-9,X,Y,MT]+')
     chrom = pattern.search(val).group(0)
     return chrom
 

@@ -9,4 +9,6 @@ __version__ = '0.1'
 
 mouse_chroms = tuple(map(str, range(1,20)+['X', 'Y', 'MT']))
 human_chroms = tuple(map(str, range(1,23)+['X', 'Y', 'MT']))
+cerevisiae_chroms = tuple('I','II','III','IV','V','VI','VII','VIII',
+        'IX','X','XI','XII','XIII','XIV','XV','XVI','MT')
 chroms = dict(mouse=mouse_chroms, human=human_chroms)

@@ -1,4 +1,5 @@
 import argparse
+import sys # required for finding db_path
 from chippy.ref.util import chroms
 from chippy.express import db_query
 from chippy.express.util import sample_types
@@ -240,36 +241,48 @@ class Args(object):
                 choices=['mouse', 'human', 'yeast'],
                 help='Create for species')
         self._inc_arg('--hostname', default=None,
-                help='hostname for MySQL Ensembl server')
+                help='hostname for SQL Ensembl server')
         self._inc_arg('--username', default=None,
-                help='username MySQL Ensembl server')
+                help='username SQL Ensembl server')
         self._inc_arg('--password', default=None,
-                help='password for MySQL Ensembl server')
-        self._inc_arg('--port', default=None, type=int,
-                help='Port for MySQL Ensembl server')
+                help='password for SQL Ensembl server')
+        self._inc_arg('--port', default=None,
+                help='Port for SQL Ensembl server')
 
     def _add_misc_args(self):
         """ various options that don't fall into a category above """
 
         self._inc_arg('-m', '--metric',
-            choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
-            default='Frequency counts',
-            help='Select the metric (note you will need to change your ylim '\
-                 'accordingly if providing via --ylim)')
+                choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
+                default='Frequency counts',
+                help='Select the metric (note you will need to change your ylim '\
+                'accordingly if providing via --ylim)')
 
         self._inc_arg('-t', '--test_run', action='store_true',
-            help="Test run, don't write output",
-            default=False)
+                help="Test run, don't write output",
+                default=False)
 
     def __init__(self, positional_args=None, required_args=None,
-                optional_args=None, db_path=None):
+                optional_args=None):
         """ calls _inc_args on every possible argument """
-        self.parser = argparse.ArgumentParser(description='All ChipPy options')
-        self.db_path = db_path
+        self.parser = argparse.ArgumentParser(description=\
+                'All ChipPy options')
+        self.db_path = None
 
+        # We need to handle the 'db_path' positional argument ourselves
+        # as several arguments require it already loaded
         if positional_args:
-            for arg in positional_args:
-                pass # these aren't implemented yet
+            if 'db_path' in positional_args:
+                for arg in sys.argv:
+                    if not '-' in arg:
+                        # it's positional so take this to be db_path
+                        possible_db_path = str(arg).strip()
+                        if 'chippy' in possible_db_path.lower() and\
+                                '.db' in possible_db_path.lower():
+                            self.db_path = possible_db_path
+                            print self.db_path, 'selected as ChipPy database'
+                if self.db_path is None:
+                    raise RuntimeError('Path to ChipPy database required')
 
         self.required_args = required_args
         self.optional_args = optional_args

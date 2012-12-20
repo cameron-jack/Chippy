@@ -4,18 +4,14 @@ import sys
 sys.path.extend(['..', '../src'])
 
 import os
-from optparse import make_option
-
-from cogent import LoadTable
 from cogent.db.ensembl import HostAccount
-from cogent.util.misc import parse_command_line_parameters
 from chippy.util.util import create_path
 
 from chippy.express.db_schema import make_session
 from chippy.express.db_populate import add_ensembl_gene_data, \
         create_dummy_expr
 from chippy.util.run_record import RunRecord
-from chippy.util import command_args
+from chippy.util.command_args import Args
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2012"
@@ -35,7 +31,7 @@ def set_environment():
     # Process command-line arguments
     req_args = ['save_db_path', 'ensembl_release', 'species',
             'hostname', 'username', 'password', 'port']
-    inputs = command_args.Args(required_args=req_args)
+    inputs = Args(required_args=req_args)
 
     return inputs.parsed_args, script_info
 
@@ -58,13 +54,6 @@ def main():
     hostname = args.hostname
     username = args.username
     password = args.password
-    if None in (hostname, username, password):
-        try:
-            hostname, username, password = os.environ['ENSEMBL_ACCOUNT'].split()
-        except KeyError:
-            sys.stderr.write('Must provide account settings or have valid '\
-                    'ENSEMBL_ACCOUNT environment variable\n')
-            return
     
     account = HostAccount(hostname, username, password, port=args.port)
     add_ensembl_gene_data(session, args.species,

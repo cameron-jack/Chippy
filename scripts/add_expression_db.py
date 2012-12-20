@@ -10,7 +10,7 @@ from chippy.express import db_query
 from chippy.express.db_populate import add_data
 from chippy.express.util import sample_types
 from chippy.parse.r_dump import SimpleRdumpToTable
-from chippy.util import command_args
+from chippy.util.command_args import Args
 from chippy.util.run_record import RunRecord
 
 __author__ = "Gavin Huttley, Cameron Jack"
@@ -24,13 +24,6 @@ __version__ = '0.2'
 
 def set_environment():
     """ create the DB session and run options """
-
-    if 'CHIPPY_DB' in os.environ:
-        db_path = os.environ['CHIPPY_DB']
-    else:
-        raise RuntimeError('You need to set an environment variable '
-                           'CHIPPY_DB that indicates where to find the database')
-
     script_info = {}
     script_info['title'] = 'Add expression study'
     script_info['script_description'] = 'Add an expression study or a '\
@@ -43,14 +36,15 @@ def set_environment():
 
     # Process command-line arguments
     req_args = ['expression_data', 'sample', 'new_sample',
-                    'sample_type']
+            'sample_type']
     opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
-                'gene_id_heading', 'probeset_heading', 'expression_heading',
-                'test_run']
-    inputs = command_args.Args(required_args=req_args,
-            optional_args=opt_args, db_path=db_path)
+            'gene_id_heading', 'probeset_heading', 'expression_heading',
+            'test_run']
+    pos_args = ['db_path']
+    inputs = Args(required_args=req_args, optional_args=opt_args,
+            positional_args=pos_args)
 
-    return inputs.parsed_args, db_path, script_info
+    return inputs.parsed_args, script_info
 
 def _get_name_description(value):
     """returns the name and description of a : separated sample"""
@@ -65,8 +59,8 @@ def _get_name_description(value):
     return name, description
 
 def main():
-    args, db_path, script_info = set_environment()
-    session = db_query.make_session('sqlite:///' + db_path)
+    args, script_info = set_environment()
+    session = db_query.make_session('sqlite:///' + args.db_path)
     rr = RunRecord()
 
     if args.new_sample.count(':') == 1:

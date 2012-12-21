@@ -56,8 +56,8 @@ def main():
     password = args.password
     
     account = HostAccount(hostname, username, password, port=args.port)
-    add_ensembl_gene_data(session, args.species,
-            ensembl_release=args.ensembl_release, account=account)
+    #add_ensembl_gene_data(session, args.species,
+    #        ensembl_release=args.ensembl_release, account=account)
 
     success, rr = create_dummy_expr(session, rr=rr)
     if success:

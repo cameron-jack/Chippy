@@ -22,7 +22,7 @@ class Args(object):
     def _make_sample_choices(self):
         """returns the available choices for samples in the DB"""
         if self.db_path is None:
-            return None
+            return ['None', 'none']
         session = db_query.make_session('sqlite:///' + str(self.db_path))
         samples = ['%s : %s' % (str(s.name), str(s.description))
                 for s in db_query.get_samples(session)]
@@ -237,7 +237,7 @@ class Args(object):
                 help='path to directory where chippy.db will be saved.')
         self._inc_arg('--ensembl_release', type=int,
                 help='Ensembl release to use.')
-        self._inc_arg('--species', type='choice', default='mouse',
+        self._inc_arg('--species', default='mouse',
                 choices=['mouse', 'human', 'yeast'],
                 help='Create for species')
         self._inc_arg('--hostname', default=None,
@@ -246,7 +246,7 @@ class Args(object):
                 help='username SQL Ensembl server')
         self._inc_arg('--password', default=None,
                 help='password for SQL Ensembl server')
-        self._inc_arg('--port', default=None,
+        self._inc_arg('--port', default=None, type=int,
                 help='Port for SQL Ensembl server')
 
     def _add_misc_args(self):

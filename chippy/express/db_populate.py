@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 
 from cogent import LoadTable
+from cogent.util.table import Table
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
@@ -400,13 +401,13 @@ def add_data(session, name, description, path, expr_table,
     if not success:
         return False, rr
 
-    if sample_types[sample_type] == sample_types['exp_absolute']:
+    if sample_type == sample_types['exp_absolute']:
         success, rr = add_expression_study(session, name, path, expr_table,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
                 run_record=rr)
-    elif sample_types[sample_type] == sample_types['exp_diff']:
+    elif sample_type == sample_types['exp_diff']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\
@@ -417,7 +418,7 @@ def add_data(session, name, description, path, expr_table,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
                 prob_label='rawp', sig_label='sig', run_record=rr)
-    elif sample_types[sample_type] == sample_types['target_genes']:
+    elif sample_type == sample_types['target_genes']:
         rr = add_target_genes(session, name, path, expr_table,
                 ensembl_id_label=gene_id_heading, run_record=rr)
     else:
@@ -431,14 +432,17 @@ def create_dummy_expr(session, rr=RunRecord()):
     genes_dict = get_stable_id_genes_mapping(session)
 
     # flat expression dummy
+    header = ['gene', 'probeset', 'exp']
     expr_table_rows = []
-    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
     for i, gene_id in enumerate(genes_dict):
-        expr_table_rows.append(['gene_id', 'P'+str(i), '1'])
+        expr_table_rows.append([gene_id, 'P'+str(i), '1'])
+
+    table = Table(header=header, rows=expr_table_rows, digits=4,
+            space=4, missing_data='', max_width=1e100, row_ids=False)
 
     success, rr = add_data(session, 'dummy_flat',
             'each gene has expression score of 1',
-            'None', expr_table_rows, gene_id_heading='gene',
+            'None', table, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)

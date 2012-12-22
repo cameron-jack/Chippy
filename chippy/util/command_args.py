@@ -234,9 +234,12 @@ class Args(object):
     def _add_db_args(self):
         """ options for starting a ChipPy DB """
         self._inc_arg('--save_db_path',
-                help='path to directory where chippy.db will be saved.')
+                help='path to directory where chippy.db will be saved')
         self._inc_arg('--ensembl_release', type=int,
                 help='Ensembl release to use.')
+        self._inc_arg('--species', type='choice', default='mouse',
+                choices=['mouse', 'human', 'cerevisiae'],
+                help='Create DB for given species')
         self._inc_arg('--species', default='mouse',
                 choices=['mouse', 'human', 'yeast'],
                 help='Create for species')

@@ -442,7 +442,7 @@ def create_dummy_expr(session, rr=RunRecord()):
 
     success, rr = add_data(session, 'dummy_flat',
             'each gene has expression score of 1',
-            'None', table, gene_id_heading='gene',
+            'dummy_flat_expr.fake', table, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)
@@ -457,7 +457,7 @@ def create_dummy_expr(session, rr=RunRecord()):
 
     success, rr = add_data(session, 'dummy_spread',
             'each gene has unique expression score',
-            'None', expr_table_rows, gene_id_heading='gene',
+            'dummy_spread_expr.fake', expr_table_rows, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)

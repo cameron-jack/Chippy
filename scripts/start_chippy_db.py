@@ -50,7 +50,7 @@ def main():
 
     chippy_db_name = 'chippy_%d_%s.db' % (args.ensembl_release, args.species)
     db_path = os.path.join(args.save_db_path, chippy_db_name)
-    session = make_session("sqlite:///%s" % db_path)
+    session = make_session('sqlite:///' + db_path)
     hostname = args.hostname
     username = args.username
     password = args.password

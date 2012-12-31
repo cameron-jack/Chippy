@@ -209,9 +209,10 @@ def add_expression_study(session, sample_name, data_path, table,
     except IntegrityError:
         session.rollback()
         return False, run_record
-    
-    run_record.addMessage('add_expression_study',
-        LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
+
+    if unknown_ids:
+        run_record.addMessage('add_expression_study',
+                LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
     run_record.addMessage('add_expression_study',
         LOG_INFO, 'Total genes', total)
     return True, run_record
@@ -253,15 +254,17 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
-        rr.addMessage('add_expression_diff_study',
-            LOG_WARNING, 'Could not find a record for ref_a %s' % ref_a_path,
-            str(session.query(ReferenceFile).filter_by(name=ref_a_path).all()))
+        rr.addMessage('add_expression_diff_study', LOG_WARNING,
+                'Could not find a record for ref_a %s' % ref_a_path,
+                str(session.query(ReferenceFile).\
+                filter_by(name=ref_a_path).all()))
     
     ref_b = _one(session.query(ReferenceFile).filter_by(name=ref_b_path))
     if not ref_b:
-        rr.addMessage('add_expression_diff_study',
-            LOG_WARNING, 'Could not find a record for ref_b %s' % ref_b_path,
-            str(session.query(ReferenceFile).filter_by(name=ref_b_path).all()))
+        rr.addMessage('add_expression_diff_study', LOG_WARNING,
+                'Could not find a record for ref_b %s' % ref_b_path,
+                str(session.query(ReferenceFile).\
+                filter_by(name=ref_b_path).all()))
     
     if not ref_a or not ref_b:
         rr.display()
@@ -271,7 +274,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
         reffile = ReferenceFile(data_path, today, ref_a_name=ref_a_path,
-        ref_b_name=ref_b_path)
+                ref_b_name=ref_b_path)
         reffile.sample = sample
         data.append(reffile)
     else:
@@ -284,10 +287,9 @@ def add_expression_diff_study(session, sample_name, data_path, table,
             ExpressionDiff.sample_id==sample.sample_id)).all()
 
     if len(records) > 0:
-        rr.addMessage('add_expression_diff_study',
-            LOG_WARNING,
-            'Already added this data for this sample / file combo',
-            (sample.name, data_path))
+        rr.addMessage('add_expression_diff_study', LOG_WARNING,
+                'Already added this data for this sample / file combo',
+                (sample.name, data_path))
         return rr
     
     if not successful_commit(session, data):
@@ -312,7 +314,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         prob = float(record[prob_label])
         signif = int(record[sig_label])
         diff = ExpressionDiff(probeset, fold_changes=fold_change,
-                    prob=prob, signif=signif)
+                prob=prob, signif=signif)
         diff.reffile_id = reffile.reffile_id
         diff.sample = sample
         diff.gene = gene
@@ -325,10 +327,11 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     session.add_all(data)
     session.commit()
-    
-    rr.addMessage('add_expression_diff_study',
-            LOG_ERROR, 'Number of unknown gene Ensembl IDs',
-            unknown_ids)
+
+    if unknown_ids:
+        rr.addMessage('add_expression_diff_study',
+                LOG_ERROR, 'Number of unknown gene Ensembl IDs',
+                unknown_ids)
     rr.addMessage('add_expression_diff_study',
             LOG_INFO, 'Total significantly up-regulated genes',
             signif_up_total)
@@ -390,10 +393,9 @@ def add_target_genes(session, sample_name, data_path, table,
     return run_record
 
 def add_data(session, name, description, path, expr_table,
-                gene_id_heading='gene', probeset_heading='probeset',
-                expr_heading='exp',
-                sample_type=sample_types['exp_absolute'],
-                reffile1=None, reffile2=None, rr=RunRecord()):
+        gene_id_heading='gene', probeset_heading='probeset',
+        expr_heading='exp', sample_type=sample_types['exp_absolute'],
+        reffile1=None, reffile2=None, rr=RunRecord()):
     """ A unified interface for adding data to the DB """
 
     success, rr = add_sample(session, name, description, rr=rr)
@@ -416,22 +418,21 @@ def add_data(session, name, description, path, expr_table,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
-                prob_label='rawp', sig_label='sig', run_record=rr)
+                prob_label='rawp', sig_label='sig', rr=rr)
     elif sample_type == sample_types['target_genes']:
         rr = add_target_genes(session, name, path, expr_table,
-                ensembl_id_label=gene_id_heading, run_record=rr)
+                ensembl_id_label=gene_id_heading, rr=rr)
     else:
         rr.display()
         raise RuntimeError('Unknown sample type')
 
     return success, rr
 
-def create_dummy_expr(session, rr=RunRecord()):
+def create_dummy_flat_expr(session, rr=RunRecord()):
     """ create flat and spread dummy data """
     genes_dict = get_stable_id_genes_mapping(session)
 
     # flat expression dummy
-    #header = ['gene', 'probeset', 'exp']
     expr_table_rows = []
     for i, gene_id in enumerate(genes_dict):
         #expr_table_rows.append([gene_id, 'P'+str(i), 1])
@@ -441,9 +442,6 @@ def create_dummy_expr(session, rr=RunRecord()):
         expr_table_row['exp'] = 1
         expr_table_rows.append(expr_table_row)
 
-    #table = Table(header=header, rows=expr_table_rows, digits=4,
-    #        space=4, missing_data='', max_width=1e100, row_ids=False)
-
     success, rr = add_data(session, 'dummy_flat',
             'each gene has expression score of 1',
             'dummy_flat_expr.fake', expr_table_rows, gene_id_heading='gene',
@@ -452,6 +450,10 @@ def create_dummy_expr(session, rr=RunRecord()):
             reffile1=None, reffile2=None, rr=rr)
     if not success:
         return success, rr
+
+def create_dummy_spread_expr(session, rr=RunRecord()):
+    """ create flat and spread dummy data """
+    genes_dict = get_stable_id_genes_mapping(session)
 
     # spread expression dummy
     expr_table_rows = []
@@ -464,7 +466,8 @@ def create_dummy_expr(session, rr=RunRecord()):
 
     success, rr = add_data(session, 'dummy_spread',
             'each gene has unique expression score',
-            'dummy_spread_expr.fake', expr_table_rows, gene_id_heading='gene',
+            'dummy_spread_expr.fake', expr_table_rows,
+            gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)

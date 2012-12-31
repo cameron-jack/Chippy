@@ -706,7 +706,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
                         probeset_label='probeset', exp_label='exp')
         rr = add_expression_diff_study(self.session, 'sample1', self.dpath, table,
             self.reffile_path1, self.reffile_path2, ensembl_id_label='gene',
-            run_record=rr, show_progress=False)
+            rr=rr, show_progress=False)
     
     def setUp(self):
         """docstring for add_files_samples"""

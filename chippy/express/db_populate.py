@@ -455,9 +455,12 @@ def create_dummy_expr(session, rr=RunRecord()):
 
     # spread expression dummy
     expr_table_rows = []
-    expr_table_rows.append(['gene', 'probeset', 'exp']) # header
     for i, gene_id in enumerate(genes_dict):
-        expr_table_rows.append(['gene_id', 'P'+str(i), i])
+        expr_table_row = {}
+        expr_table_row['gene'] = gene_id
+        expr_table_row['probeset'] = 'P'+str(i)
+        expr_table_row['exp'] = i
+        expr_table_rows.append(expr_table_row)
 
     success, rr = add_data(session, 'dummy_spread',
             'each gene has unique expression score',

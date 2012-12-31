@@ -1,4 +1,6 @@
 from __future__ import division
+import sys
+sys.path.extend(['..'])
 
 from sqlalchemy import (Integer, Float, String, Date, PickleType,
     Boolean, ForeignKey, Column, UniqueConstraint, Table, create_engine)
@@ -70,7 +72,21 @@ class ReferenceFile(Base):
         if self.ref_a_name:
             depends = ', depends=%s' % str([self.ref_a_name, self.ref_b_name])
         return "ReferenceFile('%s'%s)" % (self.name, depends)
-    
+
+class Chroms(Base):
+    __tablename__ = 'chroms'
+
+    species = Column(String, primary_key=True)
+    chromStr = Column(String) # use ',' separated list of chroms
+
+    def __init__(self, species, chromsList):
+        self.species = species
+        self.chromStr = ','.join(chromsList)
+
+    @property
+    def chroms(self):
+        # get chroms
+        return self.chromStr.split(',')
 
 class Gene(Base):
     __tablename__ = 'gene'
@@ -339,8 +355,6 @@ class Exon(Base):
         return "Exon(gene=%s, start=%s, rank=%s, strand=%s)" % (
             self.gene.ensembl_id, self.start, self.rank,
             self.gene.strand)
-        
-    
 
 class Expression(Base):
     __tablename__ = 'expression'
@@ -370,9 +384,6 @@ class Expression(Base):
     def __repr__(self):
         return 'Expression(probesets=%s, sample=%s)' % (
                 self.probesets, self.sample.name)
-        
-    
-
 
 class ExpressionDiff(Base):
     __tablename__ = 'expression_diff'

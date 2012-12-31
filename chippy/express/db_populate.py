@@ -12,12 +12,11 @@ from cogent.util.table import Table
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
-from chippy.express.db_schema import Gene, Exon, \
+from chippy.express.db_schema import Chroms, Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
             Session, Base, make_session
 from chippy.express.db_query import  get_stable_id_genes_mapping
 from chippy.express.util import sample_types
-from chippy.ref.util import chroms
 from chippy.express.util import _one
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -59,10 +58,9 @@ def successful_commit(session, data, debug=False):
         return False
     return True
 
-def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug=False):
+def add_ensembl_gene_data(session, species, ensembl_release, account=None,
+        rr=RunRecord(), debug=False):
     """add Ensembl genes and their transcripts to the db session"""
-    
-    species_chroms = chroms[species]
     
     genome = Genome(species, Release=ensembl_release, account=account)
     skip = set(['processed_transcript', 'pseudogene'])
@@ -71,19 +69,18 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
     data = []
     unique_gene_ids = set()
     unique_exon_ids = set()
+    chromSet = set()
     n = 0
     total_objects = 0
     for biotype in biotypes:
         for gene in genome.getGenesMatching(BioType=biotype):
             # gene.Location.CoordName is the chromosome name
-            if gene.Location.CoordName not in species_chroms:
-                #print gene.Location.CoordName
-                pass
+            chromSet.add(gene.Location.CoordName)
 
             if gene.StableId not in unique_gene_ids:
 
-                db_gene = Gene(ensembl_id=gene.StableId, symbol=gene.Symbol,
-                        biotype=gene.BioType,
+                db_gene = Gene(ensembl_id=gene.StableId,
+                        symbol=gene.Symbol, biotype=gene.BioType,
                         description=gene.Description, status=gene.Status,
                         coord_name=gene.Location.CoordName,
                         start=gene.Location.Start, end=gene.Location.End,
@@ -92,7 +89,8 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                 unique_gene_ids.add(gene.StableId)
                 data.append(db_gene)
             else:
-                print 'Duplicate gene StableId detected: ' + str(gene.StableId) + ' not adding to DB.'
+                rr.addWarning('add_ensembl_gene_data', 'Duplicate gene',
+                        gene.StableId)
 
             for exon in gene.CanonicalTranscript.Exons:
                 if exon.StableId not in unique_exon_ids:
@@ -103,20 +101,26 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None, debug
                     data.append(db_exon)
                     total_objects += 1
                 else:
-                    print 'Duplicate exon StableId detected: ' + str(exon.StableId) + ' not adding to DB.'
-            
+                    rr.addWarning('add_ensembl_gene_data', 'Duplicate exon',
+                            exon.StableId)
             n += 1
             if n % 100 == 0:
                 print 'Genes processed=%s; Db objects created=%d' % (n,
-                                                            total_objects)
+                        total_objects)
                 if debug:
                     session.add_all(data)
                     session.commit()
                     return
+    rr.addInfo('add_ensembl_gene_data', 'Instantiating chromosomes',
+            chromSet)
+    chroms = Chroms(species=species, chroms=list(chromSet))
+    data.append(chroms)
 
-    print 'Writing objects into db'
+    rr.addInfo('add_ensembl_gene_data', 'Writing objects into db',
+            total_objects)
     session.add_all(data)
     session.commit()
+    return chroms, rr
 
 def add_sample(session, name, description, rr=RunRecord()):
     """add a basic sample"""
@@ -218,7 +222,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
             probeset_label='probeset',
             ensembl_id_label='ENSEMBL', expression_label='exp',
             prob_label='rawp', sig_label='sig',
-            run_record=None, ui=None):
+            rr=RunRecord(), ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -242,9 +246,6 @@ def add_expression_diff_study(session, sample_name, data_path, table,
           provided, one is created and returned.
     """
     
-    if run_record is None:
-        run_record = RunRecord()
-    
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
         session.rollback()
@@ -252,18 +253,18 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
-        run_record.addMessage('add_expression_diff_study',
+        rr.addMessage('add_expression_diff_study',
             LOG_WARNING, 'Could not find a record for ref_a %s' % ref_a_path,
             str(session.query(ReferenceFile).filter_by(name=ref_a_path).all()))
     
     ref_b = _one(session.query(ReferenceFile).filter_by(name=ref_b_path))
     if not ref_b:
-        run_record.addMessage('add_expression_diff_study',
+        rr.addMessage('add_expression_diff_study',
             LOG_WARNING, 'Could not find a record for ref_b %s' % ref_b_path,
             str(session.query(ReferenceFile).filter_by(name=ref_b_path).all()))
     
     if not ref_a or not ref_b:
-        run_record.display()
+        rr.display()
         raise RuntimeError('Reference files not added yet?')
     
     data = []
@@ -280,14 +281,14 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     # this sample
     records = session.query(ExpressionDiff).filter(
             and_(ExpressionDiff.reffile_id==reffile.reffile_id,
-                ExpressionDiff.sample_id==sample.sample_id)).all()
+            ExpressionDiff.sample_id==sample.sample_id)).all()
 
     if len(records) > 0:
-        run_record.addMessage('add_expression_diff_study',
+        rr.addMessage('add_expression_diff_study',
             LOG_WARNING,
             'Already added this data for this sample / file combo',
             (sample.name, data_path))
-        return run_record
+        return rr
     
     if not successful_commit(session, data):
         session.rollback()
@@ -325,23 +326,26 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     session.add_all(data)
     session.commit()
     
-    run_record.addMessage('add_expression_diff_study',
-        LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
-    run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Total significantly up-regulated genes', signif_up_total)
-    run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Total significantly down-regulated genes', signif_down_total)
-    run_record.addMessage('add_expression_diff_study',
-        LOG_INFO, 'Total genes', total)
+    rr.addMessage('add_expression_diff_study',
+            LOG_ERROR, 'Number of unknown gene Ensembl IDs',
+            unknown_ids)
+    rr.addMessage('add_expression_diff_study',
+            LOG_INFO, 'Total significantly up-regulated genes',
+            signif_up_total)
+    rr.addMessage('add_expression_diff_study',
+            LOG_INFO, 'Total significantly down-regulated genes',
+            signif_down_total)
+    rr.addMessage('add_expression_diff_study',
+            LOG_INFO, 'Total genes', total)
     
-    return run_record
+    return rr
 
 def _chunk_id_list(id_list, n):
     for i in xrange(0, len(id_list), n):
         yield id_list[i:i+n]
 
 def add_target_genes(session, sample_name, data_path, table,
-        ensembl_id_label='ENSEMBL', run_record=None):
+        ensembl_id_label='ENSEMBL', run_record=RunRecord()):
     """adds Expression instances into the database from table
 
     Arguments:
@@ -349,8 +353,6 @@ def add_target_genes(session, sample_name, data_path, table,
         - table: the actual expression data table
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
     """
-    if run_record is None:
-        run_record = RunRecord()
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
@@ -391,11 +393,8 @@ def add_data(session, name, description, path, expr_table,
                 gene_id_heading='gene', probeset_heading='probeset',
                 expr_heading='exp',
                 sample_type=sample_types['exp_absolute'],
-                reffile1=None, reffile2=None, rr=None):
+                reffile1=None, reffile2=None, rr=RunRecord()):
     """ A unified interface for adding data to the DB """
-
-    if rr is None:
-        rr=RunRecord()
 
     success, rr = add_sample(session, name, description, rr=rr)
     if not success:
@@ -432,17 +431,22 @@ def create_dummy_expr(session, rr=RunRecord()):
     genes_dict = get_stable_id_genes_mapping(session)
 
     # flat expression dummy
-    header = ['gene', 'probeset', 'exp']
+    #header = ['gene', 'probeset', 'exp']
     expr_table_rows = []
     for i, gene_id in enumerate(genes_dict):
-        expr_table_rows.append([gene_id, 'P'+str(i), '1'])
+        #expr_table_rows.append([gene_id, 'P'+str(i), 1])
+        expr_table_row = {}
+        expr_table_row['gene'] = gene_id
+        expr_table_row['probeset'] = 'P'+str(i)
+        expr_table_row['exp'] = 1
+        expr_table_rows.append(expr_table_row)
 
-    table = Table(header=header, rows=expr_table_rows, digits=4,
-            space=4, missing_data='', max_width=1e100, row_ids=False)
+    #table = Table(header=header, rows=expr_table_rows, digits=4,
+    #        space=4, missing_data='', max_width=1e100, row_ids=False)
 
     success, rr = add_data(session, 'dummy_flat',
             'each gene has expression score of 1',
-            'dummy_flat_expr.fake', table, gene_id_heading='gene',
+            'dummy_flat_expr.fake', expr_table_rows, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)

@@ -9,7 +9,7 @@ from chippy.util.util import create_path
 
 from chippy.express.db_schema import make_session
 from chippy.express.db_populate import add_ensembl_gene_data, \
-        create_dummy_expr
+        create_dummy_flat_expr, create_dummy_spread_expr
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
@@ -48,7 +48,9 @@ def main():
         sys.stderr.write('The save_db_path must be a directory.\n')
         return
 
-    chippy_db_name = 'chippy_%d_%s.db' % (args.ensembl_release, args.species)
+    release = args.ensembl_release
+    species = args.species
+    chippy_db_name = 'chippy_' + str(release) +'_' + species + '.db'
     db_path = os.path.join(args.save_db_path, chippy_db_name)
     session = make_session('sqlite:///' + db_path)
     hostname = args.hostname
@@ -59,11 +61,17 @@ def main():
     add_ensembl_gene_data(session, args.species,
             ensembl_release=args.ensembl_release, account=account)
 
-    success, rr = create_dummy_expr(session, rr=rr)
+    success, rr = create_dummy_flat_expr(session, rr=rr)
     if success:
-        print 'Dummy data added successfully'
+        print 'Dummy flat data added successfully'
     else:
-        print 'Dummy data failed to upload to DB. Expect bigger problems'
+        print 'Dummy flat data failed to upload to DB. Expect bigger problems'
+
+    success, rr = create_dummy_spread_expr(session, rr=rr)
+    if success:
+        print 'Dummy spread data added successfully'
+    else:
+        print 'Dummy spread data failed to upload to DB. Expect bigger problems'
 
     rr.addInfo('start_chippy_db' ,'Chippy DB written to:', db_path)
     rr.display()

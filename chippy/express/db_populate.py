@@ -113,7 +113,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                     return
     rr.addInfo('add_ensembl_gene_data', 'Instantiating chromosomes',
             chromSet)
-    chroms = Chroms(species=species, chroms=list(chromSet))
+    chroms = Chroms(species, chromSet)
     data.append(chroms)
 
     rr.addInfo('add_ensembl_gene_data', 'Writing objects into db',

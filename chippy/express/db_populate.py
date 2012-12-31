@@ -448,8 +448,8 @@ def create_dummy_flat_expr(session, rr=RunRecord()):
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)
-    if not success:
-        return success, rr
+
+    return success, rr
 
 def create_dummy_spread_expr(session, rr=RunRecord()):
     """ create flat and spread dummy data """
@@ -471,8 +471,6 @@ def create_dummy_spread_expr(session, rr=RunRecord()):
             probeset_heading='probeset', expr_heading='exp',
             sample_type=sample_types['exp_absolute'],
             reffile1=None, reffile2=None, rr=rr)
-    if not success:
-        return success, rr
 
     return success, rr
 

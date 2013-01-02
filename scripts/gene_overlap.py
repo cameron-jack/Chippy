@@ -10,12 +10,7 @@ from math import log10, floor, ceil
 import os, sys, glob
 sys.path.extend(['..', '../src'])
 
-import numpy
-import pickle
-import gzip
-
 from optparse import make_option
-from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from cogent.util.misc import parse_command_line_parameters
 from chippy.util.run_record import RunRecord

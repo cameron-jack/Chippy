@@ -284,6 +284,7 @@ class Args(object):
                                 '.db' in possible_db_path.lower():
                             self.db_path = possible_db_path
                             print self.db_path, 'selected as ChipPy database'
+                            break
                 if self.db_path is None:
                     raise RuntimeError('Path to ChipPy database required')
 

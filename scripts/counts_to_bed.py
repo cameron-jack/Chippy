@@ -1,3 +1,4 @@
+""" Converts legacy pickle ChIP-Seq data to BED format"""
 from __future__ import division
 
 import os, sys, glob, warnings
@@ -9,17 +10,15 @@ from cogent.util.misc import parse_command_line_parameters
 from cogent.util.progress_display import display_wrap
 from cogent import LoadTable
 
-#from numpy import zeros, savez, load, array, inf
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 __author__ = "Cameron Jack, Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Cameron Jack, Gavin Huttley"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "Pre-release"
 __version__ = '0.1'
 
 script_info = {}

@@ -7,17 +7,13 @@ from sqlalchemy import create_engine, and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 
-from cogent import LoadTable
-from cogent.util.table import Table
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
 from chippy.express.db_schema import Chroms, Gene, Exon, \
-            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
-            Session, Base, make_session
+            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.express.db_query import  get_stable_id_genes_mapping
-from chippy.express.util import sample_types
-from chippy.express.util import _one
+from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
@@ -27,9 +23,9 @@ __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "Pre-release"
 __version__ = '0.1'
 
 now = datetime.datetime.now()

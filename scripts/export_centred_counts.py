@@ -6,8 +6,7 @@ warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
 from chippy.core.count_tags import centred_counts_for_genes,\
-            centred_diff_counts_for_genes,\
-            centred_counts_target_genes
+            centred_diff_counts_for_genes
 from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from chippy.express.util import sample_types
@@ -20,7 +19,7 @@ __credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
 __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
-__status__ = "alpha"
+__status__ = "Pre-release"
 __version__ = '0.1'
 
 def set_environment():

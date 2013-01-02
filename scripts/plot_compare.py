@@ -9,14 +9,9 @@ from optparse import make_option
 from cogent.util.misc import parse_command_line_parameters
 from cogent.maths.stats.jackknife import JackknifeStats
 
-from chippy.core.count_tags import centred_counts_for_genes,\
-            centred_counts_target_genes
 from chippy.core.collection import RegionCollection, column_sum, column_mean
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableSingle
-from chippy.ref.util import chroms
-from chippy.util.util import create_path, make_cl_command, just_filename, \
-                    dirname_or_default
 
 __author__ = 'Gavin Huttley'
 __copyright__ = 'Copyright 2011, Gavin Huttley'

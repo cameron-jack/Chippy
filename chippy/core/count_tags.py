@@ -1,7 +1,8 @@
 """returns tag counts for a specified collection of genes"""
 from __future__ import division
 
-import os, sys
+import sys
+sys.path.extend(['..'])
 
 from cogent.util.progress_display import display_wrap
 
@@ -9,8 +10,7 @@ from chippy.core.read_count import get_combined_counts, read_all_beds
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_expression, \
         get_ranked_expression_diff, get_ranked_genes_per_chrom, \
-        get_diff_ranked_genes_per_chrom
-from chippy.ref.util import chroms
+        get_diff_ranked_genes_per_chrom, get_chroms
 from chippy.util.util import grouped_by_chrom
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -20,9 +20,9 @@ __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "Pre-release"
 __version__ = '0.1'
 
 class Feature:
@@ -132,7 +132,7 @@ def get_count_decorated_expressed_genes(genes, counts_dir, expr_area, chrom_name
 def _get_decorated_expressed(session, sample_name, expr_area, species, chrom,
         counts_dir, max_read_length, count_max_length, window_size,
         include_target=None, exclude_target=None, test_run=False):
-    species_chroms = chroms[species]
+    species_chroms = get_chroms(session)
 
     msg = 'Getting ranked expression instances%s'
     if chrom is None:
@@ -158,7 +158,7 @@ def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
         multitest_signif_val, include_target=None, exclude_target=None,
         test_run=False):
     
-    species_chroms = chroms[species]
+    species_chroms = get_chroms(session)
 
     msg = 'Getting ranked expression difference instances%s'
     if chrom is None:
@@ -262,29 +262,4 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
                         'summed_counts': summed_counts}})
 
     return data, run_record
-
-def centred_counts_target_genes(session, target_genes_sample_name, 
-    sample_name, species, counts_dir, max_read_length,
-    window_size):
-    """returns RegionCollection object for target gene list sample from
-    the sample_name"""
-    expressed = get_target_genes_from_expression_study(session,
-                target_genes_sample_name, sample_name)
-    chrom_names = chroms[species]
-    expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
-        counts_dir, chrom_names, max_read_length, window_size)
-    total_expressed_genes = len(expressed)
-    
-    counts, ranks, ensembl_ids = get_counts_ranks_ensembl_ids(expressed)
-    
-    data = RegionCollection(counts=counts, ranks=ranks,
-        labels=ensembl_ids,
-        info={'total expressed genes': total_expressed_genes,
-                'args': {'window_size': window_size,
-                        'max_read_length': max_read_length,
-                        'sample_name': sample_name,
-                        'species': species,
-                        'summed_counts': summed_counts}})
-    
-    return data
 

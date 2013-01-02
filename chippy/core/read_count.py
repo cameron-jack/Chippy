@@ -1,28 +1,25 @@
 from __future__ import division
-
+import sys
+sys.path.extend(['..'])
 from os import path, listdir
-from glob import glob1
-import re
+
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
-
-from numpy import zeros, uint16, uint32, int32, savez, load, array, inf
+import numpy
 
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
 
-from chippy.util import util
-from chippy.ref.util import chroms
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 from chippy.parse.bed import BedRep
 
-__author__ = "Anuj Pahwa, Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Anuj Pahwa", "Gavin Huttley"]
+__author__ = "Anuj Pahwa, Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
+__credits__ = ['Anuj Pahwa', 'Gavin Huttley', 'Cameron Jack']
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "development"
 __version__ = '0.1'
 
 @display_wrap
@@ -48,7 +45,7 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
                 "mapped read Table header doesn't match expected"
         if not is_sorted:
             data = data.sorted(columns='start')
-        data = data.array.astype(int32)
+        data = data.array.astype(numpy.int32)
     else:
         # It came from a BED file
         data = mapped_read_path
@@ -60,9 +57,9 @@ def make_contig_counts(mapped_read_path, max_read_length=None,
                                 ' count_max_length'
 
     total = data.shape[0]
-    max_read_length = max_read_length or inf
+    max_read_length = max_read_length or numpy.inf
     total_length = data[-1][0] + data[-1][1]
-    counts = zeros(total_length, int32)
+    counts = numpy.zeros(total_length, numpy.int32)
     for i in range(total):
         if i % 10 == 0:
             ui.display('Adding reads [%d / %d]' % (i, total), i / total)
@@ -139,7 +136,7 @@ class WholeChrom(object):
                 span = abs(slice.stop - slice.start)
                 if span != result.shape[0]:
                     diff = span - result.shape[0]
-                    work = zeros(span, dtype=result.dtype)
+                    work = numpy.zeros(span, dtype=result.dtype)
                     if slice.step == -1:
                         # if minus strand, we reverse it first
                         work[diff:] = result
@@ -148,7 +145,7 @@ class WholeChrom(object):
                     result = work
                     warnings.warn(msg, UserWarning, 2)
                     
-                    # TODO pad the result with zeros
+                    # TODO pad the result with zeros?
         except IndexError:
             warnings.warn(msg, UserWarning, 2)
             result = None
@@ -162,7 +159,7 @@ class WholeChrom(object):
                     other.__class__))
         
         length = max(self.counts.shape[0], other.counts.shape[0])
-        new = zeros(length, dtype=self.counts.dtype)
+        new = numpy.zeros(length, dtype=self.counts.dtype)
         new[:self.counts.shape[0]] += self.counts
         new[:other.counts.shape[0]] += other.counts
         if self.strand == other.strand:

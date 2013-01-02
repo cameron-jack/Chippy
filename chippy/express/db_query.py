@@ -1,16 +1,9 @@
 from sqlalchemy import and_
 from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-import pickle
-import gzip
-from cogent import LoadTable
-from cogent.util.progress_display import display_wrap
-from cogent.util.misc import flatten
 
-from chippy.express.db_schema import Gene, Exon, \
-            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
-            Session, Base, make_session
-from chippy.ref.util import chroms
+from chippy.express.db_schema import Chroms, Gene, Exon, TargetGene,\
+        Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.util.run_record import RunRecord
 from chippy.express.util import single_gene, _one
 
@@ -18,10 +11,17 @@ __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
 __credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "Pre-release"
 __version__ = '0.1'
+
+def get_chroms(session):
+    try:
+        chroms = session.query(Chroms.chroms())
+    except NoResultFound:
+        chroms = []
+    return chroms
 
 def _get_sample(session, sample_name):
     try:
@@ -262,8 +262,7 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
 def get_ranked_genes_per_chrom(session, sample_name, chrom,
         biotype='protein_coding', data_path=None, test_run=False):
     """returns genes from a chromosome"""
-    # assert chrom in chroms[species]
-    assert chrom in chroms['mouse']
+    assert chrom in get_chroms(session)
     genes = get_ranked_expression(session, sample_name,
             biotype=biotype, data_path=data_path, test_run=test_run)
     genes = (g for g in genes if g.coord_name==chrom)
@@ -276,8 +275,7 @@ def get_diff_ranked_genes_per_chrom(session, sample_name,
         multitest_signif_val, chrom, biotype='protein_coding',
         data_path=None, test_run=False):
     """returns difference experiment genes from a chromosome"""
-    # assert chrom in chroms[species]
-    assert chrom in chroms['mouse']
+    assert chrom in get_chroms(session)
     genes = get_ranked_expression_diff(session, sample_name,
             multitest_signif_val, biotype=biotype, data_path=data_path,
             test_run=test_run)
@@ -288,9 +286,8 @@ def get_target_genes(session, target_gene_sample_name, test_run=False):
     """returns target genes, not ranked"""
     target_sample = _get_sample(session, target_gene_sample_name)
     if not target_sample:
-        raise RuntimeError('No target_sample with name %s' % \
-                        target_gene_sample_name)
-    
+        raise RuntimeError('No target_sample with name ' +\
+                target_gene_sample_name)
     query = session.query(Gene).join(TargetGene).\
             filter(TargetGene.sample_id==target_sample.sample_id)
     return query
@@ -302,27 +299,30 @@ def get_expression_diff_genes(session, sample_name, biotype='protein_coding',
     sample = _get_sample(session, sample_name)
 
     if not sample:
-        raise RuntimeError('No sample with name %s' % sample_name)
+        raise RuntimeError('No sample with name ' + sample_name)
 
     query = session.query(ExpressionDiff).\
             filter(ExpressionDiff.sample_id==sample.sample_id)
 
     query.filter(Gene.biotype==biotype)
     if multitest_signif_val is not None:
-        query = query.filter(ExpressionDiff.multitest_signif==multitest_signif_val)
+        query = query.filter(ExpressionDiff.multitest_signif==\
+                multitest_signif_val)
 
     return query
 
-def get_total_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
+def get_total_gene_counts(session, sample_name,
+        biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
     query = get_gene_expression_query(session, sample_name,
-                                        data_path, test_run)
+            data_path, test_run)
     if biotype:
         query = query.filter(Gene.biotype==biotype)
     
     return query.distinct().count()
 
-def get_total_diff_gene_counts(session, sample_name, biotype='protein_coding', data_path=None, test_run=False):
+def get_total_diff_gene_counts(session, sample_name,
+        biotype='protein_coding', data_path=None, test_run=False):
     """docstring for get_total_gene_counts"""
     query = get_gene_expression_diff_query(session, sample_name,
                                         data_path, test_run)
@@ -331,61 +331,4 @@ def get_total_diff_gene_counts(session, sample_name, biotype='protein_coding', d
 
     return query.distinct().count()
 
-# TODO: This appears to be an orphaned function
-@display_wrap
-def diff_expression_study(session, sample_name, data_path, table,
-            ensembl_id_label='ENSEMBL', test_run=False,
-            run_record=None, ui=None):
-    """returns list of genes and why they're not present in an existing
-    expression db"""
-    if run_record is None:
-        run_record = RunRecord()
-    # query db for every gene linked to this expression study
-    records = get_ranked_expression(session, sample_name,
-            data_path=data_path, test_run=test_run)
-    # following dead
-    # transcript_to_gene = get_transcript_gene_mapping(session)
-    failures = []
-    kept_gene_ids_probesets = []
-    for record in ui.series(table, noun='Adding expression diffs'):
-        transcript_ids = record[ensembl_id_label]
-        gene_id = single_gene(transcript_to_gene, transcript_ids)
-        probeset_id = record['probeset_id']
-        if gene_id is None:
-            failures.append(['probeset', probeset_id, 
-                            'probeset id maps to multiple genes'])
-            continue
-        kept_gene_ids_probesets.append([gene_id, probeset_id])
-    
-    in_db_gene_ids = set([e.gene_id for e in records])
-    in_table_kept_gene_ids = set([g for g,p in kept_gene_ids_probesets])
-    in_db_not_table = in_db_gene_ids - in_table_kept_gene_ids
-    if in_db_not_table:
-        failures.extend([('dberror', gid,
-                    'population error! Contact developers')
-                for gid in in_db_not_table])
-    
-    in_table_not_db = in_table_kept_gene_ids - in_db_gene_ids
-    if in_table_not_db:
-        failures.extend([('gene', gid, 'gene mapped to multiple probesets')
-                                                for gid in in_table_not_db])
-    
-    full_log = LoadTable(header=['Type', 'Id', 'Explanation'], rows=failures,
-    title='Difference between db for'\
-        +' %(sample)s and %(reffile)s' % dict(reffile=data_path,
-                                               sample=sample_name))
-    
-    # TODO import log constants and change to LOG_INFO etc ..
-    failed_probsets = run_record.count("Type == 'probeset'")
-    dup_gene_transcripts = run_record.count("Type == 'gene'")
-    dberror = run_record.count("Type == 'dberror'")
-    run_record.addMessage('diff_expression_study',
-        'notice', 'Num genes in db', len(records))
-    run_record.addMessage('diff_expression_study',
-        'notice', 'Probsets that do not map to a unique gene', failed_probsets)
-    run_record.addMessage('diff_expression_study',
-        'notice', 'Genes with multiple transcripts', dup_gene_transcripts)
-    run_record.addMessage('diff_expression_study',
-        'notice', 'Database population errors', dberror)
-    
-    return run_record, full_log
+

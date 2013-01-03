@@ -34,10 +34,6 @@ def suite():
         'test_read_count',
         'test_collection',
         'test_db',
-        'test_inline_stats',
-        'test_light_seq',
-        'test_mapped_files',
-        'test_reduce',
         'test_parse_bed',
         'test_parse_fastq',
         'test_parse_rdump',
@@ -69,7 +65,7 @@ class BoobyTrappedStream(object):
 
     def write(self, text):
         self.output.write(text)
-        raise RuntimeError, "Output not allowed in tests"
+        raise RuntimeError, "Output not allowed in tests, use --output-ok"
 
 
 if __name__ == '__main__':

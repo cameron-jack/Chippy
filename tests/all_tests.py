@@ -35,22 +35,11 @@ def suite():
         'test_collection',
         'test_db',
         'test_parse_bed',
-        'test_parse_fastq',
         'test_parse_rdump',
         'test_parse_sam',
         'test_syntax',
         'test_util'
         ]
-    
-    # CAUTION: dodgy hack ahead .. !
-    # dodgy because more than one app required
-    apps = [('bwa', 'test_fastq_pipe')]
-    for app, test_name in apps:
-        if app_path(app):
-            modules_to_test.append(test_name)
-        else:
-            print >> sys.stderr, "Can't find %s executable: skipping test" % app
-    
 
     alltests = unittest.TestSuite()
 

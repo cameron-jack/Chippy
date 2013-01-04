@@ -34,12 +34,7 @@ def set_environment():
     script_info['output_description']= 'Generates a Pickle file or a gzipped '\
                                        'tab-delimited file that can be used for plotting of subsets of genes'
 
-    if 'CHIPPY_DB' in os.environ:
-        db_path = os.environ['CHIPPY_DB']
-    else:
-        raise RuntimeError('You need to set an environment variable '
-                'CHIPPY_DB that indicates where to find the database')
-
+    pos_args = ['db_path']
     req_args = ['sample', 'sample_type', 'expression_area',
             'counts_dir',  'collection']
     opt_args = ['overwrite', 'tab_delimited', 'max_read_length',
@@ -47,9 +42,9 @@ def set_environment():
                 'include_target', 'exclude_target', 'test_run']
 
     inputs = command_args.Args(required_args=req_args,
-            optional_args=opt_args, db_path=db_path)
+            optional_args=opt_args, positional_args=pos_args)
 
-    return inputs.parsed_args, db_path, script_info
+    return inputs.parsed_args, script_info
 
 def get_collection(session, sample_name, expr_area, species, counts_dir, max_read_length,
         count_max_length, window_size, multitest_signif_val, filename, overwrite,
@@ -93,12 +88,12 @@ def get_collection(session, sample_name, expr_area, species, counts_dir, max_rea
 def main():
     """ Returns a pickle of size window length containing chromatin mapping
      averages per base, one per gene, ranked by expression """
-    args, db_path, script_info = set_environment()
+    args, script_info = set_environment()
         
     if args.sample is None:
         raise RuntimeError('No samples available')
 
-    db_name = str(db_path).split('/')[-1]
+    db_name = str(args.db_path).split('/')[-1]
     species = db_name.split('_')[-1].rstrip('.db')
     
     sample_name = args.sample.split(' : ')[0]
@@ -121,7 +116,7 @@ def main():
     if (args.multitest_signif_val is not None) and not (-1 <= args.multitest_signif_val <= 1):
         raise RuntimeError('multitest_signif_val is not -1, 0, 1 or None. Halting execution.')
 
-    session = db_query.make_session('sqlite:///' + str(db_path))
+    session = db_query.make_session('sqlite:///' + str(args.db_path))
     if sample_type in [sample_types['exp_absolute'], sample_types['exp_diff']]:
         data_collection, rr = get_collection(session, sample_name,
                 args.expression_area, species, counts_dirs, args.max_read_length,

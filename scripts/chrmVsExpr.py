@@ -20,8 +20,8 @@ __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
 __credits__ = ['Gavin Huttley, Cameron Jack']
 __license__ = 'GPL'
-__maintainer__ = 'Gavin Huttley'
-__email__ = 'Gavin.Huttley@anu.edu.au'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'alpha'
 __version__ = '0.1'
 

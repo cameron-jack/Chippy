@@ -1,10 +1,12 @@
 ﻿ChipPy Manual
 Copyright 2012
 
-ChipPy. All code and associated files including this manual are Copyright 2012 to Gavin Huttley, Anuj Pahwa, Cameron Jack, under the GPL v2.0.
+ChipPy. All code and associated files including this manual are Copyright
+2012 to Gavin Huttley, Anuj Pahwa, Cameron Jack, under the GPL v2.0. The
+active maintainer is Cameron Jack
 
-Gavin Huttley: gavin.huttley@anu.edu.au
 Cameron Jack: cameron.jack@anu.edu.au
+Gavin Huttley: gavin.huttley@anu.edu.au
 
 Contents:
 1. Introduction
@@ -19,47 +21,93 @@ Contents:
 
 1. Introduction
 
-ChipPy is a suite of software tools written in Python for the purpose of exploring the relationship between chromatin mapping and gene expression. It was started in early 2011 to help analyse data generated in collaboration with Professor David Tremethick (JCSMR, ANU) whose interest is in histone modification in DNA nucleosomes. This resulted first in the paper “A unique H2A histone variant occupies the transcriptional start site of active genes” by T.Soboleva et al and published in Nature Structure and Molecular Biology. In this study, gene expression around the transcription start site was mapped per-base again chromatin counts provided by ChIP-Seq.
+ChipPy is a suite of software tools written in Python for the purpose of
+exploring the relationship between chromatin mapping and gene expression.
+It was started in early 2011 to help analyse data generated in collaboration
+with Professor David Tremethick (JCSMR, ANU) whose interest is in histone
+modification/variants in DNA nucleosomes. This resulted first in the paper
+“A unique H2A histone variant occupies the transcriptional start site of
+active genes” by T.Soboleva et al and published in Nature Structure and
+Molecular Biology. In this study, gene expression around the transcription
+start site was mapped per-base again chromatin counts provided by ChIP-Seq.
 
-ChipPy will now export other centred feature counts as well, including Intron and Exon  boundaries. It also offers tools for interrogating expression counts and ranks, and generating lists of features to be selectively included or excluded from further study.
+ChipPy will now export other centred feature counts as well, including
+Intron and Exon  boundaries. It also offers tools for interrogating
+expression counts and ranks, and generating lists of features to be
+selectively included or excluded from further study.
 
-The future of ChipPy lies in online integration with the bio-portal software Galaxy. Ideally ChIP-Seq and RNA-Seq read would be processed on a remote cluster, and the results explored with the ChipPy tool suite before producing the final, publication ready heat-map or line plots with the same tools. 
+The future of ChipPy lies in online integration with the bio-portal software
+Galaxy. Ideally ChIP-Seq and RNA-Seq read would be processed on a remote
+cluster, and the results explored with the ChipPy tool suite before
+producing the final, publication ready heat-map or line plots with the
+same tools.
 
 2. ChipPy structure overview
 
-ChipPy is architected around matching ChIP-Seq mapped nucleotide base counts to gene expression data held in an SQL database. As such the ChIP-Seq must have already been mapped and exported to the BED file format.  A blank ChippyDB is generated for a particular species and its Ensembl release number. Expression data is then added to the database. Expression can be explored for relationships and gene lists built to answer particular questions. We can then choose which features we wish to extract from the database and match these against counts information at the given locations. Finally this data can be combined and selected for to produce line or heatmapped line plots of chromatin mapping around these feature sites.
+ChipPy is architected around matching ChIP-Seq mapped nucleotide base counts
+to gene expression data held in an SQL database. As such the ChIP-Seq must
+have already been mapped and exported to the BED file format.  A blank
+ChippyDB is generated for a particular species and its Ensembl release number.
+Expression data is then added to the database. Expression can be explored for
+relationships and gene lists built to answer particular questions. We can then
+choose which features we wish to extract from the database and match these
+against counts information at the given locations. Finally this data can be
+combined and selected for to produce line or heatmapped line plots of
+chromatin mapping around these feature sites.
 
 3. Application scripts
 
 In the ChipPy/scripts directory we have:
 
-add_expression_db.py – adds an expression study, expression difference study or gene list to the ChippyDB.
+add_expression_db.py – adds an expression study, expression difference study
+or gene list to the ChippyDB.
 
-counts_to_BED.py – converts early ChipPy-prep results from separate chromosome files to BED format.
+chrmVsExpr.py - Chromatin score or rank (x-axis) vs Expression score or rank
+(y-axis) UNFINISHED
 
-db_summary.py – gives some limited information on the current status of the ChipPy DB.
+counts_to_BED.py – converts legacy ChipPy-prep results from separate
+chromosome files to BED format.
 
-diff_abs_plots.py – creates dot plots of difference of expression versus absolute expression for difference component. Has a number of sampling options to highlight particular features.
+db_summary.py – gives some limited information on the current status of the
+ChipPy DB.
+
+diff_abs_plots.py – creates dot plots of difference of expression versus
+absolute expression for difference component. Has a number of sampling
+options to highlight particular features.
+
+distribution_plots.py - histogram or box plot of ranked or unranked
+expression or chromatin counts. UNFINISHED
 
 drop_expression_db.py – removes a study from the current ChipPy DB.
 
-export_centred_counts – extracts feature-centred counts from selected areas of a ChIP-Seq BED file. User selectable window size around Transcription Start Site, Intron, Exon or Intro-Exon boundaries.
+export_centred_counts – extracts feature-centred counts from selected areas
+of a ChIP-Seq BED file. User selectable window size around Transcription
+Start Site, Intron, Exon or Intro-Exon boundaries.
 
-expression_plots.py – produces histograms or box plots of expression score or rank data from one or more studies. Useful for checking to see if a group of genes is representative of expected expression behaviour. UNFINISHED
+gene_overlap.py – produces gene lists which can be used in an exclusive
+or inclusive fashion in other studies. Can be used for instance to find
+the top 100 housekeeping (expressed but not significantly changing) genes
+in difference studies.
 
-gene_overlap.py – produces gene lists which can be used in an exclusive or inclusive fashion in other studies. Can be used for instance to find the top 100 housekeeping (expressed but not significantly changing) genes in difference studies.
+plot_centred_counts.py – produced mutli-study line plots and heat-mapped
+lines plots of mapped chromatin counts (heat-mapped by expression rank).
 
-plot_centred_counts.py – produced mutli-study line plots and heat-mapped lines plots of mapped chromatin counts (heat-mapped by expression rank).
+ranks_vs_counts.py - line plot of expression or chromatin rank (x-axis)
+vs score/count (y-axis) UNFINISHED
 
-start_chippy_db.py – creates a new ChipPyDB given a species and Ensembl release number.
+start_chippy_db.py – creates a new ChipPyDB given a species and Ensembl
+release number.
 
 4. Input file types
 
-ChIP-Seq data needs to have been processed into the .BED format (see http://asia.ensembl.org/info/website/upload/bed.html). 
+ChIP-Seq data needs to have been processed into the .BED format
+(see http://asia.ensembl.org/info/website/upload/bed.html).
 
-Gene expression data can take one of three forms: absolute expression, difference expression, target gene list. 
+Gene expression data can take one of three forms: absolute expression,
+difference expression, target gene list.
 
-Absolute expression must be header-lined, tab-delimited files with columns for Ensembl stableID, probesets (bar separated) and expression.
+Absolute expression must be in the form of header-lined, tab-delimited files
+with columns for Ensembl stableID, probesets (bar separated) and expression.
 e.g.
 gene    probeset        exp
 ENSMUSG00000076824      10414914        3.25885666666667
@@ -67,7 +115,9 @@ ENSMUSG00000054310      10550202|10550183|10550197      4.63337333333333|4.63337
 ENSMUSG00000074987      10485643        5.78478
 ENSMUSG00000080859      10600349|10596379|10593320|10581505|10467256|10485654   13.19275|12.8978566666667|13.0906266666667|13.02995|13.0173233333333|13.21584
 
-Difference expression files must be as per absolute expression files but also contain significance (1,0,-1) and p_value columns, although the p_values are currently not used by any of the tools within ChipPy. 
+Difference expression files must be as per absolute expression files but
+also contain significance (1,0,-1) and p_value columns, although the
+p_values are currently not used by any of the tools within ChipPy.
 e.g.
 gene    probeset        exp     sig     rawp
 ENSMUSG00000025056      10600707        2.80699666666667        1       3.17095091658062e-09
@@ -75,7 +125,8 @@ ENSMUSG00000058773      10408081        2.40355333333333        1       7.643037
 ENSMUSG00000074403      10494402|10404065|10404049|10408239|10494405    2.02104666666667        1       1.90241125219974e-11
 ENSMUSG00000069265      10408083|10403941|10404065|10408246|10404049|10408239|10408202|10494405|10404028        2.00936296296297        1       1.9546587904603e-11
 
-Target gene files are simple a text file with the header "gene" and each gene represented by its ENSEMBL stable id on a separate line.
+Target gene files are simple a text file with the header "gene" and each
+gene represented by its ENSEMBL stable id on a separate line.
 e.g.
 gene
 ENSMUSG00000025968

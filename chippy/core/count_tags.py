@@ -132,16 +132,16 @@ def get_count_decorated_expressed_genes(genes, counts_dir, expr_area, chrom_name
 def _get_decorated_expressed(session, sample_name, expr_area, species, chrom,
         counts_dir, max_read_length, count_max_length, window_size,
         include_target=None, exclude_target=None, test_run=False):
-    species_chroms = get_chroms(session)
+    species_chroms = get_chroms(session, species)
 
-    msg = 'Getting ranked expression instances%s'
+    msg = 'Getting ranked expression instances'
     if chrom is None:
-        print msg % ''
+        print msg
         expressed = get_ranked_expression(session, sample_name,
                 include_target=include_target, exclude_target=exclude_target,
                 test_run=test_run)
     else:
-        print msg % (' for chrom ' + chrom)
+        print msg + ' for chrom ' + str(chrom)
         expressed = get_ranked_genes_per_chrom(session,
                 sample_name, chrom, include_target=include_target,
                 exclude_target=exclude_target, test_run=test_run)
@@ -158,16 +158,16 @@ def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
         multitest_signif_val, include_target=None, exclude_target=None,
         test_run=False):
     
-    species_chroms = get_chroms(session)
+    species_chroms = get_chroms(session, species)
 
-    msg = 'Getting ranked expression difference instances%s'
+    msg = 'Getting ranked expression difference instances'
     if chrom is None:
-        print msg % ''
+        print msg
         expressed_diff = get_ranked_expression_diff(session, sample_name,
                 multitest_signif_val, include_target=include_target,
                 exclude_target=exclude_target, test_run=test_run)
     else:
-        print msg % (' for chrom ' + chrom)
+        print msg + ' for chrom ' + str(chrom)
         expressed_diff = get_diff_ranked_genes_per_chrom(session, sample_name,
                 multitest_signif_val, chrom, include_target=include_target,
                 exclude_target=exclude_target, test_run=test_run)

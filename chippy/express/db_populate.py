@@ -54,6 +54,16 @@ def successful_commit(session, data, debug=False):
         return False
     return True
 
+def add_chroms(session, species, chromlist):
+    """ adds a species and its list of chroms to the DB.
+    This interface is for external use """
+    chromsList = [str(chrom) for chrom in chromlist]
+    chroms = Chroms(species, chromsList)
+    success = successful_commit(session, chroms)
+    if not success:
+        return False
+    return True
+
 def add_ensembl_gene_data(session, species, ensembl_release, account=None,
         rr=RunRecord(), debug=False):
     """add Ensembl genes and their transcripts to the db session"""

@@ -16,12 +16,14 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
 
-def get_chroms(session):
+def get_chroms(session, species):
     try:
-        chroms = session.query(Chroms.chroms())
+        chroms = session.query(Chroms).filter(Chroms.species==species).one()
+        chroms = chroms.chromStr.split(',')
     except NoResultFound:
-        chroms = []
-    return chroms
+        print 'No chroms found for species:', species
+        chroms = None
+    return tuple(chroms)
 
 def _get_sample(session, sample_name):
     try:
@@ -257,25 +259,20 @@ def get_ranked_expression_diff(session, sample_name, multitest_signif_val=None,
 
     return genes
 
-#def get_ranked_genes_per_chrom(session, sample_name, species, chrom,
-#        biotype='protein_coding', data_path=None, test_run=False):
-def get_ranked_genes_per_chrom(session, sample_name, chrom,
+def get_ranked_genes_per_chrom(session, sample_name, species, chrom,
         biotype='protein_coding', data_path=None, test_run=False):
     """returns genes from a chromosome"""
-    assert chrom in get_chroms(session)
+    assert chrom in get_chroms(session, species)
     genes = get_ranked_expression(session, sample_name,
             biotype=biotype, data_path=data_path, test_run=test_run)
     genes = (g for g in genes if g.coord_name==chrom)
     return tuple(genes)
 
-#def get_diff_ranked_genes_per_chrom(session, sample_name,
-#        multitest_signif_val, species, chrom, biotype='protein_coding',
-#        data_path=None, test_run=False):
 def get_diff_ranked_genes_per_chrom(session, sample_name,
-        multitest_signif_val, chrom, biotype='protein_coding',
+        multitest_signif_val, species, chrom, biotype='protein_coding',
         data_path=None, test_run=False):
     """returns difference experiment genes from a chromosome"""
-    assert chrom in get_chroms(session)
+    assert chrom in get_chroms(session, species)
     genes = get_ranked_expression_diff(session, sample_name,
             multitest_signif_val, biotype=biotype, data_path=data_path,
             test_run=test_run)
@@ -292,6 +289,7 @@ def get_target_genes(session, target_gene_sample_name, test_run=False):
             filter(TargetGene.sample_id==target_sample.sample_id)
     return query
 
+# Looks orphaned - where is get_expression_genes?
 def get_expression_diff_genes(session, sample_name, biotype='protein_coding',
         multitest_signif_val=None, test_run=False):
     """returns the expression diff instances"""

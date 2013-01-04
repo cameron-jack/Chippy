@@ -12,14 +12,16 @@ import datetime
 from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
-from chippy.express.db_schema import Gene, Exon, \
-            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample, \
-            make_session
+from chippy.express.db_schema import Gene, Exon, TargetGene, \
+        Expression, ExpressionDiff, ReferenceFile, Sample, \
+        make_session
 from chippy.express.db_query import get_total_gene_counts, \
         get_ranked_expression, get_ranked_genes_per_chrom, get_genes,\
-        get_expression_diff_genes, get_ranked_expression_diff
+        get_expression_diff_genes, get_ranked_expression_diff,\
+        get_diff_ranked_genes_per_chrom, get_chroms
 
-from chippy.express.db_populate import add_expression_diff_study, add_sample
+from chippy.express.db_populate import add_expression_diff_study, \
+        add_sample, add_chroms
 from chippy.parse.r_dump import SimpleRdumpToTable
 
 __author__ = "Gavin Huttley"
@@ -77,6 +79,16 @@ class TestRefFiles(TestDbBase):
         reffiles = self.session.query(ReferenceFile).all()
         self.assertEqual(reffiles[0].sample.name, 'A')
 
+class TestChrom(TestDbBase):
+    """ correctly set & get chromosomes for a species """
+    chromlist = ['1','2','3','4','X','Y']
+    species = 'Artificial'
+
+    def test_add_and_get_species_chroms(self):
+        self.assertTrue(add_chroms(self.session, self.species, self.chromlist))
+
+        chroms = get_chroms(self.session, self.species)
+        self.assertTrue(set(self.chromlist)==set(chroms))
 
 class TestGene(TestDbBase):
     """test gene properties"""
@@ -569,7 +581,6 @@ class TestQueryFunctions(TestDbBase):
 
         # Create 1 non-matching TargetGene for target 3
         t1 = self._build_target_gene('target3.txt', 'TARGET-1', 'target 3')
-
     
     def test_counting_genes(self):
         """correctly return number of genes for a sample"""
@@ -586,8 +597,11 @@ class TestQueryFunctions(TestDbBase):
     
     def test_get_expressed_genes_from_chrom(self):
         """should return the correct number of expressed genes from a chrom"""
+        # Add chroms to compare against
+        add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
+
         ranked = get_ranked_genes_per_chrom(self.session,
-            'sample 1', '2')
+            'sample 1', TestChrom.species,'2')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
         
@@ -811,6 +825,19 @@ class TestQueryFunctionsExpDiff(TestDbBase):
                 # gene names designed to match the test significance
                 self.assertTrue(record.gene.ensembl_id.startswith(
                     name_start[multitest_signif_val]))
+
+    def test_get_expressed_diff_genes_from_chrom(self):
+        """should return the correct number of expressed genes from a chrom"""
+        # Add chroms to compare against
+        add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
+
+        ranked = get_diff_ranked_genes_per_chrom(self.session,
+            'sample1', 1, TestChrom.species, '2')
+        for i in range(1, len(ranked)):
+            self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
+
+        for gene in ranked:
+            self.assertTrue(gene.coord_name == '2')
     
     def test_query_exp_diff_genes(self):
         """return genes ranked by foldchange"""

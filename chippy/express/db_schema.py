@@ -75,18 +75,14 @@ class ReferenceFile(Base):
 
 class Chroms(Base):
     __tablename__ = 'chroms'
-
-    species = Column(String, primary_key=True)
+    chroms_id = Column(Integer, primary_key=True)
+    species = Column(String, unique=True)
     chromStr = Column(String) # use ',' separated list of chroms
 
     def __init__(self, species, chromsList):
         self.species = species
         self.chromStr = ','.join(chromsList)
 
-    @property
-    def chroms(self):
-        # get chroms
-        return self.chromStr.split(',')
 
 class Gene(Base):
     __tablename__ = 'gene'

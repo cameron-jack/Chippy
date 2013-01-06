@@ -8,8 +8,8 @@ from cogent.util.progress_display import display_wrap
 
 from chippy.core.read_count import get_combined_counts, read_all_beds
 from chippy.core.collection import RegionCollection
-from chippy.express.db_query import get_ranked_expression, \
-        get_ranked_expression_diff, get_ranked_genes_per_chrom, \
+from chippy.express.db_query import get_ranked_abs_expr_genes, \
+        get_ranked_diff_expr_genes, get_ranked_genes_per_chrom, \
         get_diff_ranked_genes_per_chrom, get_chroms
 from chippy.util.util import grouped_by_chrom
 from chippy.util.run_record import RunRecord
@@ -137,7 +137,7 @@ def _get_decorated_expressed(session, sample_name, expr_area, species, chrom,
     msg = 'Getting ranked expression instances'
     if chrom is None:
         print msg
-        expressed = get_ranked_expression(session, sample_name,
+        expressed = get_ranked_abs_expr_genes(session, sample_name,
                 include_target=include_target, exclude_target=exclude_target,
                 test_run=test_run)
     else:
@@ -163,7 +163,7 @@ def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
     msg = 'Getting ranked expression difference instances'
     if chrom is None:
         print msg
-        expressed_diff = get_ranked_expression_diff(session, sample_name,
+        expressed_diff = get_ranked_diff_expr_genes(session, sample_name,
                 multitest_signif_val, include_target=include_target,
                 exclude_target=exclude_target, test_run=test_run)
     else:

@@ -1,6 +1,6 @@
 from sqlalchemy.orm.exc import NoResultFound
 
-__author__ = "Gavin Huttley"
+__author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
 __credits__ = ["Gavin Huttley"]
 __license__ = "GPL"
@@ -8,7 +8,6 @@ __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
-
 
 def single_gene(transcript_to_gene, transcript_ids):
     gene_ids = set()

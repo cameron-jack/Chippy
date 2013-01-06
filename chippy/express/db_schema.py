@@ -83,7 +83,6 @@ class Chroms(Base):
         self.species = species
         self.chromStr = ','.join(chromsList)
 
-
 class Gene(Base):
     __tablename__ = 'gene'
     
@@ -440,16 +439,17 @@ class TargetGene(Base):
     
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                     name='unique'), {})
-    
 
-def make_session(db_name, reset=False):
+
+
+def _make_session(db_name, reset=False):
     """returns a db session given the db_name"""
     engine = create_engine(db_name)
     metadata = Base.metadata
     if reset:
         metadata.drop_all(engine)
         pass
-    
+
     metadata.create_all(engine)
     Session.configure(bind=engine)
     session = Session()

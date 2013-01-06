@@ -13,24 +13,24 @@ from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from chippy.express.db_schema import Gene, Exon, TargetGene, \
-        Expression, ExpressionDiff, ReferenceFile, Sample, \
-        make_session
-from chippy.express.db_query import get_total_gene_counts, \
-        get_ranked_expression, get_ranked_genes_per_chrom, get_genes,\
-        get_expression_diff_genes, get_ranked_expression_diff,\
-        get_diff_ranked_genes_per_chrom, get_chroms
+        Expression, ExpressionDiff, ReferenceFile, Sample
+
+from chippy.express.db_query import get_total_gene_count, \
+        get_ranked_abs_expr_genes, get_ranked_genes_per_chrom, get_genes,\
+        get_diff_entries, get_ranked_diff_expr_genes,\
+        get_diff_ranked_genes_per_chrom, get_chroms, make_session
 
 from chippy.express.db_populate import add_expression_diff_study, \
         add_sample, add_chroms
 from chippy.parse.r_dump import SimpleRdumpToTable
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
+__author__ = "Gavin Huttley, Cameron Jack"
+__copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
+__credits__ = ["Gavin Huttley, Cameron Jack"]
 __license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__maintainer__ = "Cameron Jack"
+__email__ = "cameron.jack@anu.edu.au"
+__status__ = "Pre-release"
 __version__ = '0.1'
 
 now = datetime.datetime.now()
@@ -585,14 +585,14 @@ class TestQueryFunctions(TestDbBase):
     def test_counting_genes(self):
         """correctly return number of genes for a sample"""
         # return correct number with/without filename
-        self.assertEqual(get_total_gene_counts(self.session, 'sample 1'), 4)
-        self.assertEqual(get_total_gene_counts(self.session, 'sample 1', 
+        self.assertEqual(get_total_gene_count(self.session, 'sample 1'), 4)
+        self.assertEqual(get_total_gene_count(self.session, 'sample 1',
             data_path='file-1.txt'), 4)
         # return correct number if no records, no file
-        self.assertEqual(get_total_gene_counts(self.session,
+        self.assertEqual(get_total_gene_count(self.session,
             'sample 1', data_path='file-no-data.txt'), 0)
         # return correct number if no records, wrong biotype
-        self.assertEqual(get_total_gene_counts(self.session,
+        self.assertEqual(get_total_gene_count(self.session,
             'sample 1', biotype='miRNA'), 0)
     
     def test_get_expressed_genes_from_chrom(self):
@@ -611,7 +611,7 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranks_scores(self):
         """return correct gene mean ranks and mean scores"""
         self.setUp(force=True, singleton=True)
-        genes = get_ranked_expression(self.session,
+        genes = get_ranked_abs_expr_genes(self.session,
             'sample 1')
         expected_ranks = {'PLUS-1':4, 'PLUS-3':3, 'MINUS-1':2, 'MINUS-3':1}
         expected_scores = {'PLUS-1':21, 'PLUS-3':22, 'MINUS-1':23, 'MINUS-3':24}
@@ -624,8 +624,7 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranked_genes(self):
         """return correct gene order"""
         self.setUp(force=True, singleton=True)
-        ranked = get_ranked_expression(self.session,
-            'sample 1')
+        ranked = get_ranked_abs_expr_genes()
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
         
@@ -646,13 +645,13 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
                 include_target='target 1')
         self.assertTrue(len(remaining_genes) == 1)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
                 include_target='target 2')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
@@ -661,7 +660,7 @@ class TestQueryFunctions(TestDbBase):
         self.assertTrue(remaining_genes[3].ensembl_id == 'PLUS-1')
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
                 include_target='target 3')
         self.assertTrue(len(remaining_genes) == 0)
 
@@ -672,7 +671,7 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 1')
         self.assertTrue(len(remaining_genes) == 3)
         self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
@@ -680,12 +679,12 @@ class TestQueryFunctions(TestDbBase):
         self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 2')
         self.assertTrue(len(remaining_genes) == 0)
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_expression(self.session, 'sample 1',
+        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 3')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
@@ -796,15 +795,14 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         """correctly add expression difference data"""
         # add the expression diff data
         # do we get it back?
-        query = get_expression_diff_genes(self.session, self.sample[0])
+        expr_diffs = get_diff_entries(self.session, self.sample[0])
         expect = dict([('PLUS-1', [10600707]),
                   ('PLUS-3', [10408081]),
                   ('MINUS-1', [10494402]),
                   ('MINUS-3', [10408083])])
-        
-        express_diffs = query.all()
-        self.assertTrue(len(express_diffs) > 0)
-        for diff in express_diffs:
+
+        self.assertTrue(len(expr_diffs) > 0)
+        for diff in expr_diffs:
             expect_probeset = expect[diff.gene.ensembl_id]
             self.assertEqual(diff.probesets, expect_probeset)
     
@@ -812,14 +810,13 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         """return correct records from query when filtered"""
         name_start = {-1: 'MINUS', 1: 'PLUS'}
         for multitest_signif_val in [-1, 1]:
-            query = get_expression_diff_genes(self.session, self.sample[0],
+            expr_diffs = get_diff_entries(self.session, self.sample[0],
                 multitest_signif_val=multitest_signif_val)
             
-            records = query.all()
-            self.assertEqual(len(records), 2)
+            self.assertEqual(len(expr_diffs), 2)
             # should only get records with the correct test significance
             # direction
-            for record in records:
+            for record in expr_diffs:
                 self.assertEqual(record.multitest_signif,
                     multitest_signif_val)
                 # gene names designed to match the test significance
@@ -841,13 +838,13 @@ class TestQueryFunctionsExpDiff(TestDbBase):
     
     def test_query_exp_diff_genes(self):
         """return genes ranked by foldchange"""
-        genes = get_ranked_expression_diff(self.session, self.sample[0])
+        genes = get_ranked_diff_expr_genes(self.session, self.sample[0])
         self.assertTrue(len(genes) == 4)
         for i in range(3):
             self.assertTrue(genes[i].Rank < genes[i+1].Rank)
         
         # sample up genes
-        genes = get_ranked_expression_diff(self.session, self.sample[0],
+        genes = get_ranked_diff_expr_genes(self.session, self.sample[0],
             multitest_signif_val=1)
         self.assertTrue(len(genes) == 2)
         expect_order = ['PLUS-1', 'PLUS-3']
@@ -855,7 +852,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
             self.assertEqual(genes[i].ensembl_id, expect_order[i])
         
         # sample down genes
-        genes = get_ranked_expression_diff(self.session, self.sample[0],
+        genes = get_ranked_diff_expr_genes(self.session, self.sample[0],
             multitest_signif_val=-1)
         self.assertTrue(len(genes) == 2)
         expect_order = ['MINUS-1', 'MINUS-3']
@@ -869,13 +866,13 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             include_target='target 1')
         self.assertTrue(len(remaining_genes) == 1)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             include_target='target 2')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
@@ -884,7 +881,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(remaining_genes[3].ensembl_id == 'MINUS-3')
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             include_target='target 3')
         self.assertTrue(len(remaining_genes) == 0)
 
@@ -895,7 +892,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             exclude_target='target 1')
         self.assertTrue(len(remaining_genes) == 3)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-3')
@@ -903,12 +900,12 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-3')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             exclude_target='target 2')
         self.assertTrue(len(remaining_genes) == 0)
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_expression_diff(self.session, 'sample1',
+        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
             exclude_target='target 3')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')

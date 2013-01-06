@@ -4,7 +4,7 @@ from chippy.ref.util import chroms
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
-__author__ = 'Gavin Huttley, Cameron Jack'
+__author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
 __credits__ = ['Gavin Huttley, Cameron Jack']
 __license__ = 'GPL'

@@ -279,7 +279,7 @@ def get_diff_entries(session, sample_name, biotype='protein_coding',
 def get_samples_count(session):
     """ returns the integer count for total number of samples """
     try:
-        count = get_samples(session).all().count()
+        count = get_samples(session).distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -288,7 +288,7 @@ def get_total_expr_samples_count(session):
     """ returns the integer count for total number of absolute expression
     samples """
     try:
-        count = session.query(Expression.sample_id).all().count()
+        count = session.query(Expression.sample_id).distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -297,7 +297,7 @@ def get_total_diff_samples_count(session):
     """ returns the integer count for total number of differential
     expression samples """
     try:
-        count = session.query(ExpressionDiff.sample_id).all().count()
+        count = session.query(ExpressionDiff.sample_id).distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -305,7 +305,7 @@ def get_total_diff_samples_count(session):
 def get_total_target_sample_count(session):
     """ returns the integer count for total number of target samples """
     try:
-        count = session.query(TargetGene.sample_id).all().count()
+        count = session.query(TargetGene.sample_id).distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -320,7 +320,7 @@ def get_total_gene_count(session, sample_name,
                 data_path, test_run)
         if biotype:
             query = query.filter(Gene.biotype==biotype)
-        count = query.all().count()
+        count = query.distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -333,7 +333,7 @@ def get_total_diff_gene_count(session, sample_name,
                 data_path, test_run)
         if biotype:
             query = query.filter(Gene.biotype==biotype)
-        count = query.all().count()
+        count = query.distinct().count()
     except NoResultFound:
         count = 0
     return count
@@ -345,7 +345,7 @@ def get_total_target_gene_count(session, sample_name,
         query = session.query(TargetGene)
         if biotype:
             query = query.filter(Gene.biotype==biotype)
-        count = query.all().count()
+        count = query.distinct().count()
     except NoResultFound:
         count = 0
     return count

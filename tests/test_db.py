@@ -624,10 +624,9 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranked_genes(self):
         """return correct gene order"""
         self.setUp(force=True, singleton=True)
-        ranked = get_ranked_abs_expr_genes()
+        ranked = get_ranked_abs_expr_genes(self.session, 'sample 1')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
-        
     
     def test_query_genes_release(self):
         """return correct genes for a release"""

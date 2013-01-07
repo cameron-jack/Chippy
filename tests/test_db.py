@@ -595,7 +595,7 @@ class TestQueryFunctions(TestDbBase):
         self.assertEqual(get_total_gene_count(self.session,
             'sample 1', biotype='miRNA'), 0)
     
-    def test_get_expressed_genes_from_chrom(self):
+    def test_get_expressed_genes_from_chrom_order(self):
         """should return the correct number of expressed genes from a chrom"""
         # Add chroms to compare against
         add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
@@ -621,7 +621,7 @@ class TestQueryFunctions(TestDbBase):
             self.assertEqual(gene.MeanScore,
                         expected_scores[gene.ensembl_id])
     
-    def test_get_ranked_genes(self):
+    def test_get_ranked_genes_order(self):
         """return correct gene order"""
         self.setUp(force=True, singleton=True)
         ranked = get_ranked_abs_expr_genes(self.session, 'sample 1')
@@ -822,7 +822,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
                 self.assertTrue(record.gene.ensembl_id.startswith(
                     name_start[multitest_signif_val]))
 
-    def test_get_expressed_diff_genes_from_chrom(self):
+    def test_get_expressed_diff_genes_from_chrom_order(self):
         """should return the correct number of expressed genes from a chrom"""
         # Add chroms to compare against
         add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
@@ -835,7 +835,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         for gene in ranked:
             self.assertTrue(gene.coord_name == '2')
     
-    def test_query_exp_diff_genes(self):
+    def test_get_expressed_diff_genes(self):
         """return genes ranked by foldchange"""
         genes = get_ranked_diff_expr_genes(self.session, self.sample[0])
         self.assertTrue(len(genes) == 4)

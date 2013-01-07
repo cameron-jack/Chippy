@@ -242,9 +242,23 @@ def get_target_genes(session, target_gene_sample_name, test_run=False):
             filter(TargetGene.sample_id==target_sample.sample_id)
     return query
 
+def get_expr_entries(session, sample_name, biotype='protein_coding',
+        test_run=False):
+    """ Returns expression records for a given sample """
+    sample = _get_sample(session, sample_name)
+    if not sample:
+        raise RuntimeError('No sample with name ' + sample_name)
+
+    query = session.query(Expression).\
+            filter(Expression.sample_id==sample.sample_id)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+
+    return query.all()
+
 def get_diff_entries(session, sample_name, biotype='protein_coding',
         multitest_signif_val=None, test_run=False):
-    """ Returns expression_diff records. Used only for testing? """
+    """ Returns expression_diff records for a given sample """
 
     sample = _get_sample(session, sample_name)
     if not sample:
@@ -252,8 +266,8 @@ def get_diff_entries(session, sample_name, biotype='protein_coding',
 
     query = session.query(ExpressionDiff).\
             filter(ExpressionDiff.sample_id==sample.sample_id)
-
-    query.filter(Gene.biotype==biotype)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
     if multitest_signif_val is not None:
         query = query.filter(ExpressionDiff.multitest_signif==\
                 multitest_signif_val)

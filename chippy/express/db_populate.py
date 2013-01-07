@@ -12,7 +12,8 @@ from cogent.util.progress_display import display_wrap
 
 from chippy.express.db_schema import Chroms, Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
-from chippy.express.db_query import  get_stable_id_genes_mapping
+from chippy.express.db_query import  get_stable_id_genes_mapping, \
+        get_expr_entries, get_diff_entries, get_target_genes
 from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -398,6 +399,26 @@ def add_target_genes(session, sample_name, data_path, table,
     session.commit()
     return run_record
 
+def check_existing_data(session, sample_name):
+    """ Check if data is already loaded for a given sample name.
+    Return the existing sample type and data set size (or None/None) """
+    existing_data = get_expr_entries(session, sample_name)
+    if len(existing_data) > 0:
+        existing_type = sample_types['exp_absolute']
+        return existing_data, existing_type
+
+    existing_data = get_diff_entries(session, sample_name)
+    if len(existing_data) > 0:
+            existing_type = sample_types['exp_absolute']
+            return existing_data, existing_type
+
+    existing_data = get_target_genes(session, sample_name)
+    if len(existing_data) > 0:
+        existing_type = sample_types['target_genes']
+        return existing_data, existing_type
+
+    return None, None
+
 def add_data(session, name, description, path, expr_table,
         gene_id_heading='gene', probeset_heading='probeset',
         expr_heading='exp', sample_type=sample_types['exp_absolute'],
@@ -406,8 +427,18 @@ def add_data(session, name, description, path, expr_table,
 
     success, rr = add_sample(session, name, description, rr=rr)
     if not success:
-        return False, rr
+        # Check if any sample exists without data
+        existing_data, existing_type = check_existing_data(session, name)
+        if len(existing_data) > 0:
+            rr.addError('add_data', name + ' already has data loaded',
+                    len(existing_data))
+            rr.addError('add_data', 'data of type', existing_type)
+            return False, rr
+        else:
+            rr.addInfo('add_data', 'now loading data for existing '\
+                    'sample', name)
 
+    # either sample was created or existed with no data, so load data now
     if sample_type == sample_types['exp_absolute']:
         success, rr = add_expression_study(session, name, path, expr_table,
                 probeset_label=probeset_heading,

@@ -48,6 +48,14 @@ def get_samples(session):
         samples = []
     return samples
 
+def get_samples_count(session):
+    """ returns the integer count for total number of samples """
+    try:
+        count = get_samples(session).count()
+    except NoResultFound:
+        count = 0
+    return count
+
 def get_target_samples(session):
     """returns samples for target genes"""
     try:
@@ -113,27 +121,27 @@ def get_ranked_abs_expr_genes(session, sample_name,
 
     # keep only those genes in the include target gene set if provided
     if include_target is not None:
-        include_genes = get_target_genes(session, include_target,
-            test_run=test_run)
-        if include_genes:
-            include_id_set = set([gene.ensembl_id for gene in include_genes])
-            final_genes = []
-            for gene in genes:  # if it intersects then keep it
-                if len(include_id_set.intersection(set([gene.ensembl_id]))) > 0:
-                    final_genes.append(gene)
-            genes = final_genes
+        try:
+            include_gene_ids = set([gene.ensembl_id for gene in \
+                    get_target_genes(session, include_target, \
+                    test_run=test_run)])
+        except NoResultFound:
+            include_gene_ids = None
+        if include_gene_ids:
+            genes = [gene for gene in genes if gene.ensembl_id in \
+                    include_gene_ids]
 
     # keep only those genes not in the exclude target gene set if provided
     if exclude_target is not None:
-        exclude_genes = get_target_genes(session, exclude_target,
-            test_run=test_run)
-        if exclude_genes:
-            exclude_id_set = set([gene.ensembl_id for gene in exclude_genes])
-            final_genes = []
-            for gene in genes: # if it doesn't intersect then keep it
-                if len(exclude_id_set.intersection(set([gene.ensembl_id]))) == 0:
-                    final_genes.append(gene)
-            genes = final_genes
+        try:
+            exclude_gene_ids = set([gene.ensembl_id for gene in \
+                    get_target_genes(session, exclude_target,
+                    test_run=test_run)])
+        except NoResultFound:
+            exclude_gene_ids = None
+        if exclude_gene_ids:
+            genes = [gene for gene in genes if gene.ensembl_id in \
+                    exclude_gene_ids]
 
     # set rank
     if rank_by.lower() == 'mean':
@@ -344,42 +352,6 @@ def get_target_entries(session, sample_name=None, count_only=False, test_run=Fal
         return count
     else:
         return query.all()
-
-### Public sample count DB functions ###
-
-def get_samples_count(session):
-    """ returns the integer count for total number of samples """
-    try:
-        count = get_samples(session).distinct().count()
-    except NoResultFound:
-        count = 0
-    return count
-
-def get_total_expr_samples_count(session):
-    """ returns the integer count for total number of absolute expression
-    samples """
-    try:
-        count = session.query(Expression.sample_id).distinct().count()
-    except NoResultFound:
-        count = 0
-    return count
-
-def get_total_diff_samples_count(session):
-    """ returns the integer count for total number of differential
-    expression samples """
-    try:
-        count = session.query(ExpressionDiff.sample_id).distinct().count()
-    except NoResultFound:
-        count = 0
-    return count
-
-def get_total_target_sample_count(session):
-    """ returns the integer count for total number of target samples """
-    try:
-        count = session.query(TargetGene.sample_id).distinct().count()
-    except NoResultFound:
-        count = 0
-    return count
 
 ### Public total gene number count DB functions ###
 

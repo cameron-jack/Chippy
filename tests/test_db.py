@@ -17,7 +17,7 @@ from chippy.express.db_schema import Gene, Exon, TargetGene, \
 
 from chippy.express.db_query import get_total_gene_count, \
         get_ranked_abs_expr_genes, get_ranked_genes_per_chrom, get_genes,\
-        get_diff_entries, get_ranked_diff_expr_genes,\
+        get_expr_entries, get_diff_entries, get_target_entries,get_ranked_diff_expr_genes,\
         get_diff_ranked_genes_per_chrom, get_chroms, make_session
 
 from chippy.express.db_populate import add_expression_diff_study, \

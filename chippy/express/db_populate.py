@@ -13,7 +13,7 @@ from cogent.util.progress_display import display_wrap
 from chippy.express.db_schema import Chroms, Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.express.db_query import  get_stable_id_genes_mapping, \
-        get_expr_entries, get_diff_entries, get_target_genes
+        get_expr_entries, get_diff_entries, get_target_entries
 from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
@@ -402,22 +402,22 @@ def add_target_genes(session, sample_name, data_path, table,
 def check_existing_data(session, sample_name):
     """ Check if data is already loaded for a given sample name.
     Return the existing sample type and data set size (or None/None) """
-    existing_data = get_expr_entries(session, sample_name)
-    if len(existing_data) > 0:
+    existing_data = get_expr_entries(session, sample_name, count_only=True)
+    if existing_data > 0:
         existing_type = sample_types['exp_absolute']
         return existing_data, existing_type
 
-    existing_data = get_diff_entries(session, sample_name)
-    if len(existing_data) > 0:
+    existing_data = get_diff_entries(session, sample_name, count_only=True)
+    if existing_data > 0:
             existing_type = sample_types['exp_absolute']
             return existing_data, existing_type
 
-    existing_data = get_target_genes(session, sample_name)
-    if len(existing_data) > 0:
+    existing_data = get_target_entries(session, sample_name, count_only=True)
+    if existing_data > 0:
         existing_type = sample_types['target_genes']
         return existing_data, existing_type
 
-    return None, None
+    return 0, None
 
 def add_data(session, name, description, path, expr_table,
         gene_id_heading='gene', probeset_heading='probeset',
@@ -429,9 +429,9 @@ def add_data(session, name, description, path, expr_table,
     if not success:
         # Check if any sample exists without data
         existing_data, existing_type = check_existing_data(session, name)
-        if len(existing_data) > 0:
+        if existing_data > 0:
             rr.addError('add_data', name + ' already has data loaded',
-                    len(existing_data))
+                    existing_data)
             rr.addError('add_data', 'data of type', existing_type)
             return False, rr
         else:
@@ -439,13 +439,13 @@ def add_data(session, name, description, path, expr_table,
                     'sample', name)
 
     # either sample was created or existed with no data, so load data now
-    if sample_type == sample_types['exp_absolute']:
+    if sample_types[sample_type] == sample_types['exp_absolute']:
         success, rr = add_expression_study(session, name, path, expr_table,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
                 run_record=rr)
-    elif sample_type == sample_types['exp_diff']:
+    elif sample_types[sample_type] == sample_types['exp_diff']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\
@@ -456,7 +456,7 @@ def add_data(session, name, description, path, expr_table,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
                 prob_label='rawp', sig_label='sig', rr=rr)
-    elif sample_type == sample_types['target_genes']:
+    elif sample_types[sample_type] == sample_types['target_genes']:
         rr = add_target_genes(session, name, path, expr_table,
                 ensembl_id_label=gene_id_heading, rr=rr)
     else:
@@ -483,7 +483,7 @@ def create_dummy_flat_expr(session, rr=RunRecord()):
             'each gene has expression score of 1',
             'dummy_flat_expr.fake', expr_table_rows, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
-            sample_type=sample_types['exp_absolute'],
+            sample_type='exp_absolute',
             reffile1=None, reffile2=None, rr=rr)
 
     return success, rr
@@ -506,7 +506,7 @@ def create_dummy_spread_expr(session, rr=RunRecord()):
             'dummy_spread_expr.fake', expr_table_rows,
             gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
-            sample_type=sample_types['exp_absolute'],
+            sample_type='exp_absolute',
             reffile1=None, reffile2=None, rr=rr)
 
     return success, rr

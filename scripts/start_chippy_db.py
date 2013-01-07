@@ -7,7 +7,7 @@ import os
 from cogent.db.ensembl import HostAccount
 from chippy.util.util import create_path
 
-from chippy.express.db_schema import make_session
+from chippy.express.db_query import make_session
 from chippy.express.db_populate import add_ensembl_gene_data, \
         create_dummy_flat_expr, create_dummy_spread_expr
 from chippy.util.run_record import RunRecord

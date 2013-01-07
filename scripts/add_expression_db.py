@@ -50,7 +50,7 @@ def main():
     session = db_query.make_session('sqlite:///' + args.db_path)
     rr = RunRecord()
 
-    if args.sample is None:
+    if args.new_sample is None:
         raise RuntimeError('No sample specified')
     elif args.new_sample.count(':') == 1:
         name, description = args.new_sample.split(':')

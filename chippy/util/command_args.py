@@ -239,12 +239,8 @@ class Args(object):
                 help='path to directory where chippy.db will be saved')
         self._inc_arg('--ensembl_release', type=int,
                 help='Ensembl release to use.')
-        self._inc_arg('--species', type='choice', default='mouse',
-                choices=['mouse', 'human', 'cerevisiae'],
-                help='Create DB for given species')
         self._inc_arg('--species', default='mouse',
-                choices=['mouse', 'human', 'yeast'],
-                help='Create for species')
+                help="Create for species e.g. 'mouse','human'")
         self._inc_arg('--hostname', default=None,
                 help='hostname for SQL Ensembl server')
         self._inc_arg('--username', default=None,

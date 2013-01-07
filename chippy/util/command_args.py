@@ -67,10 +67,12 @@ class Args(object):
         if self.db_path:
             self._inc_arg('-s','--sample', default=None,
                     choices=self._make_sample_choices(),
-                    help='Select an existing sample to use')
+                    help="Select an existing sample to use, form is '\
+                    'S : S phase'")
+            samplesStr = ', '.join(self._make_sample_choices())
             self._inc_arg('-S','--new_sample', default=None,
-                    help="Replace the text on the left and right of the ', "\
-                     "e.g. `S : S phase'")
+                    help="Select an existing sample to use, form is '\
+                    'S : S phase'. Existing choices: "+samplesStr)
 
         self._inc_arg('--sample_type',
             choices=[k for k in sample_types.keys()],

@@ -27,14 +27,14 @@ def set_environment():
     script_info['title'] = 'Add expression study'
     script_info['script_description'] = 'Add an expression study or a '\
             'differential expression study from a tab delimited file, or '\
-            'load an ENSEMBL gene list.'
+            'load an ENSEMBL gene list as target genes.'
 
     script_info['version'] = __version__
     script_info['authors'] = __author__
     script_info['output_description']= 'None.'
 
     # Process command-line arguments
-    req_args = ['expression_data', 'sample', 'new_sample',
+    req_args = ['expression_data', 'new_sample',
             'sample_type']
     opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
             'gene_id_heading', 'probeset_heading', 'expression_heading',
@@ -45,27 +45,17 @@ def set_environment():
 
     return inputs.parsed_args, script_info
 
-def _get_name_description(value):
-    """returns the name and description of a : separated sample"""
-    new_sample = value.split(':')
-    if new_sample[0].lower() == 'none':
-        print 'No existing sample given'
-        return 'None', 'None'
-    assert len(new_sample) != 1, "Only one ':' allowed!"
-    name, description = new_sample
-    name = name.strip()
-    description = description.strip()
-    return name, description
-
 def main():
     args, script_info = set_environment()
     session = db_query.make_session('sqlite:///' + args.db_path)
     rr = RunRecord()
 
-    if args.new_sample.count(':') == 1:
-        name, description = _get_name_description(args.new_sample)
-    elif args.sample is None:
+    if args.sample is None:
         raise RuntimeError('No sample specified')
+    elif args.new_sample.count(':') == 1:
+        name, description = args.new_sample.split(':')
+        name = name.strip()
+        description = description.strip()
     else:
         raise RuntimeError("Please provide 'Name : Description'")
 

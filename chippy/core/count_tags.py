@@ -58,8 +58,8 @@ def get_count_decorated_expressed_genes(genes, counts_dir, expr_area, chrom_name
 
     for chrom_name in chrom_names:
         print 'Making full counts array for chromosome %s' % chrom_name
-        counts = get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length,
-                                    count_max_length)
+        counts = get_combined_counts(counts_dir, bed_reps, chrom_name,
+                max_read_length, count_max_length)
         if counts == None:
             continue
         summed_counts[chrom_name] = counts.counts.sum()

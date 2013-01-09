@@ -140,7 +140,7 @@ def get_ranked_abs_expr_genes(session, sample_name,
         except NoResultFound:
             exclude_gene_ids = None
         if exclude_gene_ids:
-            genes = [gene for gene in genes if gene.ensembl_id in \
+            genes = [gene for gene in genes if not gene.ensembl_id in \
                     exclude_gene_ids]
 
     # set rank
@@ -258,7 +258,7 @@ def get_expr_entries(session, sample_name=None, biotype='protein_coding',
         if not sample:
             raise RuntimeError('No sample with name ' + sample_name)
 
-        query = session.query(Expression.expression_id).\
+        query = session.query(Expression).\
                 filter(Expression.sample_id==sample.sample_id)
         #if biotype:
         #    query = query.filter(Gene.biotype==biotype)
@@ -272,7 +272,7 @@ def get_expr_entries(session, sample_name=None, biotype='protein_coding',
         else:
             return query.all()
     else:
-        query = session.query(Expression.expression_id)
+        query = session.query(Expression)
         #if biotype:
         #    query = query.filter(Gene.biotype==biotype)
 
@@ -294,7 +294,7 @@ def get_diff_entries(session, sample_name=None, biotype='protein_coding',
         if not sample:
             raise RuntimeError('No sample with name ' + sample_name)
 
-        query = session.query(ExpressionDiff.expression_diff_id).\
+        query = session.query(ExpressionDiff).\
                 filter(ExpressionDiff.sample_id==sample.sample_id)
         #if biotype:
         #    query = query.filter(Gene.biotype==biotype)
@@ -310,7 +310,7 @@ def get_diff_entries(session, sample_name=None, biotype='protein_coding',
         else:
             return query.all()
     else:
-        query = session.query(ExpressionDiff.expression_diff_id)
+        query = session.query(ExpressionDiff)
         #if biotype:
         #    query = query.filter(Gene.biotype==biotype)
         if multitest_signif_val is not None:
@@ -331,7 +331,7 @@ def get_target_entries(session, sample_name=None, count_only=False, test_run=Fal
         sample = _get_sample(session, sample_name)
         if not sample:
             raise RuntimeError('No sample with name ' + sample_name)
-        query = session.query(TargetGene.target_gene_id).\
+        query = session.query(TargetGene).\
                 filter(TargetGene.sample_id==sample.sample_id)
         if count_only:
             try:
@@ -343,7 +343,7 @@ def get_target_entries(session, sample_name=None, count_only=False, test_run=Fal
             return query.all()
 
     else: # get them all
-        query = session.query(TargetGene.target_gene_id)
+        query = session.query(TargetGene)
     if count_only:
         try:
             count = query.count()

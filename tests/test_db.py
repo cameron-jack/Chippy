@@ -644,19 +644,19 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        included_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
                 include_target='target 1')
-        self.assertTrue(len(remaining_genes) == 1)
-        self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
+        self.assertTrue(len(included_genes) == 1)
+        self.assertTrue(included_genes[0].ensembl_id == 'PLUS-1')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        included_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
                 include_target='target 2')
-        self.assertTrue(len(remaining_genes) == 4)
-        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
-        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
-        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
-        self.assertTrue(remaining_genes[3].ensembl_id == 'PLUS-1')
+        self.assertTrue(len(included_genes) == 4)
+        self.assertTrue(included_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(included_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(included_genes[2].ensembl_id == 'PLUS-3')
+        self.assertTrue(included_genes[3].ensembl_id == 'PLUS-1')
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
         remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
@@ -670,26 +670,26 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 1')
-        self.assertTrue(len(remaining_genes) == 3)
-        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
-        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
-        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
+        self.assertTrue(len(non_overlapping_genes) == 3)
+        self.assertTrue(non_overlapping_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(non_overlapping_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(non_overlapping_genes[2].ensembl_id == 'PLUS-3')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 2')
-        self.assertTrue(len(remaining_genes) == 0)
+        self.assertTrue(len(non_overlapping_genes) == 0)
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
             exclude_target='target 3')
-        self.assertTrue(len(remaining_genes) == 4)
-        self.assertTrue(remaining_genes[0].ensembl_id == 'MINUS-3')
-        self.assertTrue(remaining_genes[1].ensembl_id == 'MINUS-1')
-        self.assertTrue(remaining_genes[2].ensembl_id == 'PLUS-3')
-        self.assertTrue(remaining_genes[3].ensembl_id == 'PLUS-1')
+        self.assertTrue(len(non_overlapping_genes) == 4)
+        self.assertTrue(non_overlapping_genes[0].ensembl_id == 'MINUS-3')
+        self.assertTrue(non_overlapping_genes[1].ensembl_id == 'MINUS-1')
+        self.assertTrue(non_overlapping_genes[2].ensembl_id == 'PLUS-3')
+        self.assertTrue(non_overlapping_genes[3].ensembl_id == 'PLUS-1')
 
 
 class TestQueryFunctionsExpDiff(TestDbBase):

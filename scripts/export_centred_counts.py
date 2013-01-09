@@ -5,6 +5,8 @@ import os, sys, glob, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
+from cogent.format.bedgraph import bedgraph
+
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_diff_counts_for_genes
 from chippy.core.collection import RegionCollection
@@ -12,6 +14,7 @@ from chippy.express import db_query
 from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util import command_args
+import gzip
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
@@ -118,6 +121,7 @@ def main():
          ' or None. Halting execution.')
 
     session = db_query.make_session('sqlite:///' + str(args.db_path))
+    data_collection = None
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
         data_collection, rr = get_collection(session, sample_name,
@@ -126,12 +130,19 @@ def main():
                 args.multitest_signif_val, args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
                 exclude_name, rr=rr, test_run=args.test_run)
-
     else:
         print 'Other options not defined yet, choose from', \
                 sample_types['exp_absolute'], 'or', sample_types['exp_diff']
 
     session.close()
+    if data_collection:
+        bed_data = bedgraph(data_collection.asBEDgraph, name=args.collection,
+                description=args.expression_area +' Centred counts', digits=0)
+        bedgraph_file = gzip.open('output_path', 'wb')
+        bedgraph_file.write(bed_data)
+        bedgraph_file.close()
+        rr.addInfo('export_centred_counts', 'centred counts written to ' \
+                + 'gzipped BEDgraph' 'output_path')
     rr.display()
 
 if __name__ == '__main__':

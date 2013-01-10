@@ -83,10 +83,8 @@ class Args(object):
         self._inc_arg('--reffile2', default=None, help='Related file 2')
 
         # Export Centred Counts args
-        self._inc_arg('-r', '--counts_dir',
-                help='directory containing read counts. Can be a glob '\
-                'pattern for multiple directories '\
-                '(e.g. for Lap1, Lap2 use Lap*)')
+        self._inc_arg('-B', '--BAMorBED',
+                help='Read counts. Either an indexed BAM or a BED file')
 
         self._inc_arg('-f', '--overwrite', action='store_true',
                 help='Ignore any saved files', default=False)

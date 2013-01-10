@@ -5,7 +5,7 @@ from os import path, listdir
 
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
-import numpy
+import numpy, subprocess
 
 from cogent import LoadTable
 from cogent.util.progress_display import display_wrap
@@ -226,3 +226,52 @@ def get_combined_counts(counts_dir, bed_reps, chrom_name, max_read_length, count
 
     # Now combine counts from all BEDs
     return chrom
+
+def run_command(command):
+    """executes a command"""
+    PIPE = subprocess.PIPE
+    r = subprocess.Popen(command, shell=True, universal_newlines=True,
+        stdout=PIPE, stderr=PIPE, bufsize=-1)
+
+    stdout, stderr = r.communicate()
+    returncode = r.returncode
+    return returncode, stdout, stderr
+
+def readBAM(bamfile_path, ROIs):
+    """ get sequence reads for each ROI and add the counts in.
+    Relies on Samtools view """
+    valid_flags = set([0, 16, 83, 99, 147, 163])
+    second_read_flags = set([83,147])
+    for roi in ROIs:
+        chrom = roi.chrom
+        start = roi.start
+        end = roi.end
+        command = 'samtools view ' + bamfile_path + ' ' + chrom +\
+                ':' + start + '-' + end
+        returncode, stdout, stderr = run_command(command)
+        if returncode == 0:
+            bam_lines = stdout.split('\n')
+            for record in bam_lines:
+                record_parts = record.split('\t')
+                record_flags = int(record_parts[1])
+                if record_flags in valid_flags:
+                    record_start = int(record_parts[3])
+                    record_length = len(record_parts[7])
+                    if record_flags in second_read_flags:
+                        record_strand = MINUS_STRAND
+                        record_first = record_start - record_length
+                        record_last = record_start
+                    else:
+                        record_strand = PLUS_STRAND
+                        record_first = record_start
+                        record_last = record_start + record_length
+                    offset_left = record_first - roi.start
+                    if offset_left < 0:
+                        offset_left = 0
+                    offset_right = roi.end - record_last
+                    if offset_right > len(roi.count_array):
+                        offset_right = len(roi.count_array) - 1
+                    roi.count_array[offset_left:offset_right] += 1
+    return ROIs
+
+

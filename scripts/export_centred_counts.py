@@ -5,8 +5,6 @@ import os, sys, glob, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
-from cogent.format.bedgraph import bedgraph
-
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_diff_counts_for_genes
 from chippy.core.collection import RegionCollection
@@ -29,17 +27,19 @@ def set_environment():
     """ create all command-line option groups and set script_info """
     script_info = {}
     script_info['title'] = 'Saves feature centred counts'
-    script_info['script_description'] = 'Saves centred counts for TSS and '\
-                                        'Exon-3prime, Intron-3prime or Exon 3&5-prime boundaries for a '\
-                                        'given window size'
+    script_info['script_description'] = 'Saves centred counts for TSS ' +\
+            'and Exon-3prime, Intron-3prime or Exon 3&5-prime boundaries ' +\
+            'for a given window size. Reads count info from an indexed BAM ' +\
+            'or a BED file'
     script_info['version'] = __version__
     script_info['authors'] = __author__
-    script_info['output_description']= 'Generates a Pickle file or a gzipped '\
-                                       'tab-delimited file that can be used for plotting of subsets of genes'
+    script_info['output_description']= 'Generates a Pickle file or a ' +\
+            'gzipped tab-delimited file that can be used for plotting ' +\
+            'of subsets of genes.'
 
     pos_args = ['db_path']
     req_args = ['sample', 'sample_type', 'expression_area',
-            'counts_dir',  'collection']
+            'BAMorBED',  'collection']
     opt_args = ['overwrite', 'tab_delimited', 'max_read_length',
                 'count_max_length', 'window_size', 'multitest_signif_val',
                 'include_target', 'exclude_target', 'test_run']
@@ -51,24 +51,25 @@ def set_environment():
 
     return inputs.parsed_args, script_info, rr
 
-def get_collection(session, sample_name, expr_area, species, counts_dir, max_read_length,
-        count_max_length, window_size, multitest_signif_val, filename, overwrite,
-        sample_type, tab_delimited, include_target=None, exclude_target=None,
+def get_collection(session, sample_name, expr_area, species, BAMorBED,
+        max_read_length, count_max_length, window_size,
+        multitest_signif_val, filename, overwrite, sample_type,
+        tab_delimited, include_target=None, exclude_target=None,
         rr=RunRecord(), test_run=False):
 
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute']:
             print "Collecting data for absolute expression experiment"
             data_collection, rr = centred_counts_for_genes(session,
-                    sample_name, expr_area, species, None, counts_dir,
+                    sample_name, expr_area, species, BAMorBED,
                     max_read_length, count_max_length, window_size,
                     include_target, exclude_target, rr, test_run)
         
         elif sample_type == sample_types['exp_diff']:
             print "Collecting data for difference expression experiment"
             data_collection, rr = centred_diff_counts_for_genes(
-                    session, sample_name, expr_area, species, None,
-                    counts_dir, max_read_length, count_max_length,
+                    session, sample_name, expr_area, species,
+                    BAMorBED, max_read_length, count_max_length,
                     window_size, multitest_signif_val, include_target,
                     exclude_target, rr, test_run)
             
@@ -100,11 +101,6 @@ def main():
     
     sample_name = args.sample.split(' : ')[0]
     print "Loading counts data for '%s'" % sample_name
-    counts_dirs = args.counts_dir
-    dirname = os.path.dirname(counts_dirs)
-    basename = os.path.basename(counts_dirs)
-    counts_dirs = [os.path.join(dirname, p) for p in \
-            glob.glob1(dirname, basename)]
     sample_type = sample_types[args.sample_type]
 
     include_name = None
@@ -117,16 +113,17 @@ def main():
 
     if (args.multitest_signif_val is not None) and not \
             (-1 <= args.multitest_signif_val <= 1):
-        raise RuntimeError('multitest_signif_val is not -1, 0, 1'\
-         ' or None. Halting execution.')
+        raise RuntimeError('multitest_signif_val is not -1, 0, 1' +\
+                ' or None. Halting execution.')
 
     session = db_query.make_session('sqlite:///' + str(args.db_path))
     data_collection = None
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
         data_collection, rr = get_collection(session, sample_name,
-                args.expression_area, species, counts_dirs,
-                args.max_read_length, args.count_max_length, args.window_size,
+                args.expression_area, species, args.BAMorBED,
+                args.max_read_length, args.count_max_length,
+                args.window_size,
                 args.multitest_signif_val, args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
                 exclude_name, rr=rr, test_run=args.test_run)
@@ -135,14 +132,15 @@ def main():
                 sample_types['exp_absolute'], 'or', sample_types['exp_diff']
 
     session.close()
-    if data_collection:
-        bed_data = bedgraph(data_collection.asBEDgraph, name=args.collection,
-                description=args.expression_area +' Centred counts', digits=0)
-        bedgraph_file = gzip.open('output_path', 'wb')
-        bedgraph_file.write(bed_data)
-        bedgraph_file.close()
-        rr.addInfo('export_centred_counts', 'centred counts written to ' \
-                + 'gzipped BEDgraph' 'output_path')
+    # Finish by writing windows to BEDgraph
+    #if data_collection:
+    #    bed_data = bedgraph(data_collection, name=args.collection,
+    #            description=args.expression_area +' Centred counts', digits=0)
+    #    bedgraph_file = gzip.open('output_path', 'wb')
+    #    bedgraph_file.write(bed_data)
+    #    bedgraph_file.close()
+    #    rr.addInfo('export_centred_counts', 'centred counts written to ' \
+    #            + 'gzipped BEDgraph' 'output_path')
     rr.display()
 
 if __name__ == '__main__':

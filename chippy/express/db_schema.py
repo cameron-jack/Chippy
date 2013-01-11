@@ -93,21 +93,21 @@ class Gene(Base):
     biotype = Column(String)
     status = Column(String)
     description = Column(String, nullable=True)
-    coord_name = Column(String)
+    chrom = Column(String)
     start = Column(Integer)
     end = Column(Integer)
     strand = Column(Integer)
     
     __table_args__ = (UniqueConstraint('ensembl_id', name='unique'), {})
     
-    def __init__(self, ensembl_id, symbol, biotype, description, status, coord_name, start, end, strand):
+    def __init__(self, ensembl_id, symbol, biotype, description, status, chrom, start, end, strand):
         self.ensembl_id = ensembl_id
         
         self.symbol = symbol
         self.biotype = biotype
         self.description = description
         self.status = status
-        self.coord_name = coord_name
+        self.chrom = chrom
         self.start = start
         self.end = end
         self.strand = strand
@@ -118,9 +118,9 @@ class Gene(Base):
         self._rank_stats = None
     
     def __repr__(self):
-        #return "Gene(ensembl_id='%s', coord_name='%s', start=%s, strand=%s)" \
-        #        % (self.ensembl_id, self.coord_name, self.start, self.strand)
-        return ((self.ensembl_id, self.coord_name, self.start, self.strand, self.Rank))
+        #return "Gene(ensembl_id='%s', chrom='%s', start=%s, strand=%s)" \
+        #        % (self.ensembl_id, self.chrom, self.start, self.strand)
+        return ((self.ensembl_id, self.chrom, self.start, self.strand, self.Rank))
     
     @property
     def Rank(self):
@@ -253,7 +253,10 @@ class Gene(Base):
         else:
             start, end = tss, tss+size
         return start, end
-    
+
+    def getAllExonIntronWindows(self, size):
+
+
     def getAllExon3primeWindows(self, size):
         """returns all exon coords centred on 3' boundary"""
         if len(self.ExonCoordsByRank) == 1:

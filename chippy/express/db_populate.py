@@ -89,7 +89,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                 db_gene = Gene(ensembl_id=gene.StableId,
                         symbol=gene.Symbol, biotype=gene.BioType,
                         description=gene.Description, status=gene.Status,
-                        coord_name=gene.Location.CoordName,
+                        chrom=gene.Location.CoordName,
                         start=gene.Location.Start, end=gene.Location.End,
                         strand=gene.Location.Strand)
                 total_objects += 1

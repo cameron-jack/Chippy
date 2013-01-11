@@ -77,10 +77,10 @@ def get_genes(session, chrom=None, biotype='protein_coding',
     if stable_ids:
         condition = Gene.ensembl_id.in_(stable_ids)
     elif chrom and biotype:
-        condition = and_(Gene.coord_name==str(chrom),
+        condition = and_(Gene.chrom==str(chrom),
                 Gene.biotype==biotype)
     elif chrom:
-        condition = Gene.coord_name==str(chrom)
+        condition = Gene.chrom==str(chrom)
     elif biotype:
         condition = Gene.biotype==biotype
     else:
@@ -226,7 +226,7 @@ def get_ranked_genes_per_chrom(session, sample_name, species, chrom,
     assert chrom in get_chroms(session, species)
     genes = get_ranked_abs_expr_genes(session, sample_name,
             biotype=biotype, data_path=data_path, test_run=test_run)
-    genes = (g for g in genes if g.coord_name==chrom)
+    genes = (g for g in genes if g.chrom==chrom)
     return tuple(genes)
 
 def get_diff_ranked_genes_per_chrom(session, sample_name,
@@ -237,7 +237,7 @@ def get_diff_ranked_genes_per_chrom(session, sample_name,
     genes = get_ranked_diff_expr_genes(session, sample_name,
             multitest_signif_val, biotype=biotype, data_path=data_path,
             test_run=test_run)
-    genes = (g for g in genes if g.coord_name==chrom)
+    genes = (g for g in genes if g.chrom==chrom)
     return tuple(genes)
 
 def get_target_genes(session, target_gene_sample_name, test_run=False):

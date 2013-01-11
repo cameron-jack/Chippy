@@ -26,27 +26,6 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
 
-class ROI(object):
-    def __init__(self, species, chrom, name, location, window_size=1000):
-        super(ROI, self).__init__()
-        self.species = species
-        self.chrom = chrom
-        self.name = name
-        self.location = location
-        self.start = self.location - window_size
-        self.end = self.location + window_size
-        self.count_array = numpy.zeros(self.end-self.start+1)
-
-def make_plot_regions(genes, counts_dir, expr_area, chrom_names,
-                      max_read_length, count_max_length, window_size=1000, ui=None):
-    """
-    for selected chroms
-    get genes
-    get locations
-    get windows
-    call read_counts(filename, regions)
-    """
-
 class Feature:
     """ Abstraction for gene, exon, intron and any other genomic feature """
     def __init__(self, counts=None, ranks=None, ids=None):
@@ -58,12 +37,56 @@ class Feature:
     def __repr__(self):
         return repr((self.counts, self.Rank, self.ensembl_id))
 
+class ROI(object):
+    def __init__(self, chrom, name, window_start, window_end, strand):
+        super(ROI, self).__init__()
+        #self.species = species
+        self.chrom = chrom
+        self.name = name
+        self.window_start = window_start
+        self.window_end = window_end
+        self.strand = strand
+        self.count_array = numpy.zeros(window_end - window_start)
+
 @display_wrap
 def get_count_decorated_expressed_genes(genes, BAMorBED, expr_area,
             max_read_length, count_max_length, window_size=1000,
             rr=RunRecord(), ui=None):
     """ decorates the Expression instances with a counts attribute,
-        length=2*window_size + 1 (Boundary is at position 0) """
+        length=2*window_size (Start of feature is at position 1)
+
+    Get genes -> get locations, get windows, for whichever location type
+    call read_counts(BAMorBED, RegionsOfInterest)
+
+    """
+    regionsOfInterest = []
+
+    if expr_area.lower() == 'tss':
+        for gene in genes:
+            start, end, strand = gene.getTssCentredCoords(window_size)
+            roi = ROI(gene.chrom, gene.ensembl_id, start, end, strand)
+            regionsOfInterest.append(ROI)
+    elif expr_area.lower() == 'intron-exon':
+        for gene in genes:
+            intron_window_list = gene.getAllIntron3primeWindows(window_size)
+            strand = gene.strand
+
+
+
+            # strand is being used here as a stride so if minus strand
+            # then start > end and with stride==-1 we reverse the counts so
+            # they are all 5' to 3'
+            feature_counts = counts[start:end:strand].copy()
+            feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+            features.append(feature)
+
+            if intron_window_list is not None:
+                for intron_window in intron_window_list:
+                    start = intron_window[0]
+                    end = intron_window[1]
+                    feature_counts = counts[start:end:strand].copy()
+                    feature = Feature(feature_counts, gene.Rank, gene.ensembl_id)
+                    features.append(feature)
 
     n = 0
     total = len(genes)
@@ -146,17 +169,23 @@ def get_count_decorated_expressed_genes(genes, BAMorBED, expr_area,
 
 def _get_decorated_expressed(session, sample_name, expr_area, species,
         BAMorBED, max_read_length, count_max_length, window_size,
-        include_target=None, exclude_target=None, test_run=False):
+        include_target=None, exclude_target=None, rr=RunRecord(),
+        test_run=False):
 
     print 'Getting ranked expression instances'
-    expressed = get_ranked_abs_expr_genes(session, sample_name,
+    expressed_genes = get_ranked_abs_expr_genes(session, sample_name,
             include_target=include_target, exclude_target=exclude_target,
             test_run=test_run)
 
+    if not expressed_genes:
+        rr.display()
+        raise RuntimeError('No expressed genes available for pairing ' +\
+                'with counts data. Halting.')
+
     print 'Decorating for %d genes' % len(expressed)
-    expressed, summed_counts = get_count_decorated_expressed_genes(expressed,
-            BAMorBED, expr_area, max_read_length, count_max_length,
-            window_size=window_size)
+    expressed, summed_counts = get_count_decorated_expressed_genes(\
+            expressed_genes, BAMorBED, expr_area, max_read_length,
+            count_max_length, window_size=window_size)
     
     return expressed, summed_counts
 
@@ -170,6 +199,11 @@ def _get_decorated_expressed_diff(session, sample_name, expr_area, species,
     expressed_diff = get_ranked_diff_expr_genes(session, sample_name,
             multitest_signif_val, include_target=include_target,
             exclude_target=exclude_target, test_run=test_run)
+
+    if not expressed_diff:
+        rr.display()
+        raise RuntimeError('No expressed genes available for pairing ' +\
+                           'with counts data. Halting.')
 
     print 'Decorating'
     expressed_diff, summed_counts = get_count_decorated_expressed_genes(\

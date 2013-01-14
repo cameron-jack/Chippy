@@ -19,6 +19,11 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
 
+###
+# IMPORTANT: Coords given by PyCogent and used here are offset 1 (same
+# as Ensembl) so that when the genome is placed in a numpy array, the
+# coords may be used to slice the array directly
+###
 
 Session = sessionmaker()
 
@@ -190,7 +195,7 @@ class Gene(Base):
         else:
             result = self.IntronCoords
         return result
-    
+
     @property
     def ExonCoords(self):
         """returns list of exon coordinates"""
@@ -254,7 +259,40 @@ class Gene(Base):
             start, end = tss, tss+size
         return start, end
 
-    def getAllExonIntronWindows(self, size):
+    def getAllIntronExonPos(self):
+        """ returns all 5' intron-exon internal boundary positions """
+        if len(self.ExonCoordsByRank) == 1:
+            return []
+        coords = self.ExonCoordsByRank
+        all_coords = []
+        for c in coords:
+            boundary5p, boundary3p = c
+            all_coords.append(boundary5p)
+            if self.strand == MINUS_STRAND:
+                all_coords.append(boundary3p) # 5' start of intron
+            else:
+                all_coords.append(boundary3p) # 5' start of intron
+        return all_coords[1:-1] # leave off start and end of gene
+
+    def getAllIntronExonWindows(self, size, exon5p=False, intron5p=False):
+        """ Return the windows for each exon-intron or intron-exon
+        boundary. Exons on the 5' side and Intron on the 5' side
+        only are options.
+        """
+        allBasePos = self.getAllIntronExonPos()
+        allWindows = []
+        if exon5p:
+            for i, pos in enumerate(allBasePos):
+                if i%2!=0:
+                    allWindows.append((pos-size,pos+size))
+        elif intron5p:
+            for i,pos in enumerate(allBasePos):
+                if i%2==0:
+                    allWindows.append((pos-size,pos+size))
+        else:
+            allWindows = [(pos-size, pos+size) for pos in allBasePos]
+
+        return allWindows
 
 
     def getAllExon3primeWindows(self, size):

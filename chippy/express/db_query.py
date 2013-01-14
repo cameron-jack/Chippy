@@ -92,6 +92,20 @@ def get_genes(session, chrom=None, biotype='protein_coding',
     
     return query
 
+def get_exons(session, gene_id=None, counts_only=False):
+    """ returns all exons, or just those for a specific gene stable_id
+    if counts_only is true, simply return an integer count """
+
+    if gene_id:
+        query = session.query(Exon).filter(Exon.gene_id==gene_id)
+    else:
+        query = session.query(Exon)
+
+    if counts_only:
+        return query.count()
+    else:
+        return query.all()
+
 def get_stable_id_genes_mapping(session):
     """get ensembl genes as a dict indexed by ensembl_id"""
     try:

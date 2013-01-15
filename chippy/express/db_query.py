@@ -65,7 +65,7 @@ def get_target_samples(session):
     return query
 
 def get_genes(session, chrom=None, biotype='protein_coding',
-        stable_ids=None):
+        stable_ids=None, counts_only=False):
     """returns the Gene's for the indicated release, chrom,
     biotype OR ensembl stable ID.
     
@@ -89,8 +89,11 @@ def get_genes(session, chrom=None, biotype='protein_coding',
     query = session.query(Gene)
     if condition is not None:
         query = query.filter(condition)
-    
-    return query
+
+    if counts_only:
+        return query.count()
+    else:
+        return query.all()
 
 def get_exons(session, gene_id=None, counts_only=False):
     """ returns all exons, or just those for a specific gene stable_id

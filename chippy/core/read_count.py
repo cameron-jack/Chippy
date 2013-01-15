@@ -32,8 +32,8 @@ def run_command(command):
     return returncode, stdout, stderr
 
 def _add_counts_to_ROI(roi, entry_first, entry_last):
-    """ entry_first should be 0-offset, entry_last should be 1-offset """
-    offset_left = entry_first - roi.window_start
+    """ entries should be 1-offset """
+    offset_left = entry_first - (roi.window_start + 1) # adjust for slicing
     if offset_left < 0:
         offset_left = 0
     offset_right = roi.window_end - entry_last
@@ -69,15 +69,13 @@ def read_BED(bedfile_path, ROIs, rr=RunRecord(), ui=None):
             ui.display('Reading BED entries [' + str(i) + ', ' + \
                     str(total_BED_lines) + ' / ' + \
                     str((i/total_BED_lines)*100) + '%]')
-        entry_start = int(bed_entry[1])
+        entry_start = int(bed_entry[1])+1 # 0-offset to 1-offset
         entry_end = int(bed_entry[2])+1 # 0-offset to 1-offset
         for roi in sorted_ROIs:
             if entry_end >= roi.start: # potential for overlap
                 if entry_start > roi.end: # no more entries for ROI
                     sorted_ROIs = sorted_ROIs[1:] # remove ROI
                 else: #add count to slice of ROI
-                    # numbering in BED is strand independent
-                    #entry_strand = [-1,1][bed_entry[5] == '+']
                     _add_counts_to_ROI(roi, entry_start, entry_end)
             else:
                 break # bed_entry in no ROI from here
@@ -93,7 +91,6 @@ def read_BAM(bamfile_path, ROIs, rr=RunRecord(), ui=None):
     SAM entries are 1-offset so substract from _start to get proper slice.
     """
     valid_flags = set([0, 16, 83, 99, 147, 163])
-    second_read_flags = set([83,147])
     for i, roi in enumerate(ROIs):
         if i % 100 == 0:
             ui.display('Reading BAM for regions of interest [' + str(i) + \
@@ -110,18 +107,8 @@ def read_BAM(bamfile_path, ROIs, rr=RunRecord(), ui=None):
                 if entry_flags in valid_flags:
                     entry_start = int(entry_parts[3])
                     entry_length = len(entry_parts[7])
-
-                    # First and last should be 1-offset genome positions
-                    if entry_flags in second_read_flags:
-                        # entry_strand = MINUS_STRAND
-                        entry_first = entry_start - entry_length
-                        entry_last = entry_start
-                    else:
-                        # entry_strand = PLUS_STRAND
-                        entry_first = entry_start
-                        entry_last = entry_start + entry_length
-
-                    _add_counts_to_ROI(roi, entry_first, entry_last)
+                    _add_counts_to_ROI(roi, entry_start,
+                            entry_start + entry_length)
     return ROIs, rr
 
 def get_region_counts(BAMorBED, ROIs, rr=RunRecord()):

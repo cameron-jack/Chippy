@@ -95,14 +95,14 @@ class TestGene(TestDbBase):
     plus_coords_one_exons = dict(gene=dict(ensembl_id='PLUS-1',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='1', start=1000, end=2000, strand=1),
+        chrom='1', start=1000, end=2000, strand=1),
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950)]
         )
     
     plus_coords_many_exons = dict(gene=dict(ensembl_id='PLUS-3',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='2', start=1000, end=2000, strand=1), 
+        chrom='2', start=1000, end=2000, strand=1),
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1400),
                dict(ensembl_id='exon-2', rank=2, start=1600, end=1700),
                dict(ensembl_id='exon-3', rank=3, start=1800, end=1900)]
@@ -112,14 +112,14 @@ class TestGene(TestDbBase):
     minus_coords_one_exons = dict(gene=dict(ensembl_id='MINUS-1',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='2', start=1000, end=2000, strand=-1),
+        chrom='2', start=1000, end=2000, strand=-1),
         exons=[dict(ensembl_id='exon-1', rank=1, start=1050, end=1950)]
         )
     
     minus_coords_many_exons = dict(gene=dict(ensembl_id='MINUS-3',
         symbol='agene', biotype='protein_coding', status='fake',
         description='a fake gene',
-        coord_name='3', start=1000, end=2000, strand=-1), 
+        chrom='3', start=1000, end=2000, strand=-1),
         exons=[dict(ensembl_id='exon-3', rank=3, start=1050, end=1400),
                dict(ensembl_id='exon-2', rank=2, start=1600, end=1700),
                dict(ensembl_id='exon-1', rank=1, start=1800, end=1900)]
@@ -537,7 +537,7 @@ class TestQueryFunctions(TestDbBase):
         extra_gene_dict = dict(gene=dict(ensembl_id='TARGET-1',
             symbol='agene', biotype='protein_coding', status='fake',
             description='a fake gene',
-            coord_name='5', start=3000, end=5000, strand=1),
+            chrom='5', start=3000, end=5000, strand=1),
             exons=[dict(ensembl_id='exon-3', rank=3, start=3050, end=4400)]
         )
         data = [Gene(**extra_gene_dict['gene'])]
@@ -606,7 +606,7 @@ class TestQueryFunctions(TestDbBase):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
         
         for gene in ranked:
-            self.assertTrue(gene.coord_name == '2')
+            self.assertTrue(gene.chrom == '2')
     
     def test_get_ranks_scores(self):
         """return correct gene mean ranks and mean scores"""
@@ -631,11 +631,11 @@ class TestQueryFunctions(TestDbBase):
     def test_query_genes_release(self):
         """return correct genes for a release"""
         genes = get_genes(self.session) # returns all genes
-        self.assertEqual(len(genes.all()), 4)
+        self.assertEqual(len(genes), 4)
         genes = get_genes(self.session, 2) # returns chrom2 genes
-        self.assertEqual(len(genes.all()), 2)
+        self.assertEqual(len(genes), 2)
         genes = get_genes(self.session, biotype='miRNA') # returns none
-        self.assertEqual(len(genes.all()), 0)
+        self.assertEqual(len(genes), 0)
 
     def test_query_expressed_genes_with_inclusive_target_genes(self):
         """ return only those genes which overlap with target """
@@ -745,7 +745,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         extra_gene_dict = dict(gene=dict(ensembl_id='TARGET-1',
             symbol='agene', biotype='protein_coding', status='fake',
             description='a fake gene',
-            coord_name='5', start=3000, end=5000, strand=1),
+            chrom='5', start=3000, end=5000, strand=1),
             exons=[dict(ensembl_id='exon-3', rank=3, start=3050, end=4400)]
         )
         data = [Gene(**extra_gene_dict['gene'])]
@@ -833,7 +833,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
 
         for gene in ranked:
-            self.assertTrue(gene.coord_name == '2')
+            self.assertTrue(gene.chrom == '2')
     
     def test_get_expressed_diff_genes(self):
         """return genes ranked by foldchange"""

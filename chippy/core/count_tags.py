@@ -24,12 +24,13 @@ __status__ = "Pre-release"
 __version__ = '0.1'
 
 class ROI(object):
-    def __init__(self, chrom, name, rank, window_start, window_end, strand):
+    def __init__(self, chrom, name, rank, tss, window_start, window_end, strand):
         super(ROI, self).__init__()
         #self.species = species
         self.chrom = chrom
         self.name = name
         self.rank = rank
+        self.TSS = tss
         self.window_start = window_start # 0-based position
         self.window_end = window_end # 1-based position
         self.strand = strand
@@ -51,22 +52,24 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
 
     if expr_area.lower() == 'tss':
         for gene in genes:
-            start, end, strand = gene.getTssCentredCoords(window_size)
-            roi = ROI(gene.chrom, gene.ensembl_id, gene.Rank, start,
-                    end, strand)
+            win_start, win_end, gene_strand = \
+                    gene.getTssCentredCoords(window_size)
+            roi = ROI(gene.chrom, gene.ensembl_id, gene.Rank, gene.Tss,
+                    win_start, win_end, gene_strand)
             regionsOfInterest.append(roi)
 
     elif expr_area.lower() == 'intron-exon':
         for gene in genes:
             window_list = gene.getAllIntronExonWindows(window_size)
-            strand = gene.strand
+            gene_strand = gene.strand
             for i, window in enumerate(window_list):
-                start, end = window
+                win_start, win_end = window
                 roi = ROI(gene.chrom, gene.ensembl_id+'_'+str(i),
-                        gene.Rank, start, end, strand)
+                        gene.Rank, gene.Tss, win_start, win_end,
+                        gene_strand)
                 regionsOfInterest.append(roi)
 
-    if len(regionsOfInterest) == 0:
+    if not len(regionsOfInterest):
         rr.display()
         raise RuntimeError('No regions of interest in genome created')
 

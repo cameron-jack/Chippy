@@ -83,9 +83,12 @@ def read_BED(bedfile_path, ROIs, rr=RunRecord(), ui=None):
                     str(total_BED_lines) + ' / ' + \
                     str((i/total_BED_lines)*100) + '%]')
         bed_parts = bed_entry.split('\t')
+        entry_chrom = str(bed_parts[0])
         entry_start = int(bed_parts[1])+1 # 0-offset to 1-offset
         entry_end = int(bed_parts[2]) # already 1-offset in BED
         for roi in sorted_ROIs:
+            if roi.chrom.lower() != entry_chrom.lower():
+                continue
             if entry_end >= roi.window_start: # potential for overlap
                 if entry_start > roi.window_end: # no more entries for ROI
                     sorted_ROIs = sorted_ROIs[1:] # remove ROI

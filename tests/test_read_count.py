@@ -103,6 +103,17 @@ class MinimalRegionCountTests(TestCase):
             PLUS_STRAND)
         ROIs.append(roi)
 
+        # Test alternative chromosomes of interest
+        window_size = 6
+        TSS_4 = 151345949
+        window_start = TSS_2 - window_size
+        window_end = TSS_2 + window_size
+        roi = ROI('chr_4', 'roi_4', 4, TSS_4, window_start, window_end,
+            PLUS_STRAND)
+        ROIs.append(roi)
+
+        # NOTE: No alternative chroms in test BED file to test for...
+
         return ROIs
 
     def test_count_BAM(self):
@@ -112,6 +123,7 @@ class MinimalRegionCountTests(TestCase):
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[1].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[2].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.assertEqual(ROIs[3].counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     def test_count_BED(self):
         """ make sure we get the expected counts from BAM reading """
@@ -120,3 +132,4 @@ class MinimalRegionCountTests(TestCase):
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[1].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[2].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.assertEqual(ROIs[3].counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])

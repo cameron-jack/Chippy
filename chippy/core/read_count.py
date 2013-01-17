@@ -31,21 +31,27 @@ def run_command(command):
     returncode = r.returncode
     return returncode, stdout, stderr
 
-def _add_counts_to_ROI(roi, entry_start, entry_end):
+def add_counts_to_ROI(roi, entry_start, entry_end):
     """ entries should be 1-offset """
+    if entry_start == entry_end:
+        return
 
-    entry_start -= 1 # adjust to Ensembl/python slice coords
+    entry_end += 1 # adjust to Ensembl/python slice coords
 
     if roi.strand == PLUS_STRAND:
-        offset_left = roi.TSS - entry_start
-        offset_right = entry_end - roi.TSS
+        offset_left = entry_start - roi.window_start
+        offset_right = entry_end - roi.window_start
     else:
-        offset_left = entry_start - roi.TSS
-        offset_right = roi.TSS - entry_end
+        offset_left = roi.window_end - entry_end
+        offset_right = roi.window_end - entry_start
+
+    #print 'left:', offset_left, 'right:', offset_right
+    assert offset_left < offset_right, 'left slicing coord must be less '+\
+            'than right slicing coord'
 
     offset_left = 0 if offset_left < 0 else offset_left
     if offset_right >= len(roi.counts):
-        offset_right = len(roi.counts) - 1
+        offset_right = len(roi.counts)
     roi.counts[offset_left:offset_right] += 1
 
 @display_wrap
@@ -78,13 +84,13 @@ def read_BED(bedfile_path, ROIs, rr=RunRecord(), ui=None):
                     str((i/total_BED_lines)*100) + '%]')
         bed_parts = bed_entry.split('\t')
         entry_start = int(bed_parts[1])+1 # 0-offset to 1-offset
-        entry_end = int(bed_parts[2])+1 # 0-offset to 1-offset
+        entry_end = int(bed_parts[2]) # already 1-offset in BED
         for roi in sorted_ROIs:
             if entry_end >= roi.window_start: # potential for overlap
                 if entry_start > roi.window_end: # no more entries for ROI
                     sorted_ROIs = sorted_ROIs[1:] # remove ROI
                 else: #add count to slice of ROI
-                    _add_counts_to_ROI(roi, entry_start, entry_end)
+                    add_counts_to_ROI(roi, entry_start, entry_end)
             else:
                 break # bed_entry in no ROI from here
 
@@ -116,9 +122,10 @@ def read_BAM(bamfile_path, ROIs, rr=RunRecord(), ui=None):
                 entry_flags = int(entry_parts[1])
                 if entry_flags in valid_flags:
                     entry_start = int(entry_parts[3])
-                    entry_length = len(entry_parts[7])
-                    _add_counts_to_ROI(roi, entry_start,
-                            entry_start + entry_length)
+                    entry_length = len(entry_parts[9])
+                    # end -1 because length includes the start position
+                    entry_end = entry_start + entry_length -1
+                    add_counts_to_ROI(roi, entry_start, entry_end)
         else:
             rr.display()
             raise RuntimeError('samtools view failed')

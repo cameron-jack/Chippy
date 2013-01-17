@@ -93,6 +93,16 @@ class MinimalRegionCountTests(TestCase):
                 PLUS_STRAND)
         ROIs.append(roi)
 
+        # perfectly overlapping, and larger than roi_2
+        # This tests that the readers can handle overlapping ROIs
+        window_size = 6
+        TSS_3 = 151345949
+        window_start = TSS_2 - window_size
+        window_end = TSS_2 + window_size
+        roi = ROI('chr_5', 'roi_3', 3, TSS_3, window_start, window_end,
+            PLUS_STRAND)
+        ROIs.append(roi)
+
         return ROIs
 
     def test_count_BAM(self):
@@ -101,6 +111,7 @@ class MinimalRegionCountTests(TestCase):
         ROIs, rr = read_BAM('data/brca2-11_sorted.bam', ROIs)
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[1].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.assertEqual(ROIs[2].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
 
     def test_count_BED(self):
         """ make sure we get the expected counts from BAM reading """
@@ -108,3 +119,4 @@ class MinimalRegionCountTests(TestCase):
         ROIs, rr = read_BED('data/brca2-11.bed', ROIs)
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[1].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+        self.assertEqual(ROIs[2].counts, [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])

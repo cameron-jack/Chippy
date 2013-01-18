@@ -144,7 +144,7 @@ def add_sample(session, name, description, rr=RunRecord()):
 @display_wrap
 def add_expression_study(session, sample_name, data_path, table,
         probeset_label='probeset', ensembl_id_label='ENSEMBL',
-        expression_label='exp', run_record=RunRecord(),
+        expression_label='exp', rr=RunRecord(),
         ui=None):
     """adds Expression instances into the database from table
     
@@ -179,11 +179,11 @@ def add_expression_study(session, sample_name, data_path, table,
                 Expression.sample_id==sample.sample_id)).all()
     
     if len(records) > 0:
-        run_record.addMessage('add_expression_study',
+        rr.addMessage('add_expression_study',
             LOG_WARNING,
             'Already added this data for this sample / file combo',
             (sample.name, data_path))
-        return False, run_record
+        return False, rr
     
     # get all gene ID data for the specified Ensembl release
     ensembl_genes = get_stable_id_genes_mapping(session)
@@ -215,14 +215,14 @@ def add_expression_study(session, sample_name, data_path, table,
         session.commit()
     except IntegrityError:
         session.rollback()
-        return False, run_record
+        return False, rr
 
     if unknown_ids:
-        run_record.addMessage('add_expression_study',
+        rr.addMessage('add_expression_study',
                 LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
-    run_record.addMessage('add_expression_study',
+    rr.addMessage('add_expression_study',
         LOG_INFO, 'Total genes', total)
-    return True, run_record
+    return True, rr
 
 @display_wrap
 def add_expression_diff_study(session, sample_name, data_path, table,
@@ -250,7 +250,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         - sig_label: label of the column classifying probabilities as
           significant after multiple test correction. 1 means up in A relative
           to B, -1 means down in A relative to B, 0 means no difference.
-        - run_record: a RunRecord instance for tracking messages. If not
+        - rr: a RunRecord instance for tracking messages. If not
           provided, one is created and returned.
     """
     
@@ -355,7 +355,7 @@ def _chunk_id_list(id_list, n):
         yield id_list[i:i+n]
 
 def add_target_genes(session, sample_name, data_path, table,
-        ensembl_id_label='ENSEMBL', run_record=RunRecord()):
+        ensembl_id_label='ENSEMBL', rr=RunRecord()):
     """adds Expression instances into the database from table
 
     Arguments:
@@ -375,8 +375,8 @@ def add_target_genes(session, sample_name, data_path, table,
         reffile.sample = sample
         data.append(reffile)
     else: # Don't overwrite anything, exit instead
-        run_record.addWarning('add_target_genes', 'File already loaded', data_path)
-        run_record.display()
+        rr.addWarning('add_target_genes', 'File already loaded', data_path)
+        rr.display()
         sys.exit(-1)
         #reffile = reffile[0]
     
@@ -391,13 +391,13 @@ def add_target_genes(session, sample_name, data_path, table,
             target.sample = sample
             data.append(target)
 
-    run_record.addMessage('add_target_genes', LOG_INFO,
+    rr.addMessage('add_target_genes', LOG_INFO,
             'Added target genes from', data_path)
-    run_record.addMessage('add_target_genes', LOG_INFO,
+    rr.addMessage('add_target_genes', LOG_INFO,
             'No. genes added', len(data))
     session.add_all(data)
     session.commit()
-    return run_record
+    return rr
 
 def check_existing_data(session, sample_name):
     """ Check if data is already loaded for a given sample name.
@@ -444,7 +444,7 @@ def add_data(session, name, description, path, expr_table,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
-                run_record=rr)
+                rr=rr)
     elif sample_types[sample_type] == sample_types['exp_diff']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\

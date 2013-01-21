@@ -199,14 +199,24 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
 
     return counts, ranks, num_groups, labels_set, rr
 
-pos_args = ['db_path']
-temp_args = Args(positional_args=pos_args)
-db_path = temp_args.db_path
+db_path=None
+for arg in sys.argv:
+    if not '-' in arg:
+        # it's positional so take this to be db_path
+        possible_db_path = str(arg).strip()
+        if 'chippy' in possible_db_path.lower() and\
+           '.db' in possible_db_path.lower():
+            db_path = possible_db_path
+            print db_path, 'selected as ChipPy database'
+            break
+if db_path is None:
+    raise RuntimeError('Path to ChipPy database required')
 
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_target_sample(session)
 
 script_info = {}
+script_info['disallow_positional_arguments'] = False
 script_info['title'] = 'Plot read counts heat-mapped by gene expression'
 script_info['script_description'] = "Takes read counts that are centred on"\
     " on a gene TSS, sorted from high to low gene expression and makes a"\
@@ -215,8 +225,6 @@ script_info['version'] = __version__
 script_info['authors'] = __author__
 script_info['output_description']= "Generates either a single pdf figure or"\
     " a series of pdfs that can be merged into a movie."
-
-# alternate option organisation
 
 # essential source files
 opt_collection = make_option('-s', '--collection',

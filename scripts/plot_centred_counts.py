@@ -13,6 +13,7 @@ from cogent.util.misc import parse_command_line_parameters
 from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
+from chippy.util.command_args import Args
 from chippy.draw.util import smooth
 from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
@@ -22,11 +23,11 @@ from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
 from chippy.util.util import create_path, dirname_or_default
 
 __author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
+__copyright__ = 'Copyright 2011-2012, Gavin Huttley, Anuj Pahwa, Cameron Jack'
 __credits__ = ['Gavin Huttley, Cameron Jack']
 __license__ = 'GPL'
-__maintainer__ = 'Gavin Huttley'
-__email__ = 'Gavin.Huttley@anu.edu.au'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'alpha'
 __version__ = '0.1'
 
@@ -198,11 +199,9 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
 
     return counts, ranks, num_groups, labels_set, rr
 
-if 'CHIPPY_DB' in os.environ:
-    db_path = os.environ['CHIPPY_DB']
-else:
-    raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
-                       'that indicates where to find the database')
+pos_args = ['db_path']
+temp_args = Args(positional_args=pos_args)
+db_path = temp_args.db_path
 
 session = db_query.make_session('sqlite:///%s' % db_path)
 samples = db_query.get_target_sample(session)

@@ -38,9 +38,6 @@ def set_environment():
 def main():
     args, script_info = set_environment()
     rr = RunRecord()
-    
-    if args.species != 'mouse':
-        raise RuntimeError('Currently only support mouse, sorry!')
 
     create_path(args.save_db_path)
 

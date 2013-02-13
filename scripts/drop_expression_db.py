@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 import sys, os
-
+sys.path.extend(['..'])
 from optparse import make_option
 from sqlalchemy import and_
 from cogent.util.misc import parse_command_line_parameters
 
-from chippy.express.db_schema import Expression, ExpressionDiff, ReferenceFile, \
-    make_session
-from chippy.express.db_query import get_gene_expression_query, get_samples
+from chippy.express.db_schema import Expression, ExpressionDiff, ReferenceFile
+from chippy.express.db_query import get_samples, make_session
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL

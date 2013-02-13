@@ -6,6 +6,7 @@ import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 import subprocess
 
+import re
 from cogent.util.progress_display import display_wrap
 
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
@@ -32,11 +33,14 @@ def run_command(command):
     return returncode, stdout, stderr
 
 def add_counts_to_ROI(roi, entry_start, entry_end):
-    """ entries should be 1-offset """
+    """ read entries should be 1-offset, ROI window start and end should be
+    1-offset. You can simply subtract one from the other to get the window
+    array index. """
+
     if entry_start == entry_end:
         return
 
-    entry_end += 1 # adjust to Ensembl/python slice coords
+    entry_end += 1 # slice adjustment
 
     if roi.strand == PLUS_STRAND:
         offset_left = entry_start - roi.window_start
@@ -45,21 +49,22 @@ def add_counts_to_ROI(roi, entry_start, entry_end):
         offset_left = roi.window_end - entry_end
         offset_right = roi.window_end - entry_start
 
-    #print 'left:', offset_left, 'right:', offset_right
     assert offset_left < offset_right, 'left slicing coord must be less '+\
             'than right slicing coord'
 
     offset_left = 0 if offset_left < 0 else offset_left
     if offset_right >= len(roi.counts):
         offset_right = len(roi.counts)
+
     roi.counts[offset_left:offset_right] += 1
+    return roi.counts
 
 @display_wrap
-def read_BED(bedfile_path, ROIs, rr=RunRecord(), ui=None):
+def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     """ read BED entries and add into each ROI as appropriate
 
-    Cogent entries are 0-offset with ends+1 so they slice perfectly into arrays
-    BED entries are 0-offset so add 1 to _end to slice
+    BED entries are 0-offset for start, 1-offset for end.
+    should increment position of start of read
     """
     if '.gz' in bedfile_path:
         bed_data = GzipFile(bedfile_path, 'rb')
@@ -76,31 +81,50 @@ def read_BED(bedfile_path, ROIs, rr=RunRecord(), ui=None):
         rr.addInfo('read_BED', 'total lines in '+bedfile_path,
                 total_BED_lines)
 
-    sorted_ROIs = sorted(ROIs, key=lambda roi: roi.window_start)
+    # separate ROIs by chrom - performance optimisation
+    roi_chrom_dict = {}
+    for roi in ROIs:
+        if roi.chrom in roi_chrom_dict.keys():
+            roi_chrom_dict[roi.chrom].append(roi)
+        else:
+            roi_chrom_dict[roi.chrom] = [roi]
+
+    for chrom_key in roi_chrom_dict.keys():
+        roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
+                key=lambda roi: roi.window_start)
+    filled_ROIs = []
     for i, bed_entry in enumerate(bed_data):
-        if i % 1000 == 0:
-            ui.display('Reading BED entries [' + str(i) + ', ' + \
-                    str(total_BED_lines) + ' / ' + \
-                    str((i/total_BED_lines)*100) + '%]')
+        if i % 100 == 0:
+            msg = 'Reading BED entries [' + str(i) +\
+                  ' / ' + str(total_BED_lines) + ']\n'
+            progress = (float(i)/float(total_BED_lines))
+            ui.display(msg=msg, progress=progress)
+
         bed_parts = bed_entry.split('\t')
-        entry_chrom = str(bed_parts[0])
+        entry_chrom = str(bed_parts[0]).lstrip(chr_prefix)
         entry_start = int(bed_parts[1])+1 # 0-offset to 1-offset
         entry_end = int(bed_parts[2]) # already 1-offset in BED
-        for roi in sorted_ROIs:
-            if roi.chrom.lower() != entry_chrom.lower():
-                continue
+        for roi in roi_chrom_dict[entry_chrom]:
             if entry_end >= roi.window_start: # potential for overlap
-                if entry_start > roi.window_end: # no more entries for ROI
-                    sorted_ROIs = sorted_ROIs[1:] # remove ROI
-                else: #add count to slice of ROI
-                    add_counts_to_ROI(roi, entry_start, entry_end)
-            else:
-                break # bed_entry in no ROI from here
+                if entry_start < roi.window_end:
+                    #add count to ROI
+                    roi.counts = add_counts_to_ROI(roi, entry_start, entry_end)
+                else: # no more entries for ROI
+                    filled_ROIs.append(roi)
+                    # remove ROI from further consideration
+                    del roi_chrom_dict[entry_chrom][0]
+    # get remaining ROIs not yet in filled_ROIs
+    remaining_ROIs = []
+    for chrom_key in roi_chrom_dict.keys():
+        for roi in roi_chrom_dict[chrom_key]:
+            remaining_ROIs.append(roi)
+    rr.addInfo('read_BED', 'Filled Regions of Interest', len(filled_ROIs))
+    rr.addInfo('read_BED', 'Unfilled Regions of Interest', len(remaining_ROIs))
 
-    return ROIs, rr
+    return filled_ROIs + remaining_ROIs, rr
 
 @display_wrap
-def read_BAM(bamfile_path, ROIs, rr=RunRecord(), ui=None):
+def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     """ get sequence reads for each ROI and add the counts in.
     Relies on Samtools view.
 
@@ -108,42 +132,67 @@ def read_BAM(bamfile_path, ROIs, rr=RunRecord(), ui=None):
     SAM entries are 1-offset so substract from _start to get proper slice.
     """
     valid_flags = set([0, 16, 83, 99, 147, 163])
-    for i, roi in enumerate(ROIs):
-        if i % 100 == 0:
-            ui.display('Reading BAM for regions of interest [' + str(i) + \
-                    ', ' + str(len(ROIs)) + ' / ' +\
-                    str((i/len(ROIs))*100) + '%]')
-        command = 'samtools view ' + bamfile_path + ' ' + roi.chrom +\
+    filled_ROIs = []
+    bam_lines_seen = 0
+    valid_flag_count = 0
+    invalid_flag_count = 0
+    for i, roi in enumerate(ui.series(ROIs, 'Loading Regions of Interest')):
+        chrom = chr_prefix + roi.chrom # default is ''
+        command = 'samtools view ' + bamfile_path + ' ' + chrom +\
                 ':' + str(roi.window_start+1) + '-' + str(roi.window_end)
         returncode, stdout, stderr = run_command(command)
+        if 'fail to determine the sequence name' in stderr:
+            reported = False
+            for part in stderr.split(' '):
+                if chr_prefix in part:
+                    reported = True
+                    rr.addWarning('read_BAM',
+                            'Possibly incorrect chromosome prefix', part)
+            if not reported:
+                rr.addWarning('read_BAM',
+                        'Possibly incorrect chromosome prefix', stderr)
+
         if returncode == 0:
             bam_lines = stdout.split('\n')
             for entry in bam_lines:
-                if len(entry) == 0:
-                    break
+                if not len(entry):
+                    continue
+                bam_lines_seen += 1
                 entry_parts = entry.split('\t')
-                entry_flags = int(entry_parts[1])
-                if entry_flags in valid_flags:
+                entry_flag = int(entry_parts[1])
+                if entry_flag in valid_flags:
+                    valid_flag_count += 1
                     entry_start = int(entry_parts[3])
-                    entry_length = len(entry_parts[9])
+                    # using the length of the reads causes inconsistency between
+                    # BAM and BED readers in the case of Indels!
+                    # entry_length = len(entry_parts[9])
+                    # Need to use CIGAR string instead
+                    length_components = map(int, re.findall(r"([\d]+)M", entry_parts[5]))
+                    entry_length = sum(length_components)
                     # end -1 because length includes the start position
                     entry_end = entry_start + entry_length -1
-                    add_counts_to_ROI(roi, entry_start, entry_end)
+                    roi.counts = add_counts_to_ROI(roi, entry_start, entry_end)
+                else:
+                    invalid_flag_count += 1
+            filled_ROIs.append(roi)
         else:
             rr.display()
             raise RuntimeError('samtools view failed')
-    return ROIs, rr
+    rr.addInfo('read_BAM', 'Number of BAM records evaluated', bam_lines_seen)
+    rr.addInfo('read_BAM', 'Number of valid BAM records seen', valid_flag_count)
+    rr.addInfo('read_BAM', 'Number of invalid BAM records seen', invalid_flag_count)
+    return filled_ROIs, rr
 
-def get_region_counts(BAMorBED, ROIs, rr=RunRecord()):
+def get_region_counts(BAMorBED, ROIs, chr_prefix=None, rr=RunRecord()):
     """ direct ROIs to BAM or BED file reader """
 
     if 'bam' in BAMorBED.lower():
-        ROIs, rr = read_BAM(BAMorBED, ROIs, rr=rr)
+        filled_ROIs, rr = read_BAM(BAMorBED, ROIs, chr_prefix, rr=rr)
     elif 'bed' in BAMorBED.lower():
-        ROIS, rr = read_BED(BAMorBED, ROIs, rr=rr)
+        filled_ROIs, rr = read_BED(BAMorBED, ROIs, chr_prefix, rr=rr)
     else:
         rr.display()
         raise RuntimeError("File name given doesn't resemble BAM or BED ",
                 BAMorBED)
-    return ROIs, rr
+    return filled_ROIs, rr
 

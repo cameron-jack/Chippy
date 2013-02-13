@@ -58,17 +58,19 @@ def main():
     add_ensembl_gene_data(session, args.species,
             ensembl_release=args.ensembl_release, account=account)
 
-    success, rr = create_dummy_flat_expr(session, rr=rr)
-    if success:
-        print 'Dummy flat data added successfully'
-    else:
-        print 'Dummy flat data failed to upload to DB. Expect bigger problems'
+    CREATE_DUMMY_DATA = False
+    if CREATE_DUMMY_DATA:
+        success, rr = create_dummy_flat_expr(session, rr=rr)
+        if success:
+            print 'Dummy flat data added successfully'
+        else:
+            print 'Dummy flat data failed to upload to DB. Expect bigger problems'
 
-    success, rr = create_dummy_spread_expr(session, rr=rr)
-    if success:
-        print 'Dummy spread data added successfully'
-    else:
-        print 'Dummy spread data failed to upload to DB. Expect bigger problems'
+        success, rr = create_dummy_spread_expr(session, rr=rr)
+        if success:
+            print 'Dummy spread data added successfully'
+        else:
+            print 'Dummy spread data failed to upload to DB. Expect bigger problems'
 
     rr.addInfo('start_chippy_db' ,'Chippy DB written to:', db_path)
     rr.display()

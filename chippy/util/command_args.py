@@ -90,6 +90,8 @@ class Args(object):
                 help='Ignore any saved files', default=False)
         self._inc_arg('--tab_delimited', action='store_true',
                 help='output to tab delimited format', default=False)
+        self._inc_arg('--chr_prefix', default='', help='String added by '+\
+                'aligner to prefix chromosome numbers/names.')
 
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
@@ -98,10 +100,12 @@ class Args(object):
             help='Choose a chromosome',
             choices=('All',)+chroms['mouse'])
 
+        # or external sample (gene) choice
+        # NOTE: Should be target_sample
         if self.db_path:
-            self._inc_arg('--target_sample', default=None,
+            self._inc_arg('-E', '--external_sample', default=None,
                 choices=self._make_sample_choices(),
-                help='Target-gene sample')
+                help='External sample')
 
         # group genes into sets ranked by expression
         self._inc_arg('-g', '--group_size', default='All',
@@ -135,13 +139,6 @@ class Args(object):
                 'Intron_3p', 'Both_3p'], help='Expression area options: ' \
                 'TSS, Exon_3p, Intron-3p, Both-3p')
 
-        self._inc_arg('--max_read_length', type=int,
-            default=75, help='Maximum sequence read length')
-
-        self._inc_arg('--count_max_length',
-                action='store_false', help='Use maximum read length instead '\
-                          'of mapped length', default=True)
-
         self._inc_arg('--window_size', type=int, default=1000,
                 help='Region size around TSS')
 
@@ -155,25 +152,6 @@ class Args(object):
         self._inc_arg('--exclude_target', default=None,
                 help='A Target Gene List in ChipPyDB',
                 choices=[str(s) for s in self._make_sample_choices()])
-        # Need to add this in for Div-plots
-        #opt_div_denom_group = make_option('--div', type='int', default = None,
-        #    help='For use only with --topgenes and 2 plottable groups, divides '\
-        #         'one of the lines by the other. Takes an integer which is the number '\
-        #         'of the data set in alphabetical order')
-
-        # Need to add these or replace method for normalisation
-        #opt_normalise_tags = make_option('--normalise_tags', type='int',
-        #    default=None, help='The number of mapped bases (reads x length) in '\
-        #                       'the data set. Is only used with Mean Counts, and only when group_size '\
-        #                       'is a defined number - not All.')
-        #opt_normalise_tags2 = make_option('--normalise_tags2', type='int',
-        #        default=None, help='The number of mapped bases (reads x length) in '\
-        #               'the data set. Is only used with Mean Counts, and only when group_size '\
-        #               'is a defined number - not All. Normalises 2nd data set.')
-        #opt_normalise_tags3 = make_option('--normalise_tags3', type='int',
-        #    default=None, help='The number of mapped bases (reads x length) in '\
-        #               'the data set. Is only used with Mean Counts, and only when group_size '\
-        #               'is a defined number - not All. Normalises 3rd data set')
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """

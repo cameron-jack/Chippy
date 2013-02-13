@@ -127,7 +127,7 @@ def get_ranked_abs_expr_genes(session, sample_name,
     
     if biotype:
         query = query.filter(Gene.biotype==biotype)
-    
+
     records = query.all()
 
     genes = []
@@ -487,3 +487,4 @@ def _get_gene_expression_diff_query(session, sample_name, data_path=None,
             options(contains_eager('gene'))
 
     return query
+

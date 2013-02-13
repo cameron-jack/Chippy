@@ -221,27 +221,7 @@ class TestGene(TestDbBase):
             'MINUS-3': 2000}
         for gene in genes:
             self.assertEqual(gene.Tss, expect[gene.ensembl_id])
-    
-    def test_tss_centred_coords(self):
-        """coordinates centred on the TSS correctly slice numpy array"""
-        counts = numpy.arange(3000)
-        plus = counts[500:1500]
-        minus = counts[2500:1500:-1]
-        expected_counts = {1:plus, -1:minus}
-        add_all_gene_exons(self.session, self.genes)
-        genes = self.session.query(Gene).all()
-        expect = {'PLUS-1': (500, 1500, 1),
-            'PLUS-3': (500, 1500, 1),
-            'MINUS-1': (2500, 1500, -1),
-            'MINUS-3': (2500, 1500, -1)}
-        for gene in genes:
-            got_start, got_end, got_strand = gene.getTssCentredCoords(500)
-            self.assertEqual((got_start, got_end, got_strand),
-                            expect[gene.ensembl_id])
-            self.assertEqual(counts[got_start:got_end:got_strand],
-                            expected_counts[got_strand])
-        
-    
+
     def test_gene_upstream(self):
         """return correct coordinates ending at TSS"""
         add_all_gene_exons(self.session, self.genes)

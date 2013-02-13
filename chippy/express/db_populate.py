@@ -68,8 +68,9 @@ def add_chroms(session, species, chromlist):
 def add_ensembl_gene_data(session, species, ensembl_release, account=None,
         rr=RunRecord(), debug=False):
     """add Ensembl genes and their transcripts to the db session"""
-    
+
     genome = Genome(species, Release=ensembl_release, account=account)
+
     skip = set(['processed_transcript', 'pseudogene'])
     biotypes = [b for b in genome.getDistinct('BioType') if b not in skip]
     
@@ -82,6 +83,11 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
     for biotype in biotypes:
         for gene in genome.getGenesMatching(BioType=biotype):
             # gene.Location.CoordName is the chromosome name
+            min_chrom_length = 3 # likely an unconfirmed scaffold
+            if len(gene.Location.CoordName) > min_chrom_length:
+                rr.addWarning('add_ensembl_gene_data', 'Skipping chrom',
+                        gene.Location.CoordName)
+                continue
             chromSet.add(gene.Location.CoordName)
 
             if gene.StableId not in unique_gene_ids:
@@ -112,8 +118,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                             exon.StableId)
             n += 1
             if n % 100 == 0:
-                print 'Genes processed=%s; Db objects created=%d' % (n,
-                        total_objects)
+                print 'Genes processed:', n,'; Db objects created:', total_objects
                 if debug:
                     session.add_all(data)
                     session.commit()

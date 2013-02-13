@@ -107,7 +107,6 @@ class Gene(Base):
     
     def __init__(self, ensembl_id, symbol, biotype, description, status, chrom, start, end, strand):
         self.ensembl_id = ensembl_id
-        
         self.symbol = symbol
         self.biotype = biotype
         self.description = description
@@ -123,17 +122,17 @@ class Gene(Base):
         self._rank_stats = None
     
     def __repr__(self):
-        #return "Gene(ensembl_id='%s', chrom='%s', start=%s, strand=%s)" \
-        #        % (self.ensembl_id, self.chrom, self.start, self.strand)
-        return ((self.ensembl_id, self.chrom, self.start, self.strand, self.Rank))
+        return self.ensembl_id, self.chrom, self.start, self.end, self.strand, self.Rank
     
     @property
     def Rank(self):
         if not hasattr(self, '_rank_stats'):
             self._rank_stats = {}
-        
+        if not self._rank_stats:
+            self._rank_stats = {}
+
         return self._rank_stats.get('rank', None)
-    
+
     @Rank.setter
     def Rank(self, value):
         if not hasattr(self, '_rank_stats'):
@@ -229,26 +228,19 @@ class Gene(Base):
         return self._tss
     
     def getTssCentredCoords(self, size):
-        """returns start, end, strand centred on the gene TSS
-        
-        Note: if MINUS_STRAND, start > end. These can be used to slice a numpy
-        array, with the strand serving as the stride.
-        """
-        strand = self.strand
-        if strand != PLUS_STRAND and strand != MINUS_STRAND:
-            raise RuntimeError('Must have a strand equal to %s or %s' % \
-                        (PLUS_STRAND, MINUS_STRAND))
-        
-        tss = self.Tss
+        """returns start, end centred on the gene TSS """
         if self.strand == PLUS_STRAND:
-            start = max(tss - size, 0)
-            end = tss + size
-        else: # MINUS_STRAND strand
-            # start which actually be > end
-            start = tss + size
-            end = max(tss - size, 0)
-        
-        return start, end, strand
+            start = self.Tss - size # Okay to go negative as this is simply an offset
+            end = self.Tss + size # even sized window, TSS at first positive position
+        else: # required to make the TSS on the right hand side
+            start = self.Tss - size + 1
+            end = self.Tss + size + 1
+        # window size is defined as start - end
+
+        assert size*2 == end - start, 'window size: '+str(end-start)+\
+                ' .Expected: '+str(size)
+
+        return start, end
     
     def getUpstreamCoords(self, size):
         """returns coords ending at the TSS"""

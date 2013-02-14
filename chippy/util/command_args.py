@@ -52,24 +52,25 @@ class Args(object):
     def _add_load_save_args(self):
         """ All loading and saving related arguments should go here """
 
-        # Plot centred counts args
+        self._inc_arg('--make_bedgraph', action='store_true', help='Enable '+\
+                'Output to BEDgraph during export. Save name is same as ChipPy DB'+\
+                "but with a '_expressionname.bedgraph' extension")
         self._inc_arg('-c', '--collection', help='Path to the plottable data')
-        # Output filename
         self._inc_arg('--plot_filename',
-            help='Name of final plot file')
+                help='Name of final plot file')
         self._inc_arg('-e', '--expression_data',
-            help="Path to the expression/gene data file. Must be tab delimited.")
+                help="Path to the expression/gene data file. Must be tab delimited.")
         self._inc_arg('--allow_probeset_many_gene', action='store_true',
-            default=False, help='Allow probesets that map to multiple genes')
+                default=False, help='Allow probesets that map to multiple genes')
         self._inc_arg('--gene_id_heading',
-            default='gene',
-            help='Column containing the Ensembl gene stable ID')
+                default='gene',
+                help='Column containing the Ensembl gene stable ID')
         self._inc_arg('--probeset_heading',
-            default='probeset',
-            help='Column containing the probeset IDs')
+                default='probeset',
+                help='Column containing the probeset IDs')
         self._inc_arg('--expression_heading',
-            default='exp',
-            help='Column containing the expression scores')
+                default='exp',
+                help='Column containing the expression scores')
 
         if self.db_path:
             self._inc_arg('-s','--sample', default=None,

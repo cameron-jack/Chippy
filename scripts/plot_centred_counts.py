@@ -3,19 +3,15 @@ from math import log10, floor, ceil
 
 import os, sys, glob
 
-sys.path.extend(['..', '../src'])
+sys.path.extend(['..'])
 
 import numpy
 
-from optparse import make_option
-from cogent.util.misc import parse_command_line_parameters
-
+from chippy.util.command_args import Args
 from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
 from chippy.express import db_query
 from chippy.draw.plottable import PlottableGroups
-from chippy.util.command_args import Args
 from chippy.draw.util import smooth
-from chippy.ref.util import chroms
 from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
@@ -199,207 +195,68 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
 
     return counts, ranks, num_groups, labels_set, rr
 
-if 'CHIPPY_DB' in os.environ:
-    db_path = os.environ['CHIPPY_DB']
-else:
-    raise RuntimeError('You need to set an environment variable CHIPPY_DB '\
-                       'that indicates where to find the database')
+def set_environment():
+    """ create the DB session and run options """
 
-session = db_query.make_session('sqlite:///%s' % db_path)
-samples = db_query.get_target_samples(session)
+    script_info = {}
+    script_info['title'] = 'Plot read counts heat-mapped by gene expression'
+    script_info['script_description'] = 'Takes read counts that are centred on '\
+                                        'on a gene feature such as TSS or intron-exon boundary, sorted '\
+                                        'from high to low gene expression and makes a heat-mapped line plot.'
+    script_info['version'] = __version__
+    script_info['authors'] = __author__
+    script_info['output_description']= 'Generates either a single pdf figure or'\
+                                       ' a series of pdfs that can be merged into a movie.'
 
-script_info = {}
-script_info['title'] = 'Plot read counts heat-mapped by gene expression'
-script_info['script_description'] = "Takes read counts that are centred on"\
-    " on a gene TSS, sorted from high to low gene expression and makes a"\
-    " heat-map plot."
-script_info['version'] = __version__
-script_info['authors'] = __author__
-script_info['output_description']= "Generates either a single pdf figure or"\
-    " a series of pdfs that can be merged into a movie."
+    pos_args = ['db_path']
+    req_args = ['collection', 'metric', 'plot_filename']
+    opt_args = ['ylim', 'fig_height', 'fig_width',
+                'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_label',
+                'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
+                'xlabel','ylabel', 'x_font_size', 'y_font_size', 'legend',
+                'legend_font_size', 'vline_style', 'vline_width',
+                'line_alpha', 'chrom', 'external_sample', 'group_size',
+                'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
+                'plot_series', 'text_coords', 'test_run', 'version']
 
-# alternate option organisation
+    inputs = Args(required_args=req_args,
+            optional_args=opt_args, positional_args=pos_args)
 
-# essential source files
-opt_collection = make_option('-s', '--collection',
-  help='Path to the plottable data')
-
-opt_metric = make_option('-m', '--metric', type='choice',
-        choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
-        default='Frequency counts',
-        help='Select the metric (note you will need to change your ylim '\
-            'accordingly if providing via --ylim')
-# chrom choice
-opt_chroms = make_option('-C', '--chrom', type='choice', default='All',
-               help='Choose a chromosome [default: %default]',
-               choices=('All',)+chroms['mouse'])
-
-# or target sample (gene) choice
-opt_target = make_option('-T', '--target_sample', type='choice',
-            default=None,
-            choices=make_sample_choices(session),
-            help='Target sample')
-
-# essential plotting information
-opt_grp_size = make_option('-g', '--group_size', type='string', default='All',
-        help='Number of genes to group to estimate statistic - All or a specific '\
-        'number [default: %default]')
-
-# optional sample choice information
-opt_topgenes = make_option('--topgenes', action='store_true', default = False,
-        help='Plot only top genes ranked by expressed chromatin')
-opt_div_denom_group = make_option('--div', type='int', default = None,
-        help='For use only with --topgenes and 2 plottable groups, divides ' \
-        'one of the lines by the other. Takes an integer which is the number ' \
-        'of the data set in alphabetical order')
-opt_smoothing = make_option('--smoothing', type='int', default = 0,
-        help='Window size for smoothing of plot data default: '\
-        '[default]')
-opt_normalise_tags = make_option('--normalise_tags', type='int',
-        default=None, help='The number of mapped bases (reads x length) in ' \
-        'the data set. Is only used with Mean Counts, and only when group_size ' \
-        'is a defined number - not All.')
-opt_normalise_tags2 = make_option('--normalise_tags2', type='int',
-        default=None, help='The number of mapped bases (reads x length) in '\
-        'the data set. Is only used with Mean Counts, and only when group_size '\
-        'is a defined number - not All. Normalises 2nd data set.')
-opt_normalise_tags3 = make_option('--normalise_tags3', type='int',
-        default=None, help='The number of mapped bases (reads x length) in '\
-        'the data set. Is only used with Mean Counts, and only when group_size '\
-        'is a defined number - not All. Normalises 3rd data set')
-
-# optional plotting information
-opt_cutoff = make_option('-k', '--cutoff', type='float', default = 0.05,
-             help='Probability cutoff. Exclude genes if the probability of '\
-             'the observed tag count is at most this value [default: %default]')
-opt_fig_height = make_option('-H', '--fig_height', type='float', default=2.5*6,
-   help='Figure height (cm) [default: %default]')
-
-opt_fig_width = make_option('-W', '--fig_width', type='float', default=2.5*12,
-   help='Figure width (cm) [default: %default]')
-opt_legend = make_option('-l', '--legend', action='store_true', default=False,
-        help='Automatically generate a figure legend. '\
-             '[default: %default')
-opt_legend_size = make_option('--legend_size', type='int', default=12,
-        help='Point size for legend characters [default: %default]')
-opt_bgcolor = make_option('-b', '--bgcolor', type='choice', default='black',
-               help='Plot background color [default: %default]',
-               choices=['black', 'white'])
-opt_clean_plot = make_option('--clean_plot', action='store_true', default=False,
-                help='Remove tick marks and top and right borders '\
-                     '[default: %default]')
-opt_colorbar = make_option('--colorbar',
-         action='store_true', help="Add colorbar to figure", default=False)
-opt_yrange = make_option('-y', '--ylim', default=None,
-       help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-# Important note, grid_lines are an absolute scale!
-opt_grid_off = make_option('--grid_off', action='store_true', default=False,
-                           help='Turn grid lines off')
-opt_xgrid_locate = make_option('--xgrid_lines', type='float', default = 100,
-                 help='major grid-line spacing on x-axis [default: %default]')
-opt_ygrid_locate = make_option('--ygrid_lines', type='float', default = None,
-                 help='major grid-line spacing on y-axis [default: %default]')
-opt_xlabel_interval = make_option('--xlabel_interval', type='int',
-        default = 2,
-        help='number of blank ticks between labels [default: %default]')
-opt_ylabel_interval = make_option('--ylabel_interval', type='int', default = 2,
-        help='number of blank ticks between labels [default: %default]')
-opt_xlabel_font = make_option('--xfontsize', type='int', default = 12,
-        help='font size for x label [default: %default]')
-opt_ylabel_font = make_option('--yfontsize', type='int', default = 12,
-        help='font size for y label [default: %default]')
-opt_vline_style = make_option('--vline_style', type='choice',
-        default = '-.', choices=['-.', '-', '.'],
-        help='line style for centred vertical line [default: %default]')
-opt_vline_width = make_option('--vline_width', type='int', default = 2,
-        help='line width for centred vertical line [default: %default]')
-opt_ylabel = make_option('--ylabel',
-        default = 'Normalized counts', help='Label for the y-axis [default: %default]')
-opt_xlabel = make_option('--xlabel',
-        default = 'Position relative to TSS',
-        help='Label for the x-axis [default: %default]')
-opt_title = make_option('--title', help='Plot title [default: %default]')
-opt_alpha = make_option('--line_alpha', type='float', default=1.0,
-        help='Opacity of lines [default: %default]')
-opt_plot_filename = make_option('--plot_filename', default = None,
-        help='Name of final plot file (must end with .pdf) [default: %default]')
-
-# 
-opt_plotseries = make_option('-p', '--plot_series',
-                 action='store_true', default=False,
-     help='Plot series of figures. A directory called plot_filename-series'\
-          +' will be created. Requires plot_filename be defined.')
-
-opt_txt_coords = make_option('--text_coords', default=None,
-       help='x, y coordinates of series text (e.g. 600,3.0)')
-
-# 
-opt_test_run = make_option('-t', '--test_run',
-             action='store_true', help="Test run, don't write output",
-             default=False)
-
-script_info['required_options'] = [opt_collection, opt_metric]
-
-run_opts = [opt_test_run]
-sampling_opts = [opt_grp_size, opt_target, opt_chroms, opt_cutoff,
-                 opt_topgenes, opt_div_denom_group, opt_smoothing,
-                 opt_normalise_tags, opt_normalise_tags2, opt_normalise_tags3]
-save_opts = [opt_plot_filename]
-series_opts = [opt_plotseries, opt_txt_coords]
-plot_labels = [opt_title, opt_ylabel, opt_xlabel, opt_colorbar, opt_legend,
-               opt_legend_size]
-plot_dims = [opt_yrange, opt_fig_height, opt_fig_width, opt_xgrid_locate,
-            opt_ygrid_locate, opt_xlabel_interval, opt_ylabel_interval]
-plot_colors = [opt_bgcolor, opt_alpha, opt_vline_style, opt_vline_width,
-        opt_xlabel_font, opt_ylabel_font, opt_grid_off, opt_clean_plot]
-
-script_info['optional_options'] = run_opts+sampling_opts+save_opts+\
-        series_opts+plot_labels+plot_dims+plot_colors
-
-script_info['optional_options_groups'] = [('Run control', run_opts),
-                                  ('Sampling', sampling_opts),
-                                  ('Saving', save_opts),
-                                  ('Plot series', series_opts),
-                                  ('Plot text', plot_labels),
-                                  ('Plot colours', plot_colors),
-                                  ('Plot dimensions', plot_dims)
-                                  ]
-
-def main():
-    option_parser, opts, args =\
-       parse_command_line_parameters(**script_info)
-    
     rr = RunRecord()
 
+    return inputs.parsed_args, script_info, rr
+
+
+def main():
+    args, script_info, rr = set_environment()
+
     ylim = None
-    if opts.ylim is not None:
-        if ',' not in opts.ylim:
+    if args.ylim is not None:
+        if ',' not in args.ylim:
             raise RuntimeError('ylim must be comma separated')
-        ylim = map(float, opts.ylim.strip().split(','))
+        ylim = map(float, args.ylim.strip().split(','))
     
     rr.addMessage('plot_centred_counts', LOG_INFO,
-        'using metric', opts.metric)
+        'using metric', args.metric)
     
-    target_sample = get_sample_name(opts.target_sample)
+    target_sample = get_sample_name(args.target_sample)
     stable_ids = None
     if target_sample is not None:
         rr.addMessage('plot_centred_counts', LOG_INFO,
             'Using an target sample', target_sample)
         genes = db_query.get_target_genes(session, target_sample)
         stable_ids = [g.ensembl_id for g in genes]
-    elif opts.chrom != 'All':
+    elif args.chrom != 'All':
         rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Querying a single chromosome', opts.chrom)
-        genes = db_query.get_genes(session, opts.chrom)
+            'Querying a single chromosome', args.chrom)
+        genes = db_query.get_genes(session, args.chrom)
         stable_ids = [g.ensembl_id for g in genes]
-
-    session.close()
 
     # if we have a plot series, we need to create a directory to dump the
     # files into
-    if opts.plot_series and not opts.test_run:
-        save_dir = dirname_or_default(opts.plot_filename)
-        basename = os.path.basename(opts.plot_filename)
+    if args.plot_series and not args.test_run:
+        save_dir = dirname_or_default(args.plot_filename)
+        basename = os.path.basename(args.plot_filename)
 
         plot_series_dir = os.path.join(save_dir,
                         '%s-series' % basename[:basename.rfind('.')])
@@ -414,7 +271,7 @@ def main():
 
 
     print 'Loading counts data'
-    collection_files = opts.collection
+    collection_files = args.collection
     dir_name = os.path.dirname(collection_files)
     base_name = os.path.basename(collection_files)
     collection_file_names = [os.path.join(dir_name,
@@ -432,19 +289,19 @@ def main():
 
     window_size_set = []
     data_collection_set = []
-    if opts.metric == 'Mean counts':
+    if args.metric == 'Mean counts':
         print 'Collating mean counts'
         counts_func = column_mean
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, target_sample=target_sample,
+                    cutoff=args.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
 
-    elif opts.metric == 'Frequency counts':
+    elif args.metric == 'Frequency counts':
         print 'Collating normalized frequency counts'
         counts_func = column_sum
         for collection_file in collection_file_names:
@@ -452,19 +309,19 @@ def main():
             data_collection = data_collection.asfreqs()
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, target_sample=target_sample,
+                    cutoff=args.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
 
-    elif opts.metric == 'Standard deviation':
+    elif args.metric == 'Standard deviation':
         print 'Collating standard deviations of counts'
         counts_func = stdev
         for collection_file in collection_file_names:
             data_collection = RegionCollection(filename=collection_file)
             # Filter genes for outliers and stableIDs
             data_collection, window_size, rr = _filter_collection(data_collection,
-                    cutoff=opts.cutoff, target_sample=target_sample,
+                    cutoff=args.cutoff, target_sample=target_sample,
                     stable_ids=stable_ids, rr=rr)
             data_collection_set.append(data_collection)
             window_size_set.append(window_size)
@@ -482,13 +339,13 @@ def main():
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Total data collections',
                   len(data_collection_set))
 
-    if opts.group_size.lower() == 'all':
+    if args.group_size.lower() == 'all':
         group_size = 'All'
     else:
         try:
-            group_size = int(opts.group_size)
+            group_size = int(args.group_size)
         except ValueError:
-            print ('Invalid group size: ' + opts.group_size + '. Defaulting to all genes.\n')
+            print ('Invalid group size: ' + args.group_size + '. Defaulting to all genes.\n')
             group_size = 'All'
 
     # pool genes into groups
@@ -500,13 +357,13 @@ def main():
     for dc_index, data_collection in enumerate(data_collection_set):
         counts, ranks, num_groups, labels, rr = _group_genes(data_collection,
                 group_size=group_size, labels=filenames_set[iteration],
-                counts_func=counts_func, topgenes=opts.topgenes,
-                plot_series=opts.plot_series, rr=rr)
+                counts_func=counts_func, topgenes=args.topgenes,
+                plot_series=args.plot_series, rr=rr)
 
-        if opts.smoothing > 0:
+        if args.smoothing > 0:
             smoothed_counts = []
             for c in counts:
-                c = smooth(c, opts.smoothing)              
+                c = smooth(c, args.smoothing)              
                 smoothed_counts.append(c)
             counts = smoothed_counts
 
@@ -516,36 +373,38 @@ def main():
             genes_per_group = group_size
 
         # Calculate normalised per million mapped reads (RPM)
-        if opts.metric.lower() == 'mean counts':
-            if opts.normalise_tags is not None and dc_index == 0:
+        if args.metric.lower() == 'mean counts':
+            if args.normalise_tags1 is not None and dc_index == 0:
                 normalised_counts = []
-                norm_tags = opts.normalise_tags
+                norm_tags = args.normalise_tags1
                 for c in counts:
                     # Which is better, per line or per gene normalisation?
-                    c = c * genes_per_group * 1000000 / norm_tags # This is per group/line normalisation
-                    #c = c * 1000000 / norm_tags # This is per gene normalisation
+                    #c = c * genes_per_group * 1000000 / norm_tags # This is per group/line normalisation
+                    c = c * 1000000 / norm_tags # This is per gene normalisation
                     normalised_counts.append(c)
                 counts = normalised_counts
 
-            if opts.normalise_tags2 is not None and dc_index == 1:
+            if args.normalise_tags2 is not None and dc_index == 1:
                 # Calculate normalised per million mapped reads (RPM)
                 # Hack for 3 data sets, G1, M, S in that order
                 normalised_counts = []
-                norm_tags = opts.normalise_tags2
+                norm_tags = args.normalise_tags2
 
                 for c in counts:
-                    c = c * genes_per_group * 1000000 / norm_tags
+                    #c = c * genes_per_group * 1000000 / norm_tags
+                    c = c * 1000000 / norm_tags
                     normalised_counts.append(c)
                 counts = normalised_counts
 
-            if opts.normalise_tags3 is not None and dc_index == 2:
+            if args.normalise_tags3 is not None and dc_index == 2:
                 # Calculate normalised per million mapped reads (RPM)
                 # Hack for 3 data sets, G1, M, S in that order
                 normalised_counts = []
-                norm_tags = opts.normalise_tags3
+                norm_tags = args.normalise_tags3
 
                 for c in counts:
-                    c = c * genes_per_group * 1000000 / norm_tags
+                    #c = c * genes_per_group * 1000000 / norm_tags
+                    c = c * 1000000 / norm_tags
                     normalised_counts.append(c)
                 counts = normalised_counts
 
@@ -556,11 +415,11 @@ def main():
             labels_set.append(label)
         iteration += 1
 
-    if opts.div and opts.topgenes and len(count_set) == 2:
+    if args.div and args.topgenes and len(count_set) == 2:
         # divide one set of counts by the other.
         # top100 genes is essential to keep plots comparable
         div_c = []
-        if opts.div == 1:
+        if args.div == 1:
             # the first set is the divisor
             denominator_counts = count_set[0]
             numerator_counts = count_set[1]
@@ -589,17 +448,17 @@ def main():
         'Total number of plottable lines', plottable_lines)
 
     # reverse the counts and colour series so low color goes first
-    if opts.plot_series:
+    if args.plot_series:
         for labels in labels_set:
-            label_coords = map(float, opts.text_coords.split(','))
+            label_coords = map(float, args.text_coords.split(','))
             series_labels = list(reversed(labels))
             series_template = 'plot-%%.%sd.pdf' % len(str(len(counts)))
             filename_series = [os.path.join(plot_series_dir, series_template % i)
                             for i in range(len(series_labels))]
     
     print 'Prepping for plot'
-    if opts.bgcolor == 'black':
-        if opts.grid_off is True:
+    if args.bgcolor == 'black':
+        if args.grid_off is True:
             grid=False
             vline_color='k'
         else:
@@ -607,7 +466,7 @@ def main():
             vline_color='w'
         bgcolor='0.1'
     else:
-        if opts.grid_off is True:
+        if args.grid_off is True:
             grid=False
             vline_color='w'
         else:
@@ -615,8 +474,8 @@ def main():
             vline_color='k'
         bgcolor='1.0'
     
-    vline = dict(x=0, linewidth=opts.vline_width,
-                   linestyle=opts.vline_style, color=vline_color)
+    vline = dict(x=0, linewidth=args.vline_width,
+                   linestyle=args.vline_style, color=vline_color)
 
     # auto-calculate y-min & y-max and/or y-tick-space, if required
     max_Ymax = None
@@ -624,21 +483,21 @@ def main():
     max_Ygrid_line = None
     if ylim is None:
         for counts, ranks in zip(count_set, rank_set):
-            ylim, ygrid_line = _auto_yaxis(counts, ranks, opts.test_run)
+            ylim, ygrid_line = _auto_yaxis(counts, ranks, args.test_run)
             if (max_Ymax is None) or (max(ylim) > max_Ymax):
                 max_Ymax = max(ylim)
                 max_Ygrid_line = ygrid_line
             if (min_Ymin is None) or (min(ylim) < min_Ymin):
                 min_Ymin = min(ylim)
         ylim = (min_Ymin, max_Ymax)
-        opts.ygrid_lines = max_Ygrid_line
+        args.ygrid_lines = max_Ygrid_line
     else:
-        if opts.ygrid_lines is None:
-            opts.ygrid_lines = _auto_grid_lines(ylim, opts.test_run)
+        if args.ygrid_lines is None:
+            args.ygrid_lines = _auto_grid_lines(ylim, args.test_run)
 
     maxY_str = '%e' % max(ylim)
     minY_str = '%e' % min(ylim)
-    ygrid_line_str = '%e' % opts.ygrid_lines
+    ygrid_line_str = '%e' % args.ygrid_lines
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-max plot limit',
             maxY_str)
     rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-min plot limit',
@@ -650,15 +509,15 @@ def main():
     # PlottableGroups, it might be better to have multiple calls
     # to PlottableSingle
     
-    plot = PlottableGroups(height=opts.fig_height/2.5,
-            width=opts.fig_width/2.5, bgcolor=bgcolor, grid=grid,
+    plot = PlottableGroups(height=args.fig_height/2.5,
+            width=args.fig_width/2.5, bgcolor=bgcolor, grid=grid,
             ylim=ylim, xlim=(-window_size, window_size),
-            xtick_space=opts.xgrid_lines, ytick_space=opts.ygrid_lines,
-            xtick_interval=opts.xlabel_interval,
-            ytick_interval=opts.ylabel_interval,
-            xlabel_fontsize=opts.xfontsize, ylabel_fontsize=opts.yfontsize,
-            vline=vline, ioff=True, colorbar=opts.colorbar,
-            clean=opts.clean_plot)
+            xtick_space=args.xgrid_lines, ytick_space=args.ygrid_lines,
+            xtick_interval=args.xlabel_interval,
+            ytick_interval=args.ylabel_interval,
+            xlabel_fontsize=args.xfontsize, ylabel_fontsize=args.yfontsize,
+            vline=vline, ioff=True, colorbar=args.colorbar,
+            clean=args.clean_plot)
     
     x = numpy.arange(-window_size, window_size)
 
@@ -676,7 +535,7 @@ def main():
         counts = list(reversed(counts))
         ranks = list(reversed(ranks))
 
-    if opts.test_run:
+    if args.test_run:
         print 'Number of count sets: %d' % len(all_counts)
         if all_ranks is not None:
             print 'Number of rank sets: %d' % len(all_ranks)
@@ -685,7 +544,7 @@ def main():
     if len(count_set) == 3:
         colour_range = []
         # We're going to use black/white, green and magenta, for G1, M, S
-        if opts.bgcolor == 'black':
+        if args.bgcolor == 'black':
             r = 255
             g = 255
             b = 255
@@ -708,15 +567,15 @@ def main():
         colour = '#%02x%02x%02x' % (r, g, b)
         colour_range.append((colour))
 
-        if not opts.legend:
+        if not args.legend:
             labels_set = None
 
         plot(x, y_series=all_counts, color_series=colour_range,
                 series_labels=series_labels, filename_series=filename_series,
-                label_coords=label_coords, alpha=opts.line_alpha,
-                xlabel=opts.xlabel, ylabel=opts.ylabel, title=opts.title,
-                colorbar=opts.colorbar, labels=labels_set,
-                labels_size=opts.legend_size)
+                label_coords=label_coords, alpha=args.line_alpha,
+                xlabel=args.xlabel, ylabel=args.ylabel, title=args.title,
+                colorbar=args.colorbar, labels=labels_set,
+                labels_size=args.legend_size)
 
     elif len(count_set) > 1:
         # spread colours almost evenly throughout the 256^3 colour-space
@@ -739,27 +598,27 @@ def main():
                 r = int((i-halfway)*(255/halfway))
 
             colour = '#%02x%02x%02x' % (r, g, b)
-            if opts.test_run:
+            if args.test_run:
                 print 'Count colour for set %d is:' % i
                 print colour
 
             colour_range.append(colour)
 
-        if not opts.legend:
+        if not args.legend:
             labels_set = None
         plot(x, y_series=all_counts, color_series=colour_range, series_labels=series_labels,
             filename_series=filename_series, label_coords=label_coords,
-            alpha=opts.line_alpha, xlabel=opts.xlabel,
-            ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
-            labels=labels_set, labels_size=opts.legend_size)
+            alpha=args.line_alpha, xlabel=args.xlabel,
+            ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
+            labels=labels_set, labels_size=args.legend_size)
     else:
-        if not opts.legend:
+        if not args.legend:
             labels_set = None
 
         if len(counts) == 4: #quartile plot
             # do a b&w colour scheme
             color_range = []
-            if opts.bgcolor == 'black':
+            if args.bgcolor == 'black':
                 for i in xrange(4):
                     r = 60 + (60*i)
                     g = 60 + (60*i)
@@ -776,21 +635,21 @@ def main():
 
             plot(x, y_series=counts, color_series=color_range, series_labels=series_labels,
                 filename_series=filename_series, label_coords=label_coords,
-                alpha=opts.line_alpha, xlabel=opts.xlabel,
-                ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
-                labels=labels_set, labels_size=opts.legend_size)
+                alpha=args.line_alpha, xlabel=args.xlabel,
+                ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
+                labels=labels_set, labels_size=args.legend_size)
 
         else:
             plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
                 filename_series=filename_series, label_coords=label_coords,
-                alpha=opts.line_alpha, xlabel=opts.xlabel,
-                ylabel=opts.ylabel, title=opts.title, colorbar=opts.colorbar,
-                labels=labels_set, labels_size=opts.legend_size)
+                alpha=args.line_alpha, xlabel=args.xlabel,
+                ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
+                labels=labels_set, labels_size=args.legend_size)
     
-    if opts.plot_filename and not opts.test_run:
-        plot.savefig(opts.plot_filename, image_format='pdf')
+    if args.plot_filename and not args.test_run:
+        plot.savefig(args.plot_filename, image_format='pdf')
     else:
-        print opts.plot_filename
+        print args.plot_filename
     
     rr.display()
     plot.show()

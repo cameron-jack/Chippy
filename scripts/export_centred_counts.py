@@ -42,7 +42,7 @@ def set_environment():
             'BAMorBED',  'collection']
     opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
                 'count_max_length', 'window_size', 'multitest_signif_val',
-                'include_target', 'exclude_target', 'test_run']
+                'include_target', 'exclude_target', 'test_run', 'version']
 
     inputs = command_args.Args(required_args=req_args,
             optional_args=opt_args, positional_args=pos_args)

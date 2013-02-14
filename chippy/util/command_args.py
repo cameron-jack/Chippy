@@ -1,6 +1,6 @@
 import argparse
 import sys # required for finding db_path
-from chippy.ref.util import chroms
+from chippy.express.db_query import get_chroms
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
@@ -31,6 +31,13 @@ class Args(object):
         samples.insert(-1, 'none')
         session.close()
         return samples
+
+    def _make_chrom_choices(self):
+        if self.db_path is None:
+            return []
+        session = db_query.make_session('sqlite:///' + str(self.db_path))
+        species = self.db_path.split('_')[2].split('.')[0]
+        return get_chroms(session, species).append('All')
 
     def _inc_arg(self, *args, **kwargs):
         """ checks if each potential argument matches
@@ -98,7 +105,7 @@ class Args(object):
         # chrom choice
         self._inc_arg('-C', '--chrom', default='All',
             help='Choose a chromosome',
-            choices=('All',)+chroms['mouse'])
+            choices=(self._make_chrom_choices()) )
 
         # or external sample (gene) choice
         # NOTE: Should be target_sample
@@ -157,34 +164,34 @@ class Args(object):
         """ Arguments specifically related to showing graphical plots """
         # Create options essential for making a plot
         self._inc_arg('-y', '--ylim', default=None,
-            help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
+                help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
         self._inc_arg('-H', '--fig_height', type=float, default=2.5*3,
-            help='Figure height (cm)')
+                help='Figure height (cm)')
         self._inc_arg('-W', '--fig_width', type=float, default=2.5*5,
-            help='Figure width (cm)')
+                help='Figure width (cm)')
 
         # Important note, grid_lines are an absolute scale!
         self._inc_arg('--xgrid_lines', type=float, default = 100,
-            help='major grid-line spacing on x-axis')
+                help='major grid-line spacing on x-axis')
         self._inc_arg('--ygrid_lines', type=float, default = None,
-            help='major grid-line spacing on y-axis')
+                help='major grid-line spacing on y-axis')
         self._inc_arg('--grid_off', action='store_true', default=False,
-            help='Turn grid lines off')
+                help='Turn grid lines off')
         # tick spacing along axes
         self._inc_arg('--xtick_interval', type=int, default=2,
-            help='number of blank ticks between labels')
+                help='number of blank ticks between labels')
         self._inc_arg('--ytick_interval', type=int, default=2,
-            help='number of blank ticks between labels')
+                help='number of blank ticks between labels')
         # Smooth top and right borders for cleaner looking plot
         self._inc_arg('--clean_plot', action='store_true', default=False,
-            help='Remove tick marks and top and right borders ')
+                help='Remove tick marks and top and right borders ')
         # background colour - black or white
         self._inc_arg('-b', '--bgcolor', default='black',
-            help='Plot background color',
-            choices=['black', 'white'])
+                help='Plot background color',
+                choices=['black', 'white'])
         # side colour bar for 3rd-dimension range
         self._inc_arg('--colorbar', action='store_true',
-            help="Add colorbar to figure", default=False)
+                help="Add colorbar to figure", default=False)
 
         # Create options for font sizes, colours and labels
         # Headline of the plot
@@ -192,39 +199,57 @@ class Args(object):
         # Need options for size and style
         # Axis labels and font sizes
         self._inc_arg('--ylabel', default = 'Normalized counts',
-            help='Label for the y-axis')
+             help='Label for the y-axis')
         self._inc_arg('--xlabel', default = 'Position relative to TSS',
-            help='Label for the x-axis')
+                help='Label for the x-axis')
         self._inc_arg('--x_font_size', type=int, default=12,
-            help='font size for x label')
+                help='font size for x label')
         self._inc_arg('--y_font_size', type=int, default=12,
-            help='font size for y label')
+                help='font size for y label')
 
         # Turn on line legend and set font size
         self._inc_arg('-l', '--legend', action='store_true', default=False,
-            help='Automatically generate a figure legend.')
+                help='Automatically generate a figure legend.')
         self._inc_arg('--legend_font_size', type=int, default=12,
-            help='Point size for legend characters')
+                help='Point size for legend characters')
 
         # Vertical line showing the centred feature
         self._inc_arg('--vline_style',
-            default = '-.', choices=['-.', '-', '.'],
-            help='line style for centred vertical line')
+                default = '-.', choices=['-.', '-', '.'],
+                help='line style for centred vertical line')
         self._inc_arg('--vline_width', type=int,
-            default = 2,
-            help='line width for centred vertical line')
+                default = 2,
+                help='line width for centred vertical line')
 
         # Plotted line opacity
         self._inc_arg('--line_alpha', type=float, default=1.0,
-            help='Opacity of lines')
+                help='Opacity of lines')
 
         self._inc_arg('-p', '--plot_series', action='store_true',
-            default=False, help='Plot series of figures. A directory called '\
-            +'plot_filename-series will be created.')
+                default=False, help='Plot series of figures. A directory called '\
+                +'plot_filename-series will be created.')
 
         # Position of legend?
         self._inc_arg('--text_coords', default=None,
-            help='x, y coordinates of series text (e.g. 600,3.0)')
+                help='x, y coordinates of series text (e.g. 600,3.0)')
+
+        self._inc_arg('--div', type=int, default = None,
+                help='For use only with --topgenes and 2 plottable groups, divides ' \
+                'one of the lines by the other. Takes an integer which is the number ' \
+                'of the data set in alphabetical order')
+        
+        self._inc_arg('--normalise_tags1', type=int,
+                default=None, help='The number of mapped bases (reads x length) in ' \
+                'the data set. Is only used with Mean Counts, and only when group_size ' \
+                'is a defined number - not All.')
+        self._inc_arg('--normalise_tags2', type=int,
+                default=None, help='The number of mapped bases (reads x length) in '\
+                'the data set. Is only used with Mean Counts, and only when group_size '\
+                'is a defined number - not All. Normalises 2nd data set.')
+        self._inc_arg('--normalise_tags3', type=int,
+                default=None, help='The number of mapped bases (reads x length) in '\
+                'the data set. Is only used with Mean Counts, and only when group_size '\
+                'is a defined number - not All. Normalises 3rd data set')
 
     def _add_db_args(self):
         """ options for starting a ChipPy DB """
@@ -255,6 +280,8 @@ class Args(object):
         self._inc_arg('-t', '--test_run', action='store_true',
                 help="Test run, don't write output",
                 default=False)
+
+        self._inc_arg('--version', action='version', version='ChipPy r637')
 
     def __init__(self, positional_args=None, required_args=None,
                 optional_args=None):

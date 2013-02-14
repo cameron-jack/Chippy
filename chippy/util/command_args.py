@@ -5,13 +5,13 @@ from chippy.express import db_query
 from chippy.express.util import sample_types
 
 __author__ = 'Cameron Jack'
-__copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
-__credits__ = ['Gavin Huttley, Cameron Jack']
+__copyright__ = 'Copyright 2011-2012, Gavin Huttley, Anuj Pahwa, Cameron Jack'
+__credits__ = ['Cameron Jack']
 __license__ = 'GPL'
-__maintainer__ = 'Gavin Huttley'
-__email__ = 'Gavin.Huttley@anu.edu.au'
-__status__ = 'alpha'
-__version__ = '0.1'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'pre-release'
+__version__ = '638'
 
 # Example of mutually exclusive options
 #group = parser.add_mutually_exclusive_group()
@@ -237,7 +237,7 @@ class Args(object):
                 help='For use only with --topgenes and 2 plottable groups, divides ' \
                 'one of the lines by the other. Takes an integer which is the number ' \
                 'of the data set in alphabetical order')
-        
+
         self._inc_arg('--normalise_tags1', type=int,
                 default=None, help='The number of mapped bases (reads x length) in ' \
                 'the data set. Is only used with Mean Counts, and only when group_size ' \
@@ -281,7 +281,7 @@ class Args(object):
                 help="Test run, don't write output",
                 default=False)
 
-        self._inc_arg('--version', action='version', version='ChipPy r637')
+        self._inc_arg('--version', action='version', version='ChipPy r'+__version__)
 
     def __init__(self, positional_args=None, required_args=None,
                 optional_args=None):

@@ -106,6 +106,10 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
         entry_chrom = str(bed_parts[0]).lstrip(chr_prefix)
         entry_start = int(bed_parts[1])+1 # 0-offset to 1-offset
         entry_end = int(bed_parts[2]) # already 1-offset in BED
+
+        if not entry_chrom in roi_chrom_dict.keys():
+            continue
+
         for roi in roi_chrom_dict[entry_chrom]:
             if entry_end >= roi.window_start: # potential for overlap
                 if entry_start < roi.window_end:

@@ -152,7 +152,7 @@ def _filter_collection(data_collection, cutoff, target_sample, stable_ids, rr):
     
     return data_collection, window_size, rr
 
-def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plot_series, rr):
+def _group_genes(data_collection, group_size, labels, counts_func, top_features, plot_series, rr):
 
     if group_size=='All':
         counts, ranks = data_collection.transformed(counts_func=counts_func)
@@ -172,7 +172,7 @@ def _group_genes(data_collection, group_size, labels, counts_func, topgenes, plo
             ranks.append(r)
             labels_set.append(labels)
 
-            if topgenes:
+            if top_features:
                 num_groups = 1
                 return counts, ranks, num_groups, labels_set, rr
 
@@ -211,13 +211,14 @@ def set_environment():
     pos_args = ['db_path']
     req_args = ['collection', 'metric', 'plot_filename']
     opt_args = ['ylim', 'fig_height', 'fig_width',
-                'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_label',
+                'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
                 'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
-                'xlabel','ylabel', 'x_font_size', 'y_font_size', 'legend',
+                'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
                 'legend_font_size', 'vline_style', 'vline_width',
                 'line_alpha', 'chrom', 'external_sample', 'group_size',
                 'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
-                'plot_series', 'text_coords', 'test_run', 'version']
+                'plot_series', 'text_coords', 'test_run', 'version',
+                'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3']
 
     inputs = Args(required_args=req_args,
             optional_args=opt_args, positional_args=pos_args)
@@ -238,19 +239,20 @@ def main():
     
     rr.addMessage('plot_centred_counts', LOG_INFO,
         'using metric', args.metric)
-    
-    target_sample = get_sample_name(args.target_sample)
+
+    target_sample=None
+    #target_sample = get_sample_name(args.target_sample)
     stable_ids = None
-    if target_sample is not None:
-        rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Using an target sample', target_sample)
-        genes = db_query.get_target_genes(session, target_sample)
-        stable_ids = [g.ensembl_id for g in genes]
-    elif args.chrom != 'All':
-        rr.addMessage('plot_centred_counts', LOG_INFO,
-            'Querying a single chromosome', args.chrom)
-        genes = db_query.get_genes(session, args.chrom)
-        stable_ids = [g.ensembl_id for g in genes]
+    #if target_sample is not None:
+    #    rr.addMessage('plot_centred_counts', LOG_INFO,
+    #        'Using an target sample', target_sample)
+    #    genes = db_query.get_target_genes(session, target_sample)
+    #    stable_ids = [g.ensembl_id for g in genes]
+    #elif args.chrom != 'All':
+    #    rr.addMessage('plot_centred_counts', LOG_INFO,
+    #        'Querying a single chromosome', args.chrom)
+    #    genes = db_query.get_genes(session, args.chrom)
+    #    stable_ids = [g.ensembl_id for g in genes]
 
     # if we have a plot series, we need to create a directory to dump the
     # files into
@@ -357,7 +359,7 @@ def main():
     for dc_index, data_collection in enumerate(data_collection_set):
         counts, ranks, num_groups, labels, rr = _group_genes(data_collection,
                 group_size=group_size, labels=filenames_set[iteration],
-                counts_func=counts_func, topgenes=args.topgenes,
+                counts_func=counts_func, top_features=args.top_features,
                 plot_series=args.plot_series, rr=rr)
 
         if args.smoothing > 0:
@@ -415,7 +417,7 @@ def main():
             labels_set.append(label)
         iteration += 1
 
-    if args.div and args.topgenes and len(count_set) == 2:
+    if args.div and args.top_features and len(count_set) == 2:
         # divide one set of counts by the other.
         # top100 genes is essential to keep plots comparable
         div_c = []
@@ -513,9 +515,9 @@ def main():
             width=args.fig_width/2.5, bgcolor=bgcolor, grid=grid,
             ylim=ylim, xlim=(-window_size, window_size),
             xtick_space=args.xgrid_lines, ytick_space=args.ygrid_lines,
-            xtick_interval=args.xlabel_interval,
-            ytick_interval=args.ylabel_interval,
-            xlabel_fontsize=args.xfontsize, ylabel_fontsize=args.yfontsize,
+            xtick_interval=args.xtick_interval,
+            ytick_interval=args.ytick_interval,
+            xlabel_fontsize=args.xfont_size, ylabel_fontsize=args.yfont_size,
             vline=vline, ioff=True, colorbar=args.colorbar,
             clean=args.clean_plot)
     
@@ -575,7 +577,7 @@ def main():
                 label_coords=label_coords, alpha=args.line_alpha,
                 xlabel=args.xlabel, ylabel=args.ylabel, title=args.title,
                 colorbar=args.colorbar, labels=labels_set,
-                labels_size=args.legend_size)
+                labels_size=args.legend_font_size)
 
     elif len(count_set) > 1:
         # spread colours almost evenly throughout the 256^3 colour-space
@@ -637,17 +639,20 @@ def main():
                 filename_series=filename_series, label_coords=label_coords,
                 alpha=args.line_alpha, xlabel=args.xlabel,
                 ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-                labels=labels_set, labels_size=args.legend_size)
+                labels=labels_set, labels_size=args.legend_font_size)
 
         else:
             plot(x, y_series=counts, color_series=ranks, series_labels=series_labels,
                 filename_series=filename_series, label_coords=label_coords,
                 alpha=args.line_alpha, xlabel=args.xlabel,
                 ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-                labels=labels_set, labels_size=args.legend_size)
+                labels=labels_set, labels_size=args.legend_font_size)
     
     if args.plot_filename and not args.test_run:
-        plot.savefig(args.plot_filename, image_format='pdf')
+        if '.pdf' in args.plot_filename.lower():
+            plot.savefig(args.plot_filename, image_format='pdf')
+        else:
+            plot.savefig(args.plot_filename+'.pdf', image_format='pdf')
     else:
         print args.plot_filename
     

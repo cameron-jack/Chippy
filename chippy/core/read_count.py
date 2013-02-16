@@ -13,9 +13,9 @@ from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 from chippy.util.run_record import RunRecord
 from gzip import GzipFile
 
-__author__ = "Cameron Jack"
+__author__ = "Cameron Jack, Gavin Huttley"
 __copyright__ = "Copyright 2011-2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
-__credits__ = ['Cameron Jack']
+__credits__ = ['Cameron Jack', 'Gavin Huttley']
 __license__ = "GPL"
 __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
@@ -33,23 +33,14 @@ def run_command(command):
     return returncode, stdout, stderr
 
 def add_counts_to_ROI(roi, entry_start, entry_end):
-    """ read entries should be 1-offset, ROI window start and end should be
-    1-offset. You can simply subtract one from the other to get the window
-    array index. """
-
-    # This would cause a problem! It doesn't return any counts data!
-    # Also we need to be able to deal with a read of length 1
-    #if entry_start == entry_end:
-    #    return
-
-    entry_end += 1 # slice adjustment
+    """ All coordinates are in Python 0-offset space """
 
     if roi.strand == PLUS_STRAND:
-        offset_left = entry_start - roi.window_start
-        offset_right = entry_end - roi.window_start
+        offset_left = entry_start - roi.start
+        offset_right = entry_end - roi.start
     else:
-        offset_left = roi.window_end - entry_end
-        offset_right = roi.window_end - entry_start
+        offset_left = roi.end - entry_end
+        offset_right = roi.end - entry_start
 
     assert offset_left < offset_right, 'left slicing coord must be less '+\
             'than right slicing coord'
@@ -65,8 +56,7 @@ def add_counts_to_ROI(roi, entry_start, entry_end):
 def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     """ read BED entries and add into each ROI as appropriate
 
-    BED entries are 0-offset for start, 1-offset for end.
-    should increment position of start of read
+    BED entries are 0-offset for start, 1-offset for end - same as Python.
     """
     if '.gz' in bedfile_path:
         bed_data = GzipFile(bedfile_path, 'rb')
@@ -93,7 +83,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
 
     for chrom_key in roi_chrom_dict.keys():
         roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
-                key=lambda roi: roi.window_start)
+                key=lambda roi: roi.start)
     filled_ROIs = []
     for i, bed_entry in enumerate(bed_data):
         if i % 100 == 0:
@@ -104,15 +94,15 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
 
         bed_parts = bed_entry.split('\t')
         entry_chrom = str(bed_parts[0]).lstrip(chr_prefix)
-        entry_start = int(bed_parts[1])+1 # 0-offset to 1-offset
-        entry_end = int(bed_parts[2]) # already 1-offset in BED
+        entry_start = int(bed_parts[1])
+        entry_end = int(bed_parts[2])
 
         if not entry_chrom in roi_chrom_dict.keys():
             continue
 
         for roi in roi_chrom_dict[entry_chrom]:
-            if entry_end >= roi.window_start: # potential for overlap
-                if entry_start < roi.window_end:
+            if entry_end >= roi.start: # potential for overlap
+                if entry_start <= roi.end:
                     #add count to ROI
                     roi.counts = add_counts_to_ROI(roi, entry_start, entry_end)
                 else: # no more entries for ROI
@@ -145,7 +135,7 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     for i, roi in enumerate(ui.series(ROIs, 'Loading Regions of Interest')):
         chrom = chr_prefix + roi.chrom # default is ''
         command = 'samtools view ' + bamfile_path + ' ' + chrom +\
-                ':' + str(roi.window_start+1) + '-' + str(roi.window_end)
+                ':' + str(roi.start+1) + '-' + str(roi.end)
         returncode, stdout, stderr = run_command(command)
         if 'fail to determine the sequence name' in stderr:
             reported = False
@@ -168,15 +158,10 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
                 entry_flag = int(entry_parts[1])
                 if entry_flag in valid_flags:
                     valid_flag_count += 1
-                    entry_start = int(entry_parts[3])
-                    # using the length of the reads causes inconsistency between
-                    # BAM and BED readers in the case of Indels!
-                    # entry_length = len(entry_parts[9])
-                    # Need to use CIGAR string instead
+                    entry_start = int(entry_parts[3]) - 1 # translate into 0-based space
                     length_components = map(int, re.findall(r"([\d]+)M", entry_parts[5]))
                     entry_length = sum(length_components)
-                    # end -1 because length includes the start position
-                    entry_end = entry_start + entry_length -1
+                    entry_end = entry_start + entry_length
                     roi.counts = add_counts_to_ROI(roi, entry_start, entry_end)
                 else:
                     invalid_flag_count += 1

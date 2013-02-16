@@ -54,7 +54,7 @@ class Args(object):
 
         self._inc_arg('--make_bedgraph', action='store_true', help='Enable '+\
                 'Output to BEDgraph during export. Save name is same as ChipPy DB'+\
-                "but with a '_expressionname.bedgraph' extension")
+                "but with a '_expression-name.bedgraph' extension")
         self._inc_arg('-c', '--collection', help='Path to the plottable data')
         self._inc_arg('--plot_filename',
                 help='Name of final plot file')
@@ -137,7 +137,7 @@ class Args(object):
             help='Sum counts within integer-sized bins across plot')
 
         # Filter out over- and under-expression outliers
-        self._inc_arg('-k', '--cutoff', type=float, default = None,
+        self._inc_arg('-k', '--cutoff', type=float, default = 0.05,
             help='Probability cutoff. Exclude genes if the probability of '\
                  'the observed tag count is less than or equal to this value '\
                  'e.g. 0.05.')
@@ -147,7 +147,7 @@ class Args(object):
                 'Intron_3p', 'Both_3p'], help='Expression area options: ' \
                 'TSS, Exon_3p, Intron-3p, Both-3p')
 
-        self._inc_arg('--window_size', type=int, default=1000,
+        self._inc_arg('--window_radius', type=int, default=1000,
                 help='Region size around TSS')
 
         self._inc_arg('--multitest_signif_val', type=int,
@@ -166,9 +166,9 @@ class Args(object):
         # Create options essential for making a plot
         self._inc_arg('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-        self._inc_arg('-H', '--fig_height', type=float, default=2.5*3,
+        self._inc_arg('-H', '--fig_height', type=float, default=6*2.5,
                 help='Figure height (cm)')
-        self._inc_arg('-W', '--fig_width', type=float, default=2.5*5,
+        self._inc_arg('-W', '--fig_width', type=float, default=10*2.5,
                 help='Figure width (cm)')
 
         # Important note, grid_lines are an absolute scale!
@@ -203,9 +203,9 @@ class Args(object):
              help='Label for the y-axis')
         self._inc_arg('--xlabel', default = 'Position relative to TSS',
                 help='Label for the x-axis')
-        self._inc_arg('--x_font_size', type=int, default=12,
+        self._inc_arg('--xfont_size', type=int, default=12,
                 help='font size for x label')
-        self._inc_arg('--y_font_size', type=int, default=12,
+        self._inc_arg('--yfont_size', type=int, default=12,
                 help='font size for y label')
 
         # Turn on line legend and set font size

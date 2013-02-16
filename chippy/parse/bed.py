@@ -59,9 +59,9 @@ def _get_strand(val):
     strand = [-1,1][val == '+']
     return strand
 
+pattern = re.compile(r'[0-9,X,Y,MT]+')
 def _get_chrom(val):
     """ returns the int component of a chromosome number """
-    pattern = re.compile(r'[0-9,X,Y,MT]+')
     chrom = pattern.search(val).group(0)
     return chrom
 

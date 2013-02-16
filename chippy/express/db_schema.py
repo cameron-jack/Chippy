@@ -20,9 +20,9 @@ __status__ = "Pre-release"
 __version__ = '0.1'
 
 ###
-# IMPORTANT: Coords given by PyCogent and used here are offset 1 (same
-# as Ensembl) so that when the genome is placed in a numpy array, the
-# coords may be used to slice the array directly
+# IMPORTANT: Coords given by PyCogent and used here are offset 0 [,)
+# (Ensembl is offset 1 [,] ) so that when the genome is placed in a numpy
+# array, the coords may be used to slice the array directly
 ###
 
 Session = sessionmaker()
@@ -227,28 +227,23 @@ class Gene(Base):
                 self._tss = self.end
         return self._tss
     
-    def getTssCentredCoords(self, size):
+    def getTssCentredCoords(self, radius):
         """returns start, end centred on the gene TSS """
-        if self.strand == PLUS_STRAND:
-            start = self.Tss - size # Okay to go negative as this is simply an offset
-            end = self.Tss + size # even sized window, TSS at first positive position
-        else: # required to make the TSS on the right hand side
-            start = self.Tss - size + 1
-            end = self.Tss + size + 1
-        # window size is defined as start - end
+        start = self.Tss - radius  # Okay to go negative as this is simply an offset
+        end = self.Tss + radius  # even sized window, TSS at first positive position
 
-        assert size*2 == end - start, 'window size: '+str(end-start)+\
-                ' .Expected: '+str(size)
+        assert radius*2 == end - start, 'window size: '+str(end-start)+\
+                ' .Expected: '+str(radius*2)
 
         return start, end
     
-    def getUpstreamCoords(self, size):
+    def getUpstreamCoords(self, radius):
         """returns coords ending at the TSS"""
         tss = self.Tss
         if self.strand == 1:
-            start, end = tss-size, tss
+            start, end = tss-radius, tss
         else:
-            start, end = tss, tss+size
+            start, end = tss, tss+radius
         return start, end
 
     def getAllIntronExonPos(self):

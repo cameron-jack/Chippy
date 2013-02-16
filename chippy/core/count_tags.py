@@ -23,7 +23,8 @@ __status__ = "Pre-release"
 __version__ = '0.1'
 
 class ROI(object):
-    def __init__(self, gene, window_start, window_end, label=None):
+    def __init__(self, gene, start, end, label=None):
+        """ All coordinates are in Python 0-based [,) space """
         super(ROI, self).__init__()
         #self.species = species
         self.chrom = gene.chrom
@@ -35,26 +36,26 @@ class ROI(object):
         self.rank = gene.Rank
         self.TSS = gene.Tss
         self.strand = gene.strand
-        self.window_start = window_start # 1-based position
-        self.window_end = window_end # 1-based position
+        self.start = start
+        self.end = end
         try:
-            self.counts = numpy.zeros(window_end - window_start, dtype=numpy.uint32)
+            self.counts = numpy.zeros(end - start, dtype=numpy.uint32)
         except ValueError:
             print self.chrom, self.label, self.rank, self.TSS, \
-                    window_start, window_end, self. strand
+                    start, end, self. strand
 
 def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
     """ ROIs sorted by chromosome then start location get written as
     bedgraphs using PyCogent's BEDgraph writer.
     """
 
-    ROIs = sorted(ROIs, key=lambda roi: (roi.chrom, roi.window_start))
+    ROIs = sorted(ROIs, key=lambda roi: (roi.chrom, roi.start))
 
     record_tuples = []
     for roi in ROIs:
         for i, c in enumerate(roi.counts):
             if c != 0:
-                pos = roi.window_start + i - 1 # bedgraph is 0-offset
+                pos = roi.start + i # BEDgraph is 0-based like Python
                 record_tuples.append((roi.chrom, pos, pos, c))
     rr.addInfo('write_to_bedgraph', 'number of records to combine',
             len(record_tuples))
@@ -69,23 +70,24 @@ def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
     return rr
 
 def get_counts_ranks_ids(genes, BAMorBED, expr_area,
-            chr_prefix, window_size=1000, bedgraph=None,
+            chr_prefix, window_radius=1000, bedgraph=None,
             rr=RunRecord(), ui=None):
-    """ window length=2*window_size (Start of feature is at position 1)
+    """ window length=2*window_radius (Start of feature is right of centre.
         Build regions of interest (ROI) and return as lists of
-        counts, ranks and ensembl_ids, sorted by rank
+        counts, ranks and ensembl_ids, sorted by rank.
+        All coordinates in Python 0-offset space.
     """
     regionsOfInterest = []
 
     if expr_area.lower() == 'tss':
         for gene in genes:
-            win_start, win_end = gene.getTssCentredCoords(window_size)
+            win_start, win_end = gene.getTssCentredCoords(window_radius)
             roi = ROI(gene, win_start, win_end)
             regionsOfInterest.append(roi)
 
     elif expr_area.lower() == 'intron-exon':
         for gene in genes:
-            window_list = gene.getAllIntronExonWindows(window_size)
+            window_list = gene.getAllIntronExonWindows(window_radius)
             for i, window in enumerate(window_list):
                 win_start, win_end = window
                 roi = ROI(gene, win_start, win_end,
@@ -112,7 +114,7 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
     return counts, ranks, ensembl_ids, rr
 
 def centred_counts_for_genes(session, sample_name, expr_area, species,
-        BAMorBED, chr_prefix, window_size=1000,
+        BAMorBED, chr_prefix, window_radius=1000,
         include_target=None, exclude_target=None,
         bedgraph=None, rr=RunRecord(),
         test_run=False):
@@ -135,19 +137,19 @@ def centred_counts_for_genes(session, sample_name, expr_area, species,
     print 'Decorating for', len(expressed_genes), 'genes'
     counts, ranks, ensembl_ids, rr = get_counts_ranks_ids(\
             expressed_genes, BAMorBED, expr_area, chr_prefix,
-            window_size=window_size, bedgraph=bedgraph, rr=rr)
+            window_radius=window_radius, bedgraph=bedgraph, rr=rr)
 
     data = RegionCollection(counts=counts, ranks=ranks,
         labels=ensembl_ids,
         info={'total expressed genes': len(expressed_genes),
-                'args': {'window_size': window_size,
+                'args': {'window_radius': window_radius,
                 'sample_name': sample_name,
                 'species': species}})
 
     return data, rr
 
 def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
-        BAMorBED, chr_prefix, window_size,
+        BAMorBED, chr_prefix, window_radius,
         multitest_signif_val, include_target=None, exclude_target=None,
         bedgraph=None, rr=RunRecord(), test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc ..
@@ -169,12 +171,12 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
 
     counts, ranks, ensembl_ids, rr = get_counts_ranks_ids(\
             expressed_diff, BAMorBED, expr_area, chr_prefix,
-            window_size=window_size, bedgraph=bedgraph, rr=rr)
+            window_radius=window_radius, bedgraph=bedgraph, rr=rr)
 
     data = RegionCollection(counts=counts, ranks=ranks,
         labels=ensembl_ids,
         info={'total expressed genes': len(expressed_diff),
-                'args': {'window_size': window_size,
+                'args': {'window_radius': window_radius,
                 'sample_name': sample_name,
                 'species': species}})
 

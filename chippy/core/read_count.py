@@ -37,8 +37,10 @@ def add_counts_to_ROI(roi, entry_start, entry_end):
     1-offset. You can simply subtract one from the other to get the window
     array index. """
 
-    if entry_start == entry_end:
-        return
+    # This would cause a problem! It doesn't return any counts data!
+    # Also we need to be able to deal with a read of length 1
+    #if entry_start == entry_end:
+    #    return
 
     entry_end += 1 # slice adjustment
 

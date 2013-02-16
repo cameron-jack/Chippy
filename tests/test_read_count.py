@@ -46,16 +46,61 @@ class MinimalRegionCountTests(TestCase):
         return ROIs
 
     def test_add_counts_to_ROI(self):
-        """ If this function works, the rest should easy """
+        """ Source irrespective, reads should map onto ROI correcly """
         ROIs = self.setUpROIsForSynthTests()
+
+        # length 1 reads with positive strand
+        entry_start=4 # At TSS
+        entry_end=4
+        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
+        entry_start=8
+        entry_end=8
+        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=9 # this is to the right of the ROI
+        entry_end=9
+        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=-1 # should work okay with negative indices
+        entry_end=-1
+        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        self.assertEqual(ROIs[0].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=-2 # this is to the left of the ROI
+        entry_end=-2
+        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        self.assertEqual(ROIs[0].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+
+        # length 1 reads with negative strand
+        entry_start=10 # right hand edge of window
+        entry_end=10
+        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
+        entry_start=6 # RHS of window
+        entry_end=6
+        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=5 # 1 beyond RHS of window
+        entry_end=5
+        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=15 # LHS of window
+        entry_end=15
+        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+        entry_start=16 # 1 beyond LHS of window
+        entry_end=16
+        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
+
 
         # First case, perfect overlap, slightly inside the ROI
         entry_start = 1 # start at genome position 1
         entry_end = 7 # end and include genome position 7
         add_counts_to_ROI(ROIs[0], entry_start, entry_end)
-        self.assertEqual(ROIs[0].counts, [0, 0, 1, 1, 1, 1, 1, 1, 1, 0])
+        self.assertEqual(ROIs[0].counts, [1, 0, 1, 1, 1, 2, 1, 1, 1, 1])
         add_counts_to_ROI(ROIs[1], entry_start, entry_end)
-        self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
+        self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 1, 2])
         add_counts_to_ROI(ROIs[2], entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
 
@@ -63,9 +108,9 @@ class MinimalRegionCountTests(TestCase):
         entry_start = 7
         entry_end = 12
         add_counts_to_ROI(ROIs[0], entry_start, entry_end)
-        self.assertEqual(ROIs[0].counts, [0, 0, 1, 1, 1, 1, 1, 1, 2, 1])
+        self.assertEqual(ROIs[0].counts, [1, 0, 1, 1, 1, 2, 1, 1, 2, 2])
         add_counts_to_ROI(ROIs[1], entry_start, entry_end)
-        self.assertEqual(ROIs[1].counts, [0, 0, 0, 1, 1, 1, 1, 1, 2, 1])
+        self.assertEqual(ROIs[1].counts, [1, 0, 0, 1, 1, 2, 1, 1, 2, 2])
         add_counts_to_ROI(ROIs[2], entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1, 1, 1, 2, 1, 1, 1, 1, 1, 1])
 
@@ -73,9 +118,9 @@ class MinimalRegionCountTests(TestCase):
         entry_start = -2
         entry_end = 2
         add_counts_to_ROI(ROIs[0], entry_start, entry_end)
-        self.assertEqual(ROIs[0].counts, [1, 1, 2, 2, 1, 1, 1, 1, 2, 1])
+        self.assertEqual(ROIs[0].counts, [2, 1, 2, 2, 1, 2, 1, 1, 2, 2])
         add_counts_to_ROI(ROIs[1], entry_start, entry_end)
-        self.assertEqual(ROIs[1].counts, [0, 0, 0, 1, 1, 1, 1, 1, 2, 1])
+        self.assertEqual(ROIs[1].counts, [1, 0, 0, 1, 1, 2, 1, 1, 2, 2])
         add_counts_to_ROI(ROIs[2], entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1, 1, 1, 2, 1, 1, 1, 1, 2, 2])
 

@@ -123,7 +123,7 @@ def main():
     bedgraph_fn = None
     if args.make_bedgraph:
         bedgraph_fn = db_name.split('.')[0] + '_'+sample_name+'.bedgraph'
-        
+
     rr.addInfo('export_centred_counts', 'BAM/BED chromosome prefix given',
         args.chr_prefix)
     rr.addInfo('export_centred_counts', 'include gene targets',

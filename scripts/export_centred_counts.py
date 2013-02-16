@@ -41,7 +41,7 @@ def set_environment():
     req_args = ['sample', 'sample_type', 'expression_area',
             'BAMorBED',  'collection']
     opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
-                'count_max_length', 'window_size', 'multitest_signif_val',
+                'count_max_length', 'window_radius', 'multitest_signif_val',
                 'include_target', 'exclude_target', 'test_run', 'version',
                 'make_bedgraph']
 
@@ -53,7 +53,7 @@ def set_environment():
     return inputs.parsed_args, script_info, rr
 
 def get_collection(session, sample_name, expr_area, species, BAMorBED,
-        chr_prefix, window_size,
+        chr_prefix, window_radius,
         multitest_signif_val, filename, overwrite, sample_type,
         tab_delimited, include_target=None, exclude_target=None,
         bedgraph=None, rr=RunRecord(), test_run=False):
@@ -63,7 +63,7 @@ def get_collection(session, sample_name, expr_area, species, BAMorBED,
             print "Collecting data for absolute expression experiment"
             data_collection, rr = centred_counts_for_genes(session,
                     sample_name, expr_area, species, BAMorBED,
-                    chr_prefix, window_size,
+                    chr_prefix, window_radius,
                     include_target, exclude_target,
                     bedgraph, rr, test_run)
         
@@ -72,7 +72,7 @@ def get_collection(session, sample_name, expr_area, species, BAMorBED,
             data_collection, rr = centred_diff_counts_for_genes(
                     session, sample_name, expr_area, species,
                     BAMorBED, chr_prefix,
-                    window_size, multitest_signif_val, include_target,
+                    window_radius, multitest_signif_val, include_target,
                     exclude_target, bedgraph,rr, test_run)
             
         else:
@@ -136,7 +136,7 @@ def main():
         data_collection, rr = get_collection(session, sample_name,
                 args.expression_area, species, args.BAMorBED,
                 args.chr_prefix,
-                args.window_size,
+                args.window_radius,
                 args.multitest_signif_val, args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
                 exclude_name, bedgraph=bedgraph_fn, rr=rr, test_run=args.test_run)

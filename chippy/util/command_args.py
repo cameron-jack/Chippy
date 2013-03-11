@@ -111,9 +111,11 @@ class Args(object):
         # or external sample (gene) choice
         # NOTE: Should be target_sample
         if self.db_path:
+            # external_sample is legacy from the old Plot_centred_counts
+            # Should be replaced with --include_target --exclude_target
             self._inc_arg('-E', '--external_sample', default=None,
-                choices=self._make_sample_choices(),
-                help='External sample')
+                    choices=self._make_sample_choices(),
+                    help='External sample')
 
         # group genes into sets ranked by expression
         self._inc_arg('-g', '--group_size', default='All',
@@ -239,6 +241,10 @@ class Args(object):
                 'one of the lines by the other. Takes an integer which is the number ' \
                 'of the data set in alphabetical order')
 
+        # Uses the 'tag count' arg value in the export file
+        self._inc_arg('--normalise_by_RPM', action='store_true',
+                help='Normalise by Reads Per mapped-Millon')
+        # DEPRECATED by the above.
         self._inc_arg('--normalise_tags1', type=int,
                 default=None, help='The number of mapped bases (reads x length) in ' \
                 'the data set. Is only used with Mean Counts, and only when group_size ' \

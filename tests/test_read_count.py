@@ -182,7 +182,11 @@ class MinimalRegionCountTests(TestCase):
         Negative stand expectations are offset here because that's what's
         in the data """
         ROIs = self.setUpROIsForFiles()
-        ROIs, rr = read_BAM('data/brca2-11_sorted.bam', ROIs)
+        ROIs, num_tags, num_bases, rr = read_BAM('data/brca2-11_sorted.bam',
+                ROIs)
+
+        self.assertEqual(num_tags, 8) # 2 reads for each of the first 4 cases
+        self.assertEqual(num_bases, 40) # sum of all counts
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
         self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 0, 2, 2, 2, 2])
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2])
@@ -196,7 +200,9 @@ class MinimalRegionCountTests(TestCase):
         Negative stand expectations are offset here because that's what's
         in the data. """
         ROIs = self.setUpROIsForFiles()
-        ROIs, rr = read_BED('data/brca2-11.bed', ROIs)
+        ROIs, num_tags, num_bases, rr = read_BED('data/brca2-11.bed', ROIs)
+        self.assertEqual(num_tags, 8) # 2 reads for each of the first 4 cases
+        self.assertEqual(num_bases, 40) # sum of all counts
 
         # read_BED will often mess up the order of the ROIs so we'll need
         # a clever method to index them to check them correctly

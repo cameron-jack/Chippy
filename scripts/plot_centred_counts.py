@@ -201,24 +201,25 @@ def set_environment():
     script_info = {}
     script_info['title'] = 'Plot read counts heat-mapped by gene expression'
     script_info['script_description'] = 'Takes read counts that are centred on '\
-                                        'on a gene feature such as TSS or intron-exon boundary, sorted '\
-                                        'from high to low gene expression and makes a heat-mapped line plot.'
+            'on a gene feature such as TSS or intron-exon boundary, sorted '\
+            'from high to low gene expression and makes a heat-mapped line plot.'
     script_info['version'] = __version__
     script_info['authors'] = __author__
-    script_info['output_description']= 'Generates either a single pdf figure or'\
-                                       ' a series of pdfs that can be merged into a movie.'
+    script_info['output_description']= 'Generates either a single pdf figure or '\
+            'a series of pdfs that can be merged into a movie.'
 
     pos_args = ['db_path']
     req_args = ['collection', 'metric', 'plot_filename']
     opt_args = ['ylim', 'fig_height', 'fig_width',
-                'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
-                'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
-                'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
-                'legend_font_size', 'vline_style', 'vline_width',
-                'line_alpha', 'chrom', 'external_sample', 'group_size',
-                'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
-                'plot_series', 'text_coords', 'test_run', 'version',
-                'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3']
+            'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
+            'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
+            'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
+            'legend_font_size', 'vline_style', 'vline_width',
+            'line_alpha', 'chrom', 'external_sample', 'group_size',
+            'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
+            'plot_series', 'text_coords', 'test_run', 'version',
+            'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3',
+            'normalise_by_RPM']
 
     inputs = Args(required_args=req_args,
             optional_args=opt_args, positional_args=pos_args)
@@ -374,41 +375,50 @@ def main():
         else:
             genes_per_group = group_size
 
-        # Calculate normalised per million mapped reads (RPM)
+        # Calculate normalised tags per million mapped reads (RPM)
+        # Since we have base counts instead of tag counts we should normalise
+        # by total base counts
         if args.metric.lower() == 'mean counts':
-            if args.normalise_tags1 is not None and dc_index == 0:
+            if args.normalise_by_RPM:
                 normalised_counts = []
-                norm_tags = args.normalise_tags1
+                norm_bases = data_collection.info['args']['base count']
                 for c in counts:
-                    # Which is better, per line or per gene normalisation?
-                    #c = c * genes_per_group * 1000000 / norm_tags # This is per group/line normalisation
-                    c = c * 1000000 / norm_tags # This is per gene normalisation
+                    c = c * 1000000 / norm_bases
                     normalised_counts.append(c)
                 counts = normalised_counts
+            else:
+                if args.normalise_tags1 is not None and dc_index == 0:
+                    normalised_counts = []
+                    norm_tags = args.normalise_tags1
+                    for c in counts:
+                        # Which is better, per line or per gene normalisation?
+                        #c = c * genes_per_group * 1000000 / norm_tags
+                        # ^- this is per group/line normalisation
+                        c = c * 1000000 / norm_tags # This is per gene normalisation
+                        normalised_counts.append(c)
+                    counts = normalised_counts
 
-            if args.normalise_tags2 is not None and dc_index == 1:
-                # Calculate normalised per million mapped reads (RPM)
-                # Hack for 3 data sets, G1, M, S in that order
-                normalised_counts = []
-                norm_tags = args.normalise_tags2
+                if args.normalise_tags2 is not None and dc_index == 1:
+                    # Calculate normalised per million mapped reads (RPM)
+                    # Hack for 3 data sets, G1, M, S in that order
+                    normalised_counts = []
+                    norm_tags = args.normalise_tags2
+                    for c in counts:
+                        #c = c * genes_per_group * 1000000 / norm_tags
+                        c = c * 1000000 / norm_tags
+                        normalised_counts.append(c)
+                    counts = normalised_counts
 
-                for c in counts:
-                    #c = c * genes_per_group * 1000000 / norm_tags
-                    c = c * 1000000 / norm_tags
-                    normalised_counts.append(c)
-                counts = normalised_counts
-
-            if args.normalise_tags3 is not None and dc_index == 2:
-                # Calculate normalised per million mapped reads (RPM)
-                # Hack for 3 data sets, G1, M, S in that order
-                normalised_counts = []
-                norm_tags = args.normalise_tags3
-
-                for c in counts:
-                    #c = c * genes_per_group * 1000000 / norm_tags
-                    c = c * 1000000 / norm_tags
-                    normalised_counts.append(c)
-                counts = normalised_counts
+                if args.normalise_tags3 is not None and dc_index == 2:
+                    # Calculate normalised per million mapped reads (RPM)
+                    # Hack for 3 data sets, G1, M, S in that order
+                    normalised_counts = []
+                    norm_tags = args.normalise_tags3
+                    for c in counts:
+                        #c = c * genes_per_group * 1000000 / norm_tags
+                        c = c * 1000000 / norm_tags
+                        normalised_counts.append(c)
+                    counts = normalised_counts
 
         count_set.append(counts)
         rank_set.append(ranks)

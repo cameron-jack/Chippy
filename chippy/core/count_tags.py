@@ -6,7 +6,7 @@ sys.path.extend(['..'])
 import numpy
 
 from cogent.format.bedgraph import bedgraph
-
+from chippy.core.region_of_interest import ROI
 from chippy.core.read_count import get_region_counts
 from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_ranked_abs_expr_genes, \
@@ -21,28 +21,6 @@ __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
-
-class ROI(object):
-    def __init__(self, gene, start, end, label=None):
-        """ All coordinates are in Python 0-based [,) space """
-        super(ROI, self).__init__()
-        #self.species = species
-        self.chrom = gene.chrom
-        self.gene_id = gene.ensembl_id
-        if not label:
-            self.label = gene.ensembl_id
-        else:
-            self.label = label
-        self.rank = gene.Rank
-        self.TSS = gene.Tss
-        self.strand = gene.strand
-        self.start = start
-        self.end = end
-        try:
-            self.counts = numpy.zeros(end - start, dtype=numpy.uint32)
-        except ValueError:
-            print self.chrom, self.label, self.rank, self.TSS, \
-                    start, end, self. strand
 
 def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
     """ ROIs sorted by chromosome then start location get written as

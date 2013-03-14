@@ -4,9 +4,10 @@ import warnings
 warnings.filterwarnings('ignore',
         "Not using MPI as mpi4py not found")
 
-from cogent.util.unit_test import TestCase, main
+from chippy.core.region_of_interest import ROI
+from cogent.util.unit_test import TestCase
 from chippy.core.count_tags import ROI
-from chippy.core.read_count import read_BAM, read_BED, add_counts_to_ROI
+from chippy.core.read_count import read_BAM, read_BED
 from chippy.express.db_schema import Gene
 
 from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
@@ -53,76 +54,76 @@ class MinimalRegionCountTests(TestCase):
         # length 1 reads with positive strand
         entry_start=4 # At TSS
         entry_end=5
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
         entry_start=8
         entry_end=9
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=9 # this is to the right of the ROI
         entry_end=10
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=-1 # should work okay with negative indices
         entry_end=0
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=-2 # this is to the left of the ROI
         entry_end=-1
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
 
         # length 1 reads with negative strand
         entry_start=10 # At TSS
         entry_end=11
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
         entry_start=6 # RHS of window
         entry_end=7
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=5 # 1 beyond RHS of window
         entry_end=6
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [0, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=15 # LHS of window
         entry_end=16
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
         entry_start=16 # 1 beyond LHS of window
         entry_end=17
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 0, 1])
 
 
         # First case, perfect overlap, slightly inside the ROI
         entry_start = 1
         entry_end = 8 # end and include genome position 7
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [1, 0, 1, 1, 1, 2, 1, 1, 1, 1])
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [1, 0, 0, 0, 0, 1, 0, 0, 1, 2])
-        add_counts_to_ROI(ROIs[2], entry_start, entry_end)
+        ROIs[2].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
 
         # test both addition to previous ROI and positive over-the-edge counts
         entry_start = 7
         entry_end = 13
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [1, 0, 1, 1, 1, 2, 1, 1, 2, 2])
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [1, 0, 0, 1, 1, 2, 1, 1, 2, 2])
-        add_counts_to_ROI(ROIs[2], entry_start, entry_end)
+        ROIs[2].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1, 1, 1, 2, 1, 1, 1, 1, 1, 1])
 
         # test addition and negative over-the-edge counts
         entry_start = -2
         entry_end = 5
-        add_counts_to_ROI(ROIs[0], entry_start, entry_end)
+        ROIs[0].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[0].counts, [2, 1, 2, 2, 2, 3, 1, 1, 2, 2])
-        add_counts_to_ROI(ROIs[1], entry_start, entry_end)
+        ROIs[1].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[1].counts, [1, 0, 0, 1, 1, 2, 1, 1, 2, 2])
-        add_counts_to_ROI(ROIs[2], entry_start, entry_end)
+        ROIs[2].add_counts_to_ROI(entry_start, entry_end)
         self.assertEqual(ROIs[2].counts, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1,  1, 1, 1, 2, 1, 1, 2, 2, 2, 2])
 
     def setUpROIsForFiles(self):
@@ -132,9 +133,12 @@ class MinimalRegionCountTests(TestCase):
         If we take TSS= 151345949 and window radius = 5, then we should get
         945->949 at +2 and 950->954 at 0, in 1-offset space.
         """
-        g1 = Gene('BRCA2a', 'brca2a', 'protein_coding', 'fake_brca2', 'ok', 'chr_5', 151341223, 151345949, PLUS_STRAND)
-        g2 = Gene('BRCA2b', 'brca2b', 'protein_coding', 'fake_brca2', 'ok', 'chr_5', 151341223, 151345949, MINUS_STRAND)
-        g3 = Gene('BRCA2c', 'brca2c', 'protein_coding', 'fake_brca2', 'ok', 'chr_11', 151341223, 151345949, PLUS_STRAND)
+        g1 = Gene('BRCA2a', 'brca2a', 'protein_coding', 'fake_brca2',
+                'ok', 'chr_5', 151341223, 151345949, PLUS_STRAND)
+        g2 = Gene('BRCA2b', 'brca2b', 'protein_coding', 'fake_brca2',
+                'ok', 'chr_5', 151341223, 151345949, MINUS_STRAND)
+        g3 = Gene('BRCA2c', 'brca2c', 'protein_coding', 'fake_brca2',
+                'ok', 'chr_11', 151341223, 151345949, PLUS_STRAND)
 
         ROIs = []
 

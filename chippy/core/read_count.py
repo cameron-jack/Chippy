@@ -9,7 +9,8 @@ import subprocess
 import re
 from cogent.util.progress_display import display_wrap
 
-from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+#from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+from chippy.core.region_of_interest import ROI
 from chippy.util.run_record import RunRecord
 from gzip import GzipFile
 
@@ -31,27 +32,6 @@ def run_command(command):
     stdout, stderr = r.communicate()
     returncode = r.returncode
     return returncode, stdout, stderr
-
-def add_counts_to_ROI(roi, entry_start, entry_end):
-    """ All coordinates are in Python 0-offset space """
-
-    if roi.strand == PLUS_STRAND:
-        offset_left = entry_start - roi.start
-        offset_right = entry_end - roi.start
-    else:
-        offset_left = roi.end - entry_end
-        offset_right = roi.end - entry_start
-
-    assert offset_left < offset_right, 'left slicing coord must be less '+\
-            'than right slicing coord'
-
-    offset_left = 0 if offset_left < 0 else offset_left
-    if offset_right >= len(roi.counts):
-        offset_right = len(roi.counts)
-
-    roi.counts[offset_left:offset_right] += 1
-    bases_counted = offset_right - offset_left
-    return roi.counts, bases_counted
 
 @display_wrap
 def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
@@ -110,7 +90,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
             if entry_end >= roi.start: # potential for overlap
                 if entry_start <= roi.end:
                     #add count to ROI
-                    roi.counts, counted_bases = add_counts_to_ROI(roi,
+                    roi.counts, counted_bases = roi.add_counts_to_ROI(
                             entry_start, entry_end)
                     num_tags += 1
                     num_bases += counted_bases
@@ -178,7 +158,7 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
                             entry_parts[5]))
                     entry_length = sum(length_components)
                     entry_end = entry_start + entry_length
-                    roi.counts, counted_bases = add_counts_to_ROI(roi,
+                    roi.counts, counted_bases = roi.add_counts_to_ROI(
                             entry_start, entry_end)
                     num_tags += 1
                     num_bases += counted_bases

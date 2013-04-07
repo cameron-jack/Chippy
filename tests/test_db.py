@@ -53,7 +53,7 @@ def add_all_gene_exons(session, genes):
 
 class TestDbBase(TestCase):
     def setUp(self):
-        self.session = make_session("sqlite:///:memory:")
+        self.session = make_session(":memory:")
 
 class TestRefFiles(TestDbBase):
     a = 'reffile-a.txt'

@@ -22,23 +22,24 @@ __maintainer__ = "Cameron Jack"
 __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 
-def set_environment():
-    script_info = {}
-    script_info['title'] = 'Creates a chippy project'
-    script_info['script_description'] = "Makes a chippy SQLite database."
-    script_info['version'] = __version__
+script_info = {}
+script_info['title'] = 'Creates a chippy project'
+script_info['script_description'] = "Makes a chippy SQLite database."
+script_info['brief_description'] = "Makes a ChipPy SQLite DB from an "+\
+                                   "Ensembl source"
+script_info['version'] = __version__
 
-    # Process command-line arguments
-    req_args = ['save_db_path', 'ensembl_release', 'species',
+# Process command-line arguments
+req_args = ['save_db_path', 'ensembl_release', 'species',
             'hostname', 'username', 'password', 'port']
-    inputs = Args(required_args=req_args)
 
-    return inputs.parsed_args, script_info
+script_info['args'] = Args(required_args=req_args)
+script_info['required_options'] = script_info['args'].req_cogent_opts
+script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def main():
-    args, script_info = set_environment()
     rr = RunRecord()
-
+    args = script_info['args'].parse()
     create_path(args.save_db_path)
 
     if not os.path.isdir(args.save_db_path):
@@ -49,7 +50,7 @@ def main():
     species = args.species
     chippy_db_name = 'chippy_' + str(release) +'_' + species + '.db'
     db_path = os.path.join(args.save_db_path, chippy_db_name)
-    session = make_session('sqlite:///' + db_path)
+    session = make_session(db_path)
     hostname = args.hostname
     username = args.username
     password = args.password

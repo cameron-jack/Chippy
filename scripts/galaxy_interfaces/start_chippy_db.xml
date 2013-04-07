@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<tool id="start_chippy_db" name="start chippy db" version="0.9.dev">
+	<description>
+		Makes a ChipPy SQLite DB from an Ensembl source
+	</description>
+	<requirements>
+		<requirement type="package">
+			qiime
+		</requirement>
+	</requirements>
+	<command>
+		start_chippy_db.py --save_db_path=$save_db_path --ensembl_release=$ensembl_release --species=$species --hostname=$hostname --username=$username --password=$password --port=$port
+	</command>
+	<inputs>
+		<param label="path to directory where chippy.db will be saved" name="save_db_path" optional="False" type="text"/>
+		<param label="Ensembl release to use." name="ensembl_release" optional="False" type="integer" value="0"/>
+		<param default="mouse" label="Create for species e.g. 'mouse','human'" name="species" optional="False" type="text"/>
+		<param default="None" label="hostname for SQL Ensembl server" name="hostname" optional="False" type="text"/>
+		<param default="None" label="username SQL Ensembl server" name="username" optional="False" type="text"/>
+		<param default="None" label="password for SQL Ensembl server" name="password" optional="False" type="text"/>
+		<param default="None" label="Port for SQL Ensembl server" name="port" optional="False" type="integer" value="0"/>
+	</inputs>
+	<outputs/>
+	<help>
+		Makes a chippy SQLite database.
+	</help>
+</tool>

@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<tool id="export_centred_counts" name="export centred counts" version="0.1">
+	<description>
+		Extracts counts from sequenced regions
+	</description>
+	<requirements>
+		<requirement type="package">
+			qiime
+		</requirement>
+	</requirements>
+	<command>
+		export_centred_counts.py --db_path=$db_path -c $collection --sample_type=$sample_type -B $BAMorBED --expression_area=$expression_area
+#if $make_bedgraph:
+ --make_bedgraph
+#end if
+
+#if $overwrite:
+ -f
+#end if
+
+#if $tab_delimited:
+ --tab_delimited
+#end if
+
+#if str($chr_prefix):
+ --chr_prefix=$chr_prefix
+#end if
+
+#if $window_radius:
+ --window_radius=$window_radius
+#end if
+
+#if $multitest_signif_val:
+ --multitest_signif_val=$multitest_signif_val
+#end if
+
+#if str($include_target) != 'None':
+ --include_target=$include_target
+#end if
+
+#if str($exclude_target) != 'None':
+ --exclude_target=$exclude_target
+#end if
+
+#if $test_run:
+ -t
+#end if
+
+	</command>
+	<inputs>
+		<param label="Path to ChippyDB" name="db_path" optional="False" type="data"/>
+		<param label="Path to the plottable data" name="collection" optional="False" type="text"/>
+		<param label="Select the type of data you want entered from target_genes exp_absolute exp_diff" name="sample_type" optional="False" type="select">
+			<option value="target_genes">
+				target_genes
+			</option>
+			<option value="exp_absolute">
+				exp_absolute
+			</option>
+			<option value="exp_diff">
+				exp_diff
+			</option>
+		</param>
+		<param label="Read counts. Either an indexed BAM or a BED file" name="BAMorBED" optional="False" type="text"/>
+		<param label="Expression area options: TSS, Exon_3p, Intron-3p, Both-3p" name="expression_area" optional="False" type="select">
+			<option value="TSS">
+				TSS
+			</option>
+			<option value="Exon_3p">
+				Exon_3p
+			</option>
+			<option value="Intron_3p">
+				Intron_3p
+			</option>
+			<option value="Both_3p">
+				Both_3p
+			</option>
+		</param>
+		<param label="Enable Output to BEDgraph during export. Save name is same as ChipPy DBbut with a '_expression-name.bedgraph' extension" name="make_bedgraph" selected="False" type="boolean"/>
+		<param label="Ignore any saved files" name="overwrite" selected="False" type="boolean"/>
+		<param label="output to tab delimited format" name="tab_delimited" selected="False" type="boolean"/>
+		<param default="" label="String added by aligner to prefix chromosome numbers/names." name="chr_prefix" optional="True" type="text"/>
+		<param default="1000" label="Region size around TSS" name="window_radius" optional="True" type="integer"/>
+		<param default="None" label="Restrict plot to genes that pass multitest signficance,valid values: 1, 0, -1" name="multitest_signif_val" optional="True" type="integer"/>
+		<param label="A Target Gene List in ChipPyDB" name="include_target" optional="True" type="select">
+			<option selected="True" value="None">
+				Selection is Optional
+			</option>
+			<option value="None">
+				None
+			</option>
+			<option value="none">
+				none
+			</option>
+		</param>
+		<param label="A Target Gene List in ChipPyDB" name="exclude_target" optional="True" type="select">
+			<option selected="True" value="None">
+				Selection is Optional
+			</option>
+			<option value="None">
+				None
+			</option>
+			<option value="none">
+				none
+			</option>
+		</param>
+		<param label="Test run, don't write output" name="test_run" selected="False" type="boolean"/>
+	</inputs>
+	<outputs/>
+	<help>
+		Saves centred counts for TSS and Exon-3prime, Intron-3prime or Exon 3&amp;5-prime boundaries for a given window size. Reads count info from an indexed BAM or a BED file
+	</help>
+</tool>

@@ -21,34 +21,34 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.2'
 
-def set_environment():
-    """ create the DB session and run options """
-    script_info = {}
-    script_info['title'] = 'Add expression study'
-    script_info['script_description'] = 'Add an expression study or a '\
-            'differential expression study from a tab delimited file, or '\
-            'load an ENSEMBL gene list as target genes.'
+script_info = {}
+script_info['title'] = 'Add expression study'
+script_info['script_description'] = 'Add an expression study or a '+\
+        'differential expression study from a tab delimited file, or '+\
+        'load an ENSEMBL gene list as target genes.'
+script_info['brief_description'] = 'Adds an expression study to a '+\
+        'ChippyDB'
+script_info['version'] = __version__
+script_info['authors'] = __author__
+script_info['output_description']= 'None.'
 
-    script_info['version'] = __version__
-    script_info['authors'] = __author__
-    script_info['output_description']= 'None.'
+# Process command-line arguments
+req_args = ['expression_data', 'new_sample',
+        'sample_type']
+opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
+        'gene_id_heading', 'probeset_heading', 'expression_heading',
+        'test_run']
+pos_args = ['db_path']
 
-    # Process command-line arguments
-    req_args = ['expression_data', 'new_sample',
-            'sample_type']
-    opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
-            'gene_id_heading', 'probeset_heading', 'expression_heading',
-            'test_run']
-    pos_args = ['db_path']
-    inputs = Args(required_args=req_args, optional_args=opt_args,
-            positional_args=pos_args)
-
-    return inputs.parsed_args, script_info
+script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
+    positional_args=pos_args)
+script_info['required_options'] = script_info['args'].req_cogent_opts
+script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def main():
-    args, script_info = set_environment()
-    session = db_query.make_session('sqlite:///' + args.db_path)
     rr = RunRecord()
+    args = script_info['args'].parse()
+    session = db_query.make_session(args.db_path)
 
     if args.new_sample is None:
         raise RuntimeError('No sample specified')

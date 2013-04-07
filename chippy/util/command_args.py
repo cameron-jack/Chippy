@@ -4,6 +4,8 @@ from chippy.express.db_query import get_chroms
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
+from cogent.util.option_parsing import make_option
+
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011-2012, Gavin Huttley, Anuj Pahwa, Cameron Jack'
 __credits__ = ['Cameron Jack']
@@ -13,17 +15,51 @@ __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '638'
 
+"""
+    command_args offers the entire arguments/options set to define the
+    interfaces for all ChipPy scripts. It returns both an argparse parser
+    object and a script_info{} entry with PyCogent CogentOption objects
+    so that the Qiime xml_generator can be used to automagically create
+    Galaxy interfaces for each script.
+
+    The following types need to available for full type conversion to
+    Galaxy type to take place. Types 'string' through 'choice' are implied
+    by their argparse type entry and do NOT need to be specified explicitly.
+    The types from 'multiple_choice' through 'new_path' DO need to be
+    explicitly provided as 'cogent_type' entries.
+
+    CogentOption.TYPE on left, Galaxy_type on right:
+
+        type_converter['string'] = "text"
+        type_converter['int'] = "integer"
+        type_converter['long'] = "float"
+        type_converter['float'] = "float"
+        type_converter['choice'] = "select"
+
+        type_converter['multiple_choice'] = "multiple_select"
+        type_converter['existing_filepath'] = "data"
+        type_converter['existing_filepaths'] = "repeat"
+        type_converter['existing_dirpath'] = "input_dir"
+        type_converter['existing_path'] = "input_dir"
+        type_converter['new_filepath'] = "output"
+        type_converter['new_dirpath'] = "output_dir"
+        type_converter['new_path'] = "output_dir"
+
+"""
+
 # Example of mutually exclusive options
-#group = parser.add_mutually_exclusive_group()
-# Use nargs='1' or nargs='+' to require 1 or, 1 or more arguments
+# group = parser.add_mutually_exclusive_group()
 # Use required=True to require an argument
 
 class Args(object):
+    def parse(self):
+        return self.parser.parse_args()
+
     def _make_sample_choices(self):
         """returns the available choices for samples in the DB"""
         if self.db_path is None:
             return ['None', 'none']
-        session = db_query.make_session('sqlite:///' + str(self.db_path))
+        session = db_query.make_session(str(self.db_path))
         samples = ['%s : %s' % (str(s.name), str(s.description))
                 for s in db_query.get_samples(session)]
         # These are valid null samples
@@ -35,19 +71,64 @@ class Args(object):
     def _make_chrom_choices(self):
         if self.db_path is None:
             return []
-        session = db_query.make_session('sqlite:///' + str(self.db_path))
+        session = db_query.make_session(str(self.db_path))
         species = self.db_path.split('_')[2].split('.')[0]
-        return get_chroms(session, species).append('All')
+        chroms = get_chroms(session, species).append('All')
+        if not chroms: # must return something or opt build will fail
+            chroms = ['None:None', 'none:None']
+        return chroms
+
+    # argparse base arg type converter to optparse basic types allows us to
+    # avoid specifically adding 'cogent_action_or_type' to every argument.
+    _ARG_TO_OPT_TYPE_CONVERTER = {None: "string", int: "int",
+            long: "long", float: "float", 'choices': 'choice'}
+
+    def _make_cogent_opt(self, cogent_type, *args, **kwargs):
+        """ Creates and returns a PyCogent CogentOption object from
+            an argparse entry. Called by _inc_arg().
+        """
+        if 'choices' in kwargs:
+            kwargs['type'] = 'choice'
+        elif 'action' in kwargs:
+            # Required, because without this, type=None implies type='string'
+            pass
+        else:
+            if cogent_type:
+                kwargs['type'] = cogent_type
+            else:
+                arg_type = kwargs.get('type', None)
+                kwargs['type'] = self._ARG_TO_OPT_TYPE_CONVERTER[arg_type]
+        if len(args) == 2:
+            cogent_opt = make_option(args[0], args[1], **kwargs)
+        else:
+            cogent_opt = make_option(args[0], **kwargs)
+        return cogent_opt
 
     def _inc_arg(self, *args, **kwargs):
-        """ checks if each potential argument matches
-        the user provided list """
+        """ Checks if each potential argument matches the user provided list.
+            Then creates an argparse parser entry and a PyCogent
+            CogentOption object. """
+
+        # pull out cogent_type now so that add_argument still works
+        cogent_type = kwargs.pop('cogent_type', None)
         for arg in args:
             tmp_arg = arg.lstrip('-')
+            # Required args
             if self.required_args and tmp_arg in self.required_args:
+                # add argparse entry
                 self.parser.add_argument(*args, required=True, **kwargs)
+                # add CogentOption entry
+                cogent_opt = self._make_cogent_opt(cogent_type, *args, **kwargs)
+                self.req_cogent_opts.append(cogent_opt)
+
+            # Optional args
             elif self.optional_args and tmp_arg in self.optional_args:
+                # add argparse entry
                 self.parser.add_argument(*args, **kwargs)
+                # add CogentOption entry
+                cogent_opt = self._make_cogent_opt(cogent_type, *args, **kwargs)
+                self.opt_cogent_opts.append(cogent_opt)
+
 
     def _add_load_save_args(self):
         """ All loading and saving related arguments should go here """
@@ -288,32 +369,35 @@ class Args(object):
                 help="Test run, don't write output",
                 default=False)
 
-        self._inc_arg('--version', action='version', version='ChipPy r'+__version__)
-
     def __init__(self, positional_args=None, required_args=None,
                 optional_args=None):
         """ calls _inc_args on every possible argument """
         self.parser = argparse.ArgumentParser(description=\
-                'All ChipPy options')
+                'All ChipPy options', version='ChipPy r'+str(__version__))
+
+        self.req_cogent_opts = []
+        self.opt_cogent_opts = []
         self.db_path = None
 
         # We need to handle the 'db_path' positional argument ourselves
         # as several arguments require it already loaded
         if positional_args:
             if 'db_path' in positional_args:
+            # Need to add an actual positional arg now!
+                self.parser.add_argument('db_path',
+                        help='Path to ChippyDB')
+                cogent_opt = make_option('--db_path',
+                        type='existing_filepath', help='Path to ChippyDB')
+                self.req_cogent_opts.append(cogent_opt)
                 for arg in sys.argv:
-                    if not '-' in arg:
+                    if not arg.startswith('-'):
                         # it's positional so take this to be db_path
                         possible_db_path = str(arg).strip()
                         if 'chippy' in possible_db_path.lower() and\
                                 '.db' in possible_db_path.lower():
                             self.db_path = possible_db_path
                             print self.db_path, 'selected as ChipPy database'
-                            # Need to add an actual positional arg now!
-                            self.parser.add_argument('db_path')
                             break
-                if self.db_path is None:
-                    raise RuntimeError('Path to ChipPy database required')
 
         self.required_args = required_args
         self.optional_args = optional_args
@@ -329,4 +413,3 @@ class Args(object):
         # process misc arguments
         self._add_misc_args()
 
-        self.parsed_args = self.parser.parse_args()

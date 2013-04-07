@@ -19,7 +19,8 @@ __version__ = '0.1'
 ### Public interface ###
 
 def make_session(db_path):
-    session = _make_session(db_path)
+    """ Isolates DB type from path """
+    session = _make_session('sqlite:///' + db_path)
     return session
 
 def get_sample_choices(session):

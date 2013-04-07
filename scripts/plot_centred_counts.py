@@ -195,42 +195,38 @@ def _group_genes(data_collection, group_size, labels, counts_func, top_features,
 
     return counts, ranks, num_groups, labels_set, rr
 
-def set_environment():
-    """ create the DB session and run options """
+script_info = {}
+script_info['title'] = 'Plot read counts heat-mapped by gene expression'
+script_info['script_description'] = 'Takes read counts that are centred on '\
+        'on a gene feature such as TSS or intron-exon boundary, sorted '\
+        'from high to low gene expression and makes a heat-mapped line plot.'
+script_info['brief_description'] = 'Plots read counts around gene features'
+script_info['version'] = __version__
+script_info['authors'] = __author__
+script_info['output_description']= 'Generates either a single pdf figure or '\
+        'a series of pdfs that can be merged into a movie.'
 
-    script_info = {}
-    script_info['title'] = 'Plot read counts heat-mapped by gene expression'
-    script_info['script_description'] = 'Takes read counts that are centred on '\
-            'on a gene feature such as TSS or intron-exon boundary, sorted '\
-            'from high to low gene expression and makes a heat-mapped line plot.'
-    script_info['version'] = __version__
-    script_info['authors'] = __author__
-    script_info['output_description']= 'Generates either a single pdf figure or '\
-            'a series of pdfs that can be merged into a movie.'
+pos_args = ['db_path']
+req_args = ['collection', 'metric', 'plot_filename']
+opt_args = ['ylim', 'fig_height', 'fig_width',
+        'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
+        'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
+        'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
+        'legend_font_size', 'vline_style', 'vline_width',
+        'line_alpha', 'chrom', 'external_sample', 'group_size',
+        'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
+        'plot_series', 'text_coords', 'test_run', 'version',
+        'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3',
+        'normalise_by_RPM']
 
-    pos_args = ['db_path']
-    req_args = ['collection', 'metric', 'plot_filename']
-    opt_args = ['ylim', 'fig_height', 'fig_width',
-            'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
-            'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
-            'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
-            'legend_font_size', 'vline_style', 'vline_width',
-            'line_alpha', 'chrom', 'external_sample', 'group_size',
-            'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
-            'plot_series', 'text_coords', 'test_run', 'version',
-            'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3',
-            'normalise_by_RPM']
-
-    inputs = Args(required_args=req_args,
-            optional_args=opt_args, positional_args=pos_args)
-
-    rr = RunRecord()
-
-    return inputs.parsed_args, script_info, rr
-
+script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
+    positional_args=pos_args)
+script_info['required_options'] = script_info['args'].req_cogent_opts
+script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def main():
-    args, script_info, rr = set_environment()
+    rr = RunRecord()
+    args = script_info['args'].parse()
 
     ylim = None
     if args.ylim is not None:

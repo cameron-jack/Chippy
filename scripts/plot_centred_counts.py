@@ -19,108 +19,13 @@ from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
 from chippy.util.util import create_path, dirname_or_default
 
 __author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011-2012, Gavin Huttley, Anuj Pahwa, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Anuj Pahwa, Cameron Jack'
 __credits__ = ['Gavin Huttley, Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'alpha'
 __version__ = '0.1'
-
-def make_sample_choices(session):
-    """returns the available choices for target gene samples"""
-    samples = ['%s : %s' % (s.name, s.description)
-        for s in db_query.get_target_samples(session)]
-    samples.insert(0, None)
-    return samples
-
-def get_sample_name(sample):
-    """returns sample name from a 'sample : description' string"""
-    if str(sample) != 'None':
-        sample = sample.split(':')[0].strip()
-    else:
-        sample = None
-    return sample
-
-def _auto_grid_lines(ylim, test_run):
-    """returns a float that is a 'round' looking number to use for the
-            grid lines"""
-    ymax = max(ylim)
-
-    if ymax > 0:
-        ypower = log10(ymax)
-
-        if ypower < 0:
-            rounding_places = 0 - int(floor(ypower))
-            y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
-            grid_lines = y_ceiling/10.0
-        else:
-            y_ceiling = ceil(ymax)
-            if y_ceiling < 10:
-                grid_lines = round(y_ceiling/10.0, 1)
-            else:
-                grid_lines = y_ceiling/10.0
-
-    else:
-        raise RuntimeError('Exiting: Maximum y-axis value meaningless: %e' % ymax)
-
-    if test_run:
-        print 'Setting Y-grid-line spacing: %e' % grid_lines
-    return grid_lines
-
-def _auto_yaxis(counts, ranks, test_run):
-    """returns a list length 2 of y-axis limits, and matching grid_line value
-    with 'round'-appearing numbers to make plots look pretty"""
-    num_range = len(counts)
-    ymaxs = []
-    ymins = []
-
-    for i in range(num_range):
-        if type(counts[i]) == numpy.float64:
-            ymaxs.append(counts[i])
-            ymins.append(counts[i])
-        else:
-            if ranks is not None:
-                y = counts[i]
-            else:
-                y = counts
-            ymaxs.append(max(y))
-            ymins.append(min(y))
-
-    ymax = max(ymaxs)
-    ymin = min(ymins)
-
-    ylim = (ymin, ymax)
-
-    rounding_places = 1
-    # For fractional counts then scale the rounding appropriately
-    if ymax > 0:
-        ypower = log10(ymax)
-        if ypower < 0:
-            rounding_places = 0 - int(floor(ypower))
-            y_ceiling = float(ceil(ymax*(10**rounding_places))/(10**rounding_places))
-            y_floor = float(floor(ymin*(10**rounding_places))/(10**rounding_places))
-            grid_lines = y_ceiling/10.0
-            ylim = (y_floor, y_ceiling)
-        else:
-            y_ceiling = ceil(ymax)
-            y_floor = floor(ymin)
-            if y_ceiling < 10:
-                grid_lines = round(y_ceiling/10.0, 1)
-            else:
-                grid_lines = y_ceiling/10.0
-                ylim = (y_floor,y_ceiling)
-    elif ymax == 0:
-        ylim = (0,1)
-        grid_lines = 0.1
-    else:
-        raise RuntimeError('Exiting: Maximum y-axis value somehow negative: %e' % ymax)
-
-    if test_run:
-        print 'Y-max: %e, Y-min: %e' % (ymax, ymin)
-        print 'Setting plot limits at Y-max: %e, Y-,min: %e' % (max(ylim), min(ylim))
-        print 'Setting Y-grid-line spacing: %e' % grid_lines
-    return ylim, grid_lines
 
 def _filter_collection(data_collection, cutoff, target_sample, stable_ids, rr):
     # exclude outlier genes using one-sided Chebyshev
@@ -216,8 +121,7 @@ opt_args = ['ylim', 'fig_height', 'fig_width',
         'line_alpha', 'chrom', 'external_sample', 'group_size',
         'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
         'plot_series', 'text_coords', 'test_run', 'version',
-        'div', 'normalise_tags1', 'normalise_tags2', 'normalise_tags3',
-        'normalise_by_RPM']
+        'div', 'normalise_by_RPM']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -376,45 +280,13 @@ def main():
         # by total base counts
         if args.metric.lower() == 'mean counts':
             if args.normalise_by_RPM:
+                # This requires 'base count' to be present in the collection
                 normalised_counts = []
                 norm_bases = data_collection.info['args']['base count']
                 for c in counts:
                     c = c * 1000000 / norm_bases
                     normalised_counts.append(c)
                 counts = normalised_counts
-            else:
-                if args.normalise_tags1 is not None and dc_index == 0:
-                    normalised_counts = []
-                    norm_tags = args.normalise_tags1
-                    for c in counts:
-                        # Which is better, per line or per gene normalisation?
-                        #c = c * genes_per_group * 1000000 / norm_tags
-                        # ^- this is per group/line normalisation
-                        c = c * 1000000 / norm_tags # This is per gene normalisation
-                        normalised_counts.append(c)
-                    counts = normalised_counts
-
-                if args.normalise_tags2 is not None and dc_index == 1:
-                    # Calculate normalised per million mapped reads (RPM)
-                    # Hack for 3 data sets, G1, M, S in that order
-                    normalised_counts = []
-                    norm_tags = args.normalise_tags2
-                    for c in counts:
-                        #c = c * genes_per_group * 1000000 / norm_tags
-                        c = c * 1000000 / norm_tags
-                        normalised_counts.append(c)
-                    counts = normalised_counts
-
-                if args.normalise_tags3 is not None and dc_index == 2:
-                    # Calculate normalised per million mapped reads (RPM)
-                    # Hack for 3 data sets, G1, M, S in that order
-                    normalised_counts = []
-                    norm_tags = args.normalise_tags3
-                    for c in counts:
-                        #c = c * genes_per_group * 1000000 / norm_tags
-                        c = c * 1000000 / norm_tags
-                        normalised_counts.append(c)
-                    counts = normalised_counts
 
         count_set.append(counts)
         rank_set.append(ranks)
@@ -465,65 +337,21 @@ def main():
                             for i in range(len(series_labels))]
     
     print 'Prepping for plot'
-    if args.bgcolor == 'black':
-        if args.grid_off is True:
-            grid=False
-            vline_color='k'
-        else:
-            grid={'color': 'w'}
-            vline_color='w'
-        bgcolor='0.1'
-    else:
-        if args.grid_off is True:
-            grid=False
-            vline_color='w'
-        else:
-            grid={'color': 'k'}
-            vline_color='k'
-        bgcolor='1.0'
-    
+
     vline = dict(x=0, linewidth=args.vline_width,
-                   linestyle=args.vline_style, color=vline_color)
-
-    # auto-calculate y-min & y-max and/or y-tick-space, if required
-    max_Ymax = None
-    min_Ymin = None
-    max_Ygrid_line = None
-    if ylim is None:
-        for counts, ranks in zip(count_set, rank_set):
-            ylim, ygrid_line = _auto_yaxis(counts, ranks, args.test_run)
-            if (max_Ymax is None) or (max(ylim) > max_Ymax):
-                max_Ymax = max(ylim)
-                max_Ygrid_line = ygrid_line
-            if (min_Ymin is None) or (min(ylim) < min_Ymin):
-                min_Ymin = min(ylim)
-        ylim = (min_Ymin, max_Ymax)
-        args.ygrid_lines = max_Ygrid_line
-    else:
-        if args.ygrid_lines is None:
-            args.ygrid_lines = _auto_grid_lines(ylim, args.test_run)
-
-    maxY_str = '%e' % max(ylim)
-    minY_str = '%e' % min(ylim)
-    ygrid_line_str = '%e' % args.ygrid_lines
-    rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-max plot limit',
-            maxY_str)
-    rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-min plot limit',
-            minY_str)
-    rr.addMessage('plot_centred_counts', LOG_INFO, 'Y-grid-line spacing',
-            ygrid_line_str)
+            linestyle=args.vline_style, color='w')
 
     # Rather than have everything that follows simply dump into
     # PlottableGroups, it might be better to have multiple calls
     # to PlottableSingle
     
     plot = PlottableGroups(height=args.fig_height/2.5,
-            width=args.fig_width/2.5, bgcolor=bgcolor, grid=grid,
-            ylim=ylim, xlim=(-window_size, window_size),
-            xtick_space=args.xgrid_lines, ytick_space=args.ygrid_lines,
-            xtick_interval=args.xtick_interval,
-            ytick_interval=args.ytick_interval,
-            xlabel_fontsize=args.xfont_size, ylabel_fontsize=args.yfont_size,
+            width=args.fig_width/2.5, bgcolor=args.bgcolor,
+            grid_off=args.grid_off,
+            yaxis_lims=ylim, xaxis_lims=(-window_size, window_size),
+            xy_tick_spaces=(args.xgrid_lines, args.ygrid_lines),
+            xy_tick_intervals=(args.xtick_interval, args.ytick_interval),
+            xy_label_fontsizes=(args.xfont_size, args.yfont_size),
             vline=vline, ioff=True, colorbar=args.colorbar,
             clean=args.clean_plot)
     

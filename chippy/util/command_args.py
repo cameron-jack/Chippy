@@ -153,20 +153,36 @@ class Args(object):
                 default='exp',
                 help='Column containing the expression scores')
 
+        # Only valid if a CHIPPY_DB has been given
         if self.db_path:
-            self._inc_arg('-s','--sample', default=None,
-                    choices=self._make_sample_choices(),
-                    help="Select an existing sample to use, form is '\
+            self._inc_arg('-s','--sample', choices=self._make_sample_choices(),
+                    help="Select an existing sample to use, form is '+\
+                    'S : S phase'")
+            # Generic multi-sample options (perhaps should be positional)
+            self._inc_arg('--sample1', choices=self._make_sample_choices(),
+                    help="Choose a first expression study, form is '+\
+                    'S : S phase'")
+            self._inc_arg('--sample2', choices=self._make_sample_choices(),
+                    help="Choose a second expression study, form is '+\
+                    'S : S phase'")
+            self._inc_arg('--sample3', choices=self._make_sample_choices(),
+                    help="Choose a third expression study, form is '+\
+                    'S : S phase'")
+            self._inc_arg('--sample4', choices=self._make_sample_choices(),
+                    help="Choose a fourth expression study, form is '+\
                     'S : S phase'")
             samplesStr = ', '.join(self._make_sample_choices())
             self._inc_arg('-S','--new_sample', default=None,
-                    help="Select an existing sample to use, form is '\
-                    'S : S phase'. Existing choices: "+samplesStr)
+                    help="Select an existing sample to use, form is '+\
+                    'S : S phase'. Existing samples: "+samplesStr)
+            # It would be nice if this only offered diff studies as choices
+            self._inc_arg('--diff_sample', help='Choose the expression study',
+                    choices=[str(s) for s in self._make_sample_choices()])
 
         self._inc_arg('--sample_type',
-            choices=[k for k in sample_types.keys()],
-            help='Select the type of data you want entered from '+\
-                     ' '.join([str(k) for k in sample_types.keys()]) )
+                choices=[k for k in sample_types.keys()],
+                help='Select the type of data you want entered from '+\
+                ' '.join([str(k) for k in sample_types.keys()]) )
 
         self._inc_arg('--reffile1', default=None, help='Related file 1')
         self._inc_arg('--reffile2', default=None, help='Related file 2')
@@ -200,12 +216,23 @@ class Args(object):
 
         # group genes into sets ranked by expression
         self._inc_arg('-g', '--group_size', default='All',
-            help='Number of genes to group to estimate'\
+                help='Number of genes to group to estimate'+\
                  ' statistic - All or a specific number')
 
+        self._inc_arg('--num_genes', type=int,
+                help='Number of ranked genes to use in study')
+
         self._inc_arg('--group_location', default='all',
-            choices=['all', 'top', 'middle', 'bottom'],
-            help='The representative group in a study to form a plot line')
+                choices=['all', 'top', 'middle', 'bottom'],
+                help='The representative group in a study to form a plot line')
+
+        self._inc_arg('--ranks', action='store_true',
+                help='Use rank-based data values instead of counts or '+\
+                'expression')
+
+        self._inc_arg('--sample_extremes', type=float,
+                default=0.0, help='Proportion of least and most absolute '+\
+                'expressed genes to treat separately. Set to 0.0 to disable.')
 
         # plot only the most expressed genes of group_size
         # DEPRECATED
@@ -221,21 +248,21 @@ class Args(object):
 
         # Filter out over- and under-expression outliers
         self._inc_arg('-k', '--cutoff', type=float, default = 0.05,
-            help='Probability cutoff. Exclude genes if the probability of '\
-                 'the observed tag count is less than or equal to this value '\
-                 'e.g. 0.05.')
+            help='Probability cutoff. Exclude genes if the probability of '+\
+                 'the observed tag count is less than or equal to this '+\
+                 'value e.g. 0.05.')
 
         # Export Centred Counts args
         self._inc_arg('--expression_area', choices=['TSS', 'Exon_3p',
-                'Intron_3p', 'Both_3p'], help='Expression area options: ' \
+                'Intron_3p', 'Both_3p'], help='Expression area options: '+\
                 'TSS, Exon_3p, Intron-3p, Both-3p')
 
         self._inc_arg('--window_radius', type=int, default=1000,
                 help='Region size around TSS')
 
         self._inc_arg('--multitest_signif_val', type=int,
-                help='Restrict plot to genes that pass multitest signficance,'\
-                'valid values: 1, 0, -1', default=None)
+                help='Restrict plot to genes that pass multi-test '+\
+                'significance. Valid values: 1, 0, -1', default=None)
 
         self._inc_arg('--include_target', default=None,
                 help='A Target Gene List in ChipPyDB',
@@ -246,7 +273,10 @@ class Args(object):
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
-        # Create options essential for making a plot
+        self._inc_arg('--plot_format', default='png', choices=['png', 'pdf'],
+                help="Select the plot format to output: 'png' or 'pdf'"+\
+                "[default: %default]")
+
         self._inc_arg('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
         self._inc_arg('-H', '--fig_height', type=float, default=6*2.5,
@@ -259,7 +289,7 @@ class Args(object):
                 help='major grid-line spacing on x-axis')
         self._inc_arg('--ygrid_lines', type=float, default = None,
                 help='major grid-line spacing on y-axis')
-        self._inc_arg('--grid_off', action='store_true', default=False,
+        self._inc_arg('--grid_off', action='store_true',
                 help='Turn grid lines off')
         # tick spacing along axes
         self._inc_arg('--xtick_interval', type=int, default=2,
@@ -290,6 +320,11 @@ class Args(object):
                 help='font size for x label')
         self._inc_arg('--yfont_size', type=int, default=12,
                 help='font size for y label')
+        # Optional axis units text
+        self._inc_arg('--yaxis_units',
+                help='Text showing units of y-axis of plot')
+        self._inc_arg('--xaxis_units',
+                help='Text showing units of x-axis of plot')
 
         # Turn on line legend and set font size
         self._inc_arg('-l', '--legend', action='store_true', default=False,
@@ -325,19 +360,6 @@ class Args(object):
         # Uses the 'tag count' arg value in the export file
         self._inc_arg('--normalise_by_RPM', action='store_true',
                 help='Normalise by Reads Per mapped-Millon')
-        # DEPRECATED by the above.
-        self._inc_arg('--normalise_tags1', type=int,
-                default=None, help='The number of mapped bases (reads x length) in ' \
-                'the data set. Is only used with Mean Counts, and only when group_size ' \
-                'is a defined number - not All.')
-        self._inc_arg('--normalise_tags2', type=int,
-                default=None, help='The number of mapped bases (reads x length) in '\
-                'the data set. Is only used with Mean Counts, and only when group_size '\
-                'is a defined number - not All. Normalises 2nd data set.')
-        self._inc_arg('--normalise_tags3', type=int,
-                default=None, help='The number of mapped bases (reads x length) in '\
-                'the data set. Is only used with Mean Counts, and only when group_size '\
-                'is a defined number - not All. Normalises 3rd data set')
 
     def _add_db_args(self):
         """ options for starting a ChipPy DB """
@@ -369,8 +391,55 @@ class Args(object):
                 help="Test run, don't write output",
                 default=False)
 
+    def _add_diff_abs_plots_specific_args(self):
+        """ These args are specifically for the diff_abs_plots script """
+
+        # dot colouring
+        self._inc_arg('--extremes_colour', default='blue', choices=['blue',
+                'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
+                help='Colour of dots for absolute expression marked '\
+                'as extreme.')
+        self._inc_arg('--signif_colour', default='blue', choices=['blue',
+                'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
+                help='Colour of dots for difference of expression marked '\
+                'as significant.')
+        self._inc_arg('--bulk_colour', default='blue', choices=['blue',
+                'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
+                help='Colour of dots for all relatively unexceptional '\
+                'expression values.')
+
+        # hide unwanted plot areas
+        self._inc_arg('--hide_extremes', default=False, action='store_true',
+                help='Do not show absolute expression considered extreme')
+        self._inc_arg('--hide_signif', default=False, action='store_true',
+                help='Do not show difference expression considered '+\
+                'significant')
+        self._inc_arg('--hide_bulk', default=False, action='store_true',
+                help='Do not show expression values considered normal')
+
+        # misc. options that don't fit other categories
+        self._inc_arg('--gene_file', default=None,
+                help='Annotated gene list file output path, as pickle.gz')
+        self._inc_arg('--output_prefix1',
+                default=None, help='Output path prefix for first plot')
+        self._inc_arg('--output_prefix2',
+                default=None, help='Output path prefix for second plot')
+
+    def _add_ChrmVsExpr_specific_args(self):
+        """ These args are specifically for the ChrmVsExpr script """
+        self._inc_arg('--dot_or_line_plot', choices=['dot', 'line'],
+                help='Select the type of plot you want '\
+                'entered from %choices')
+        self._inc_arg('--x_axis_type',
+                choices=['expression', 'chrm counts', 'expr counts'],
+                help='Select the data unit type for the x-axis')
+        self._inc_arg('--y_axis_type',
+                choices=['expression', 'chrm counts', 'expr counts'],
+                help='Select the data unit type for the y-axis')
+
+
     def __init__(self, positional_args=None, required_args=None,
-                optional_args=None):
+            optional_args=None):
         """ calls _inc_args on every possible argument """
         self.parser = argparse.ArgumentParser(description=\
                 'All ChipPy options', version='ChipPy r'+str(__version__))
@@ -412,4 +481,7 @@ class Args(object):
         self._add_db_args()
         # process misc arguments
         self._add_misc_args()
+        # process args specific to the diff_abs_plots script
+        self._add_diff_abs_plots_specific_args()
+        # process args specific to the ChrmVsExpr script
 

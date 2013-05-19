@@ -73,9 +73,9 @@ class Args(object):
             return []
         session = db_query.make_session(str(self.db_path))
         species = self.db_path.split('_')[2].split('.')[0]
-        chroms = get_chroms(session, species).append('All')
+        chroms = get_chroms(session, species)
         if not chroms: # must return something or opt build will fail
-            chroms = ['None:None', 'none:None']
+            chroms = ['None', 'none']
         return chroms
 
     # argparse base arg type converter to optparse basic types allows us to
@@ -201,18 +201,9 @@ class Args(object):
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
         # chrom choice
-        self._inc_arg('-C', '--chrom', default='All',
-            help='Choose a chromosome',
-            choices=(self._make_chrom_choices()) )
-
-        # or external sample (gene) choice
-        # NOTE: Should be target_sample
-        if self.db_path:
-            # external_sample is legacy from the old Plot_centred_counts
-            # Should be replaced with --include_target --exclude_target
-            self._inc_arg('-E', '--external_sample', default=None,
-                    choices=self._make_sample_choices(),
-                    help='External sample')
+        self._inc_arg('-C', '--chrom', default=None,
+                help='Choose a chromosome',
+                choices=(self._make_chrom_choices()) )
 
         # group genes into sets ranked by expression
         self._inc_arg('-g', '--group_size', default='All',
@@ -237,20 +228,20 @@ class Args(object):
         # plot only the most expressed genes of group_size
         # DEPRECATED
         self._inc_arg('--top_features', action='store_true', default = False,
-            help='Plot only top features ranked by expressed chromatin')
+                help='Plot only top features ranked by expressed chromatin')
 
         # Use moving-mean (boxcar) smoothing on lines
         self._inc_arg('--smoothing', type=int, default=0,
-            help='Window size for smoothing of plot data')
+                help='Window size for smoothing of plot data')
 
         self._inc_arg('--binning', type=int, default=0,
-            help='Sum counts within integer-sized bins across plot')
+                help='Sum counts within integer-sized bins across plot')
 
         # Filter out over- and under-expression outliers
         self._inc_arg('-k', '--cutoff', type=float, default = 0.05,
-            help='Probability cutoff. Exclude genes if the probability of '+\
-                 'the observed tag count is less than or equal to this '+\
-                 'value e.g. 0.05.')
+                help='Probability cutoff. Exclude genes if the probability of '+\
+                'the observed tag count is less than or equal to this '+\
+                'value e.g. 0.05.')
 
         # Export Centred Counts args
         self._inc_arg('--expression_area', choices=['TSS', 'Exon_3p',
@@ -344,22 +335,28 @@ class Args(object):
         self._inc_arg('--line_alpha', type=float, default=1.0,
                 help='Opacity of lines')
 
-        self._inc_arg('-p', '--plot_series', action='store_true',
-                default=False, help='Plot series of figures. A directory called '\
-                +'plot_filename-series will be created.')
+        # Plot as grey-scale
+        self._inc_arg('--grey_scale', action='store_true',
+                help='Plot colour range as grey-scale')
+
+        # Plot as series of images
+        self._inc_arg('--plot_series', action='store_true',
+                help='Plot series of figures. A directory called '+\
+                'plot_filename-series will be created.')
 
         # Position of legend?
         self._inc_arg('--text_coords', default=None,
                 help='x, y coordinates of series text (e.g. 600,3.0)')
 
-        self._inc_arg('--div', type=int, default = None,
-                help='For use only with --topgenes and 2 plottable groups, divides ' \
-                'one of the lines by the other. Takes an integer which is the number ' \
-                'of the data set in alphabetical order')
+        self._inc_arg('--div', help='Path to the plottable data, to divide '+\
+                'other loaded plottable data')
+
+        self._inc_arg('--confidence_intervals', action='store_true',
+                help='Show confidence intervals around plot lines')
 
         # Uses the 'tag count' arg value in the export file
         self._inc_arg('--normalise_by_RPM', action='store_true',
-                help='Normalise by Reads Per mapped-Millon')
+                help='Normalise by Reads Per mapped-Million')
 
     def _add_db_args(self):
         """ options for starting a ChipPy DB """

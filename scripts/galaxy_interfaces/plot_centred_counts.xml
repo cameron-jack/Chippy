@@ -38,6 +38,14 @@
  -k $cutoff
 #end if
 
+#if str($include_target) != 'None':
+ --include_target=$include_target
+#end if
+
+#if str($exclude_target) != 'None':
+ --exclude_target=$exclude_target
+#end if
+
 #if str($ylim):
  -y $ylim
 #end if
@@ -122,32 +130,28 @@
  --line_alpha=$line_alpha
 #end if
 
+#if $grey_scale:
+ --grey_scale
+#end if
+
 #if $plot_series:
- -p
+ --plot_series
 #end if
 
 #if str($text_coords):
  --text_coords=$text_coords
 #end if
 
-#if $div:
+#if str($div):
  --div=$div
+#end if
+
+#if $confidence_intervals:
+ --confidence_intervals
 #end if
 
 #if $normalise_by_RPM:
  --normalise_by_RPM
-#end if
-
-#if $normalise_tags1:
- --normalise_tags1=$normalise_tags1
-#end if
-
-#if $normalise_tags2:
- --normalise_tags2=$normalise_tags2
-#end if
-
-#if $normalise_tags3:
- --normalise_tags3=$normalise_tags3
 #end if
 
 #if $test_run:
@@ -197,6 +201,28 @@
 		<param default="0" label="Window size for smoothing of plot data" name="smoothing" optional="True" type="integer"/>
 		<param default="0" label="Sum counts within integer-sized bins across plot" name="binning" optional="True" type="integer"/>
 		<param default="0.05" label="Probability cutoff. Exclude genes if the probability of the observed tag count is less than or equal to this value e.g. 0.05." name="cutoff" optional="True" type="float"/>
+		<param label="A Target Gene List in ChipPyDB" name="include_target" optional="True" type="select">
+			<option selected="True" value="None">
+				Selection is Optional
+			</option>
+			<option value="None">
+				None
+			</option>
+			<option value="none">
+				none
+			</option>
+		</param>
+		<param label="A Target Gene List in ChipPyDB" name="exclude_target" optional="True" type="select">
+			<option selected="True" value="None">
+				Selection is Optional
+			</option>
+			<option value="None">
+				None
+			</option>
+			<option value="none">
+				none
+			</option>
+		</param>
 		<param default="None" label="comma separated minimum-maximum yaxis values (e.g. 0,3.5)" name="ylim" optional="True" type="text"/>
 		<param default="15.0" label="Figure height (cm)" name="fig_height" optional="True" type="float"/>
 		<param default="25.0" label="Figure width (cm)" name="fig_width" optional="True" type="float"/>
@@ -241,13 +267,12 @@
 		</param>
 		<param default="2" label="line width for centred vertical line" name="vline_width" optional="True" type="integer"/>
 		<param default="1.0" label="Opacity of lines" name="line_alpha" optional="True" type="float"/>
+		<param label="Plot colour range as grey-scale" name="grey_scale" selected="False" type="boolean"/>
 		<param label="Plot series of figures. A directory called plot_filename-series will be created." name="plot_series" selected="False" type="boolean"/>
 		<param default="None" label="x, y coordinates of series text (e.g. 600,3.0)" name="text_coords" optional="True" type="text"/>
-		<param default="None" label="For use only with --topgenes and 2 plottable groups, divides one of the lines by the other. Takes an integer which is the number of the data set in alphabetical order" name="div" optional="True" type="integer"/>
-		<param label="Normalise by Reads Per mapped-Millon" name="normalise_by_RPM" selected="False" type="boolean"/>
-		<param default="None" label="The number of mapped bases (reads x length) in the data set. Is only used with Mean Counts, and only when group_size is a defined number - not All." name="normalise_tags1" optional="True" type="integer"/>
-		<param default="None" label="The number of mapped bases (reads x length) in the data set. Is only used with Mean Counts, and only when group_size is a defined number - not All. Normalises 2nd data set." name="normalise_tags2" optional="True" type="integer"/>
-		<param default="None" label="The number of mapped bases (reads x length) in the data set. Is only used with Mean Counts, and only when group_size is a defined number - not All. Normalises 3rd data set" name="normalise_tags3" optional="True" type="integer"/>
+		<param label="Path to the plottable data, to divide other loaded plottable data" name="div" optional="True" type="text"/>
+		<param label="Show confidence intervals around plot lines" name="confidence_intervals" selected="False" type="boolean"/>
+		<param label="Normalise by Reads Per mapped-Million" name="normalise_by_RPM" selected="False" type="boolean"/>
 		<param label="Test run, don't write output" name="test_run" selected="False" type="boolean"/>
 	</inputs>
 	<outputs/>

@@ -13,7 +13,7 @@ PLUS_STRAND = 1
 MINUS_STRAND = -1
 NULL_STRAND = 0
 
-# log notifications
+# log notifications - DEPRECATED
 LOG_DEBUG = 'debug'
 LOG_INFO = 'info'
 LOG_WARNING = 'warning'

@@ -8,17 +8,17 @@ from cogent import LoadTable
 from chippy.express import db_query
 from chippy.express.db_populate import add_data
 from chippy.express.util import sample_types
-from chippy.parse.r_dump import SimpleRdumpToTable
+from chippy.parse.r_dump import simpleRdumpToTable
 from chippy.util.command_args import Args
 from chippy.util.run_record import RunRecord
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.2'
 
 script_info = {}
@@ -46,7 +46,9 @@ script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def main():
-    rr = RunRecord()
+    rr = RunRecord('add_expression_db')
+    rr.addCommands(sys.argv)
+
     args = script_info['args'].parse()
     session = db_query.make_session(args.db_path)
 
@@ -61,23 +63,22 @@ def main():
 
     if sample_types[args.sample_type] in\
             (sample_types['exp_absolute'], sample_types['exp_diff']):
-        expr_table, rr = SimpleRdumpToTable(args.expression_data,
+        expr_table = simpleRdumpToTable(args.expression_data,
                 stable_id_label=args.gene_id_heading,
                 probeset_label=args.probeset_heading,
-                exp_label=args.expression_heading, validate=True,
-                run_record=rr)
+                exp_label=args.expression_heading, validate=True)
     else:
         expr_table = LoadTable(args.expression_data, sep='\t')
 
-    success, rr = add_data(session, name, description,
-        args.expression_data, expr_table,
-        probeset_heading=args.probeset_heading,
-        gene_id_heading=args.gene_id_heading,
-        expr_heading=args.expression_heading,
-        sample_type=args.sample_type, reffile1=args.reffile1,
-        reffile2=args.reffile2, rr=RunRecord())
+    success = add_data(session, name, description,
+            args.expression_data, expr_table,
+            probeset_heading=args.probeset_heading,
+            gene_id_heading=args.gene_id_heading,
+            expr_heading=args.expression_heading,
+            sample_type=args.sample_type, reffile1=args.reffile1,
+            reffile2=args.reffile2)
 
-    rr.addInfo('add_expression_db', name+' added to DB', success)
+    rr.addInfo(name+' added to DB', success)
     rr.display()
 
 if __name__ == "__main__":

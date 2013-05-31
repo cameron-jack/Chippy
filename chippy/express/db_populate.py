@@ -13,12 +13,9 @@ from cogent.util.progress_display import display_wrap
 from chippy.express.db_schema import Chroms, Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.express.db_query import  get_stable_id_genes_mapping, \
-        get_expr_entries, get_diff_entries, get_target_entries
+        get_expr_counts, get_diff_counts, get_target_counts
 from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
-from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
-    LOG_ERROR, LOG_CRITICAL
-
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
@@ -66,9 +63,9 @@ def add_chroms(session, species, chromlist):
     return True
 
 def add_ensembl_gene_data(session, species, ensembl_release, account=None,
-        rr=RunRecord(), debug=False):
+        debug=False):
     """add Ensembl genes and their transcripts to the db session"""
-
+    rr = RunRecord('add_ensembl_gene_data')
     genome = Genome(species, Release=ensembl_release, account=account)
 
     skip = set(['processed_transcript', 'pseudogene'])
@@ -83,10 +80,9 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
     for biotype in biotypes:
         for gene in genome.getGenesMatching(BioType=biotype):
             # gene.Location.CoordName is the chromosome name
-            min_chrom_length = 3 # likely an unconfirmed scaffold
+            min_chrom_length = 5 # likely an unconfirmed scaffold
             if len(gene.Location.CoordName) > min_chrom_length:
-                rr.addWarning('add_ensembl_gene_data', 'Skipping chrom',
-                        gene.Location.CoordName)
+                rr.addWarning('Skipping chrom', gene.Location.CoordName)
                 continue
             chromSet.add(gene.Location.CoordName)
 
@@ -102,8 +98,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                 unique_gene_ids.add(gene.StableId)
                 data.append(db_gene)
             else:
-                rr.addWarning('add_ensembl_gene_data', 'Duplicate gene',
-                        gene.StableId)
+                rr.addWarning('Duplicate gene', gene.StableId)
 
             for exon in gene.CanonicalTranscript.Exons:
                 if exon.StableId not in unique_exon_ids:
@@ -114,8 +109,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                     data.append(db_exon)
                     total_objects += 1
                 else:
-                    rr.addWarning('add_ensembl_gene_data', 'Duplicate exon',
-                            exon.StableId)
+                    rr.addWarning('Duplicate exon', exon.StableId)
             n += 1
             if n % 100 == 0:
                 print 'Genes processed:', n,'; Db objects created:', total_objects
@@ -123,34 +117,30 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                     session.add_all(data)
                     session.commit()
                     return
-    rr.addInfo('add_ensembl_gene_data', 'Instantiating chromosomes',
-            chromSet)
+    rr.addInfo('Instantiating chromosomes', chromSet)
     chroms = Chroms(species, chromSet)
     data.append(chroms)
 
-    rr.addInfo('add_ensembl_gene_data', 'Writing objects into db',
-            total_objects)
+    rr.addInfo('Writing objects into db', total_objects)
     session.add_all(data)
     session.commit()
-    return chroms, rr
+    return chroms
 
-def add_sample(session, name, description, rr=RunRecord()):
+def add_sample(session, name, description):
     """add a basic sample"""
+    rr = RunRecord('add_sample')
     sample = Sample(name, description)
     if not successful_commit(session, sample):
-        rr.addMessage('add_samples', LOG_INFO,
-                'Sample already exists in db', name)
-        return False, rr
+        rr.addInfo('Sample already exists in db', name)
+        return False
     else:
-        rr.addMessage('add_samples', LOG_INFO,
-                'Sample created in db', name)
-        return True, rr
+        rr.addInfo('Sample created in db', name)
+        return True
 
 @display_wrap
 def add_expression_study(session, sample_name, data_path, table,
         probeset_label='probeset', ensembl_id_label='ENSEMBL',
-        expression_label='exp', rr=RunRecord(),
-        ui=None):
+        expression_label='exp', ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -162,7 +152,7 @@ def add_expression_study(session, sample_name, data_path, table,
         - expression_label: label of the column containing absolute measure
           of expression
     """
-
+    rr = RunRecord('add_expression_study')
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
@@ -184,11 +174,9 @@ def add_expression_study(session, sample_name, data_path, table,
                 Expression.sample_id==sample.sample_id)).all()
     
     if len(records) > 0:
-        rr.addMessage('add_expression_study',
-            LOG_WARNING,
-            'Already added this data for this sample / file combo',
-            (sample.name, data_path))
-        return False, rr
+        rr.addWarning('Already added this data for this sample / file combo',
+                (sample.name, data_path))
+        return False
     
     # get all gene ID data for the specified Ensembl release
     ensembl_genes = get_stable_id_genes_mapping(session)
@@ -220,22 +208,19 @@ def add_expression_study(session, sample_name, data_path, table,
         session.commit()
     except IntegrityError:
         session.rollback()
-        return False, rr
+        return False
 
     if unknown_ids:
-        rr.addMessage('add_expression_study',
-                LOG_ERROR, 'Number of unknown gene Ensembl IDs', unknown_ids)
-    rr.addMessage('add_expression_study',
-        LOG_INFO, 'Total genes', total)
-    return True, rr
+        rr.addError('Number of unknown gene Ensembl IDs', unknown_ids)
+    rr.addInfo('Total genes', total)
+    return True
 
 @display_wrap
 def add_expression_diff_study(session, sample_name, data_path, table,
             ref_a_path, ref_b_path,
             probeset_label='probeset',
             ensembl_id_label='ENSEMBL', expression_label='exp',
-            prob_label='rawp', sig_label='sig',
-            rr=RunRecord(), ui=None):
+            prob_label='rawp', sig_label='sig', ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -255,10 +240,8 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         - sig_label: label of the column classifying probabilities as
           significant after multiple test correction. 1 means up in A relative
           to B, -1 means down in A relative to B, 0 means no difference.
-        - rr: a RunRecord instance for tracking messages. If not
-          provided, one is created and returned.
     """
-    
+    rr = RunRecord('add_expression_diff_study')
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
         session.rollback()
@@ -266,15 +249,13 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
-        rr.addMessage('add_expression_diff_study', LOG_WARNING,
-                'Could not find a record for ref_a %s' % ref_a_path,
+        rr.addWarning('Could not find a record for ref_a ' + ref_a_path,
                 str(session.query(ReferenceFile).\
                 filter_by(name=ref_a_path).all()))
     
     ref_b = _one(session.query(ReferenceFile).filter_by(name=ref_b_path))
     if not ref_b:
-        rr.addMessage('add_expression_diff_study', LOG_WARNING,
-                'Could not find a record for ref_b %s' % ref_b_path,
+        rr.addWarning('Could not find a record for ref_b ' + ref_b_path,
                 str(session.query(ReferenceFile).\
                 filter_by(name=ref_b_path).all()))
     
@@ -299,10 +280,9 @@ def add_expression_diff_study(session, sample_name, data_path, table,
             ExpressionDiff.sample_id==sample.sample_id)).all()
 
     if len(records) > 0:
-        rr.addMessage('add_expression_diff_study', LOG_WARNING,
-                'Already added this data for this sample / file combo',
+        rr.addWarning('Already added this data for this sample / file combo',
                 (sample.name, data_path))
-        return rr
+        return
     
     if not successful_commit(session, data):
         session.rollback()
@@ -341,26 +321,22 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     session.commit()
 
     if unknown_ids:
-        rr.addMessage('add_expression_diff_study',
-                LOG_ERROR, 'Number of unknown gene Ensembl IDs',
+        rr.addError('Number of unknown gene Ensembl IDs',
                 unknown_ids)
-    rr.addMessage('add_expression_diff_study',
-            LOG_INFO, 'Total significantly up-regulated genes',
+    rr.addInfo('Total significantly up-regulated genes',
             signif_up_total)
-    rr.addMessage('add_expression_diff_study',
-            LOG_INFO, 'Total significantly down-regulated genes',
+    rr.addInfo('Total significantly down-regulated genes',
             signif_down_total)
-    rr.addMessage('add_expression_diff_study',
-            LOG_INFO, 'Total genes', total)
+    rr.addInfo('Total genes', total)
     
-    return rr
+    return
 
 def _chunk_id_list(id_list, n):
     for i in xrange(0, len(id_list), n):
         yield id_list[i:i+n]
 
 def add_target_genes(session, sample_name, data_path, table,
-        ensembl_id_label='ENSEMBL', rr=RunRecord()):
+        ensembl_id_label='ENSEMBL'):
     """adds Expression instances into the database from table
 
     Arguments:
@@ -368,6 +344,7 @@ def add_target_genes(session, sample_name, data_path, table,
         - table: the actual expression data table
         - ensembl_id_label: label of the column containing Ensembl Stable IDs
     """
+    rr = RunRecord('add_target_genes')
     data = []
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
@@ -380,10 +357,9 @@ def add_target_genes(session, sample_name, data_path, table,
         reffile.sample = sample
         data.append(reffile)
     else: # Don't overwrite anything, exit instead
-        rr.addWarning('add_target_genes', 'File already loaded', data_path)
+        rr.addWarning('File already loaded', data_path)
         rr.display()
         sys.exit(-1)
-        #reffile = reffile[0]
     
     ensembl_ids = table.getRawData(ensembl_id_label)
 
@@ -396,28 +372,26 @@ def add_target_genes(session, sample_name, data_path, table,
             target.sample = sample
             data.append(target)
 
-    rr.addMessage('add_target_genes', LOG_INFO,
-            'Added target genes from', data_path)
-    rr.addMessage('add_target_genes', LOG_INFO,
-            'No. genes added', len(data))
+    rr.addInfo('Added target genes from', data_path)
+    rr.addInfo('No. genes added', len(data))
     session.add_all(data)
     session.commit()
-    return rr
+    return
 
 def check_existing_data(session, sample_name):
     """ Check if data is already loaded for a given sample name.
     Return the existing sample type and data set size (or None/None) """
-    existing_data = get_expr_entries(session, sample_name, count_only=True)
+    existing_data = get_expr_counts(session, sample_name)
     if existing_data > 0:
         existing_type = sample_types['exp_absolute']
         return existing_data, existing_type
 
-    existing_data = get_diff_entries(session, sample_name, count_only=True)
+    existing_data = get_diff_counts(session, sample_name)
     if existing_data > 0:
             existing_type = sample_types['exp_absolute']
             return existing_data, existing_type
 
-    existing_data = get_target_entries(session, sample_name, count_only=True)
+    existing_data = get_target_counts(session, sample_name)
     if existing_data > 0:
         existing_type = sample_types['target_genes']
         return existing_data, existing_type
@@ -427,50 +401,49 @@ def check_existing_data(session, sample_name):
 def add_data(session, name, description, path, expr_table,
         gene_id_heading='gene', probeset_heading='probeset',
         expr_heading='exp', sample_type=sample_types['exp_absolute'],
-        reffile1=None, reffile2=None, rr=RunRecord()):
+        reffile1=None, reffile2=None):
     """ A unified interface for adding data to the DB """
+    rr = RunRecord('add_data')
 
-    success, rr = add_sample(session, name, description, rr=rr)
+    success = add_sample(session, name, description)
     if not success:
         # Check if any sample exists without data
         existing_data, existing_type = check_existing_data(session, name)
         if existing_data > 0:
-            rr.addError('add_data', name + ' already has data loaded',
+            rr.addError(name + ' already has data loaded',
                     existing_data)
-            rr.addError('add_data', 'data of type', existing_type)
-            return False, rr
+            rr.addError('data of type', existing_type)
+            return False
         else:
-            rr.addInfo('add_data', 'now loading data for existing '\
-                    'sample', name)
+            rr.addInfo('now loading data for existing sample', name)
 
     # either sample was created or existed with no data, so load data now
     if sample_types[sample_type] == sample_types['exp_absolute']:
-        success, rr = add_expression_study(session, name, path, expr_table,
+        success = add_expression_study(session, name, path, expr_table,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
-                expression_label=expr_heading,
-                rr=rr)
+                expression_label=expr_heading)
     elif sample_types[sample_type] == sample_types['exp_diff']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\
         'files that contain the absolute measures.'
-        rr = add_expression_diff_study(session, name, path,
+        add_expression_diff_study(session, name, path,
                 expr_table, reffile1, reffile2,
                 probeset_label=probeset_heading,
                 ensembl_id_label=gene_id_heading,
                 expression_label=expr_heading,
-                prob_label='rawp', sig_label='sig', rr=rr)
+                prob_label='rawp', sig_label='sig')
     elif sample_types[sample_type] == sample_types['target_genes']:
-        rr = add_target_genes(session, name, path, expr_table,
-                ensembl_id_label=gene_id_heading, rr=rr)
+        add_target_genes(session, name, path, expr_table,
+                ensembl_id_label=gene_id_heading)
     else:
         rr.display()
         raise RuntimeError('Unknown sample type')
 
-    return success, rr
+    return success
 
-def create_dummy_flat_expr(session, rr=RunRecord()):
+def create_dummy_flat_expr(session):
     """ create flat and spread dummy data """
     genes_dict = get_stable_id_genes_mapping(session)
 
@@ -484,16 +457,16 @@ def create_dummy_flat_expr(session, rr=RunRecord()):
         expr_table_row['exp'] = 1
         expr_table_rows.append(expr_table_row)
 
-    success, rr = add_data(session, 'dummy_flat',
+    success = add_data(session, 'dummy_flat',
             'each gene has expression score of 1',
             'dummy_flat_expr.fake', expr_table_rows, gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type='exp_absolute',
-            reffile1=None, reffile2=None, rr=rr)
+            reffile1=None, reffile2=None)
 
-    return success, rr
+    return success
 
-def create_dummy_spread_expr(session, rr=RunRecord()):
+def create_dummy_spread_expr(session):
     """ create flat and spread dummy data """
     genes_dict = get_stable_id_genes_mapping(session)
 
@@ -506,13 +479,13 @@ def create_dummy_spread_expr(session, rr=RunRecord()):
         expr_table_row['exp'] = i
         expr_table_rows.append(expr_table_row)
 
-    success, rr = add_data(session, 'dummy_spread',
+    success = add_data(session, 'dummy_spread',
             'each gene has unique expression score',
             'dummy_spread_expr.fake', expr_table_rows,
             gene_id_heading='gene',
             probeset_heading='probeset', expr_heading='exp',
             sample_type='exp_absolute',
-            reffile1=None, reffile2=None, rr=rr)
+            reffile1=None, reffile2=None)
 
-    return success, rr
+    return success
 

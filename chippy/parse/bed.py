@@ -106,8 +106,7 @@ def MinimalBedParser(data, converter=converter):
 
 class BedRep:
     """ defines a BED file. Use a dict of chroms containing a list of tuples.
-        This class allows access the same way as for Pickled arrays. The user
-        requests a numpy array by chromosome."""
+        This class allows access by user chosen chromosome. """
 
     def __init__(self, bed_file_path):
         parser = MinimalBedParser(bed_file_path)

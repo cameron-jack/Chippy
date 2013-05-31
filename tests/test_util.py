@@ -3,11 +3,8 @@ sys.path.extend(['../src', '..'])
 
 from chippy.util import util
 
-import numpy
-
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files, flatten
-
 
 class GroupingTests(TestCase):
     def test_no_remainder(self):
@@ -55,7 +52,6 @@ class GroupingTests(TestCase):
             data.insert(i, 10) # inserts redundant elements
         got = util.unique_records(data)
         self.assertEqual(got, range(20))
-        
 
 if __name__ == "__main__":
     main()

@@ -435,6 +435,26 @@ def get_expr_entries(session, sample_name=None, biotype='protein_coding',
             query = query.filter(Gene.biotype==biotype)
         return query.all()
 
+@_safe_counts
+def get_expr_counts(session, sample_name=None, biotype='protein_coding',
+                     test_run=False):
+    """ Returns expression records for a given sample """
+    if sample_name:
+        sample = _get_sample(session, sample_name)
+        if not sample:
+            raise RuntimeError('No sample with name ' + sample_name)
+
+        query = session.query(Expression).\
+        filter(Expression.sample_id==sample.sample_id)
+        if biotype:
+            query = query.filter(Gene.biotype==biotype)
+        return query.count()
+    else:
+        query = session.query(Expression)
+        if biotype:
+            query = query.filter(Gene.biotype==biotype)
+        return query.count()
+
 @_safe_query
 def get_diff_entries(session, sample_name=None, biotype='protein_coding',
         multitest_signif_val=None, test_run=False):
@@ -462,6 +482,33 @@ def get_diff_entries(session, sample_name=None, biotype='protein_coding',
                     multitest_signif_val)
         return query.all()
 
+@_safe_counts
+def get_diff_counts(session, sample_name=None, biotype='protein_coding',
+                     multitest_signif_val=None, test_run=False):
+    """ Returns expression_diff records for a given sample """
+
+    if sample_name:
+        sample = _get_sample(session, sample_name)
+        if not sample:
+            raise RuntimeError('No sample with name ' + sample_name)
+
+        query = session.query(ExpressionDiff).\
+        filter(ExpressionDiff.sample_id==sample.sample_id)
+        #if biotype:
+        #    query = query.filter(Gene.biotype==biotype)
+        if multitest_signif_val is not None:
+            query = query.filter(ExpressionDiff.multitest_signif==\
+                                 multitest_signif_val)
+        return query.counts()
+    else:
+        query = session.query(ExpressionDiff)
+        #if biotype:
+        #    query = query.filter(Gene.biotype==biotype)
+        if multitest_signif_val is not None:
+            query = query.filter(ExpressionDiff.multitest_signif==\
+                                 multitest_signif_val)
+        return query.counts()
+
 @_safe_query
 def get_target_entries(session, sample_name=None, test_run=False):
     """ Returns target_gene records for a given sample """
@@ -475,6 +522,20 @@ def get_target_entries(session, sample_name=None, test_run=False):
     else: # get them all
         query = session.query(TargetGene)
         return query.all()
+
+@_safe_counts
+def get_target_counts(session, sample_name=None, test_run=False):
+    """ Returns target_gene records for a given sample """
+    if sample_name:
+        sample = _get_sample(session, sample_name)
+        if not sample:
+            raise RuntimeError('No sample with name ' + sample_name)
+        query = session.query(TargetGene).\
+        filter(TargetGene.sample_id==sample.sample_id)
+        return query.counts()
+    else: # get them all
+        query = session.query(TargetGene)
+        return query.counts()
 
 ### Public total gene number count DB functions ###
 

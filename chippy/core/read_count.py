@@ -34,7 +34,7 @@ def run_command(command):
     return returncode, stdout, stderr
 
 @display_wrap
-def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
+def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     """ read BED entries and add into each ROI as appropriate
 
     BED entries are 0-offset for start, 1-offset for end - same as Python.
@@ -42,6 +42,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     Output ROIs as well as total tags read and total bases added as
     these can be used by later stage for normalisation.
     """
+    rr = RunRecord('read_BED')
     num_tags = 0; num_bases = 0
 
     if '.gz' in bedfile_path:
@@ -52,12 +53,10 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     command = 'wc -l ' + bedfile_path
     returncode, stdout, stderr = run_command(command)
     if returncode != 0:
-        rr.addWarning('read_BED', 'could not run wc to count BED lines',
-                'error')
+        rr.addWarning('could not run wc to count BED lines', 'error')
     else:
         total_BED_lines = int(stdout.strip().split(' ')[0])
-        rr.addInfo('read_BED', 'total lines in '+bedfile_path,
-                total_BED_lines)
+        rr.addInfo('total lines in '+bedfile_path, total_BED_lines)
 
     # separate ROIs by chrom - performance optimisation
     roi_chrom_dict = {}
@@ -103,13 +102,13 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     for chrom_key in roi_chrom_dict.keys():
         for roi in roi_chrom_dict[chrom_key]:
             remaining_ROIs.append(roi)
-    rr.addInfo('read_BED', 'Filled Regions of Interest', len(filled_ROIs))
-    rr.addInfo('read_BED', 'Unfilled Regions of Interest', len(remaining_ROIs))
+    rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
+    rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
 
-    return filled_ROIs + remaining_ROIs, num_tags, num_bases, rr
+    return filled_ROIs + remaining_ROIs, num_tags, num_bases
 
 @display_wrap
-def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
+def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
     """ get sequence reads for each ROI and add the counts in.
     Relies on Samtools view.
 
@@ -119,6 +118,7 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
     Output ROIs as well as total tags read and total bases added as
     these can be used by later stage for normalisation.
     """
+    rr = RunRecord('read_BAM')
     num_tags = 0; num_bases = 0
 
     valid_flags = set([0, 16, 83, 99, 147, 163])
@@ -136,11 +136,10 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
             for part in stderr.split(' '):
                 if chr_prefix in part:
                     reported = True
-                    rr.addWarning('read_BAM',
-                            'Possibly incorrect chromosome prefix', part)
+                    rr.addWarning('Possibly incorrect chromosome prefix',
+                            part)
             if not reported:
-                rr.addWarning('read_BAM',
-                        'Possibly incorrect chromosome prefix', stderr)
+                rr.addWarning('Possibly incorrect chromosome prefix', stderr)
 
         if returncode == 0:
             bam_lines = stdout.split('\n')
@@ -167,32 +166,29 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', rr=RunRecord(), ui=None):
             filled_ROIs.append(roi)
         else:
             rr.display()
-            raise RuntimeError('samtools view failed')
-    rr.addInfo('read_BAM', 'Number of BAM records evaluated', bam_lines_seen)
-    rr.addInfo('read_BAM', 'Number of valid BAM records seen',
-            valid_flag_count)
-    rr.addInfo('read_BAM', 'Number of invalid BAM records seen',
-            invalid_flag_count)
+            raise RuntimeError('samtools view failed. Is the BAM sorted? '+\
+                    'Does it have an index file?')
+    rr.addInfo('Number of BAM records evaluated', bam_lines_seen)
+    rr.addInfo('Number of valid BAM records seen', valid_flag_count)
+    rr.addInfo('Number of invalid BAM records seen', invalid_flag_count)
 
-    return filled_ROIs, num_tags, num_bases, rr
+    return filled_ROIs, num_tags, num_bases
 
-def get_region_counts(BAMorBED, ROIs, chr_prefix=None, rr=RunRecord()):
+def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
     """ direct ROIs to BAM or BED file reader.
-    Return ROIs, the number of read tags, the total of all counts, rr """
-
+    Return ROIs, the number of read tags, the total of all counts """
+    rr = RunRecord('get_region_counts')
     if 'bam' in BAMorBED.lower():
-        filled_ROIs, num_tags, num_bases, rr = read_BAM(BAMorBED,
-                ROIs, chr_prefix, rr=rr)
+        filled_ROIs, num_tags, num_bases = read_BAM(BAMorBED,
+                ROIs, chr_prefix)
     elif 'bed' in BAMorBED.lower():
-        filled_ROIs, num_tags, num_bases, rr = read_BED(BAMorBED,
-                ROIs, chr_prefix, rr=rr)
+        filled_ROIs, num_tags, num_bases = read_BED(BAMorBED,
+                ROIs, chr_prefix)
     else:
         rr.display()
         raise RuntimeError("File name given doesn't resemble BAM or BED ",
                 BAMorBED)
 
-    rr.addInfo('get_region_counts', 'Number of read tags counted', num_tags)
-    rr.addInfo('get_region_counts', 'Number of total bases counted',
-            num_bases)
-    return filled_ROIs, num_tags, num_bases, rr
-
+    rr.addInfo('Number of read tags counted', num_tags)
+    rr.addInfo('Number of total bases counted', num_bases)
+    return filled_ROIs, num_tags, num_bases

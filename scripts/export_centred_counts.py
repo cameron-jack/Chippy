@@ -51,24 +51,24 @@ def get_collection(session, sample_name, expr_area, species, BAMorBED,
         chr_prefix, window_radius,
         multitest_signif_val, filename, overwrite, sample_type,
         tab_delimited, include_target=None, exclude_target=None,
-        bedgraph=None, rr=RunRecord(), test_run=False):
+        bedgraph=None, test_run=False):
 
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute']:
             print "Collecting data for absolute expression experiment"
-            data_collection, rr = centred_counts_for_genes(session,
+            data_collection = centred_counts_for_genes(session,
                     sample_name, expr_area, species, BAMorBED,
                     chr_prefix, window_radius,
                     include_target, exclude_target,
-                    bedgraph, rr, test_run)
+                    bedgraph, test_run)
         
         elif sample_type == sample_types['exp_diff']:
             print "Collecting data for difference expression experiment"
-            data_collection, rr = centred_diff_counts_for_genes(
+            data_collection = centred_diff_counts_for_genes(
                     session, sample_name, expr_area, species,
                     BAMorBED, chr_prefix,
                     window_radius, multitest_signif_val, include_target,
-                    exclude_target, bedgraph,rr, test_run)
+                    exclude_target, bedgraph, test_run)
             
         else:
             print "Experiment type %s not supported" % sample_type
@@ -81,14 +81,13 @@ def get_collection(session, sample_name, expr_area, species, BAMorBED,
             sys.stderr.write('No data_collection was returned!\n')
     else:
         print 'Existing output at %s' % filename
-        data_collection = RegionCollection(filename=filename)
-    
-    return data_collection, rr
 
 def main():
     """ Returns a pickle of size window length containing chromatin mapping
      averages per base, one per gene, ranked by expression """
-    rr = RunRecord()
+    rr = RunRecord('export_centred_counts')
+    rr.addCommands(sys.argv)
+
     args = script_info['args'].parse()
     if args.sample is None:
         raise RuntimeError('No samples available')
@@ -119,22 +118,17 @@ def main():
     if args.make_bedgraph:
         bedgraph_fn = db_name.split('.')[0] + '_'+sample_name+'.bedgraph'
 
-    rr.addInfo('export_centred_counts', 'BAM/BED chromosome prefix given',
-        args.chr_prefix)
-    rr.addInfo('export_centred_counts', 'include gene targets',
-        include_name)
-    rr.addInfo('export_centred_counts', 'exclude gene targets',
-        exclude_name)
+    rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
+    rr.addInfo('include gene targets', include_name)
+    rr.addInfo('exclude gene targets', exclude_name)
 
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
-        data_collection, rr = get_collection(session, sample_name,
-                args.expression_area, species, args.BAMorBED,
-                args.chr_prefix,
-                args.window_radius,
+        get_collection(session, sample_name, args.expression_area, species,
+                args.BAMorBED, args.chr_prefix, args.window_radius,
                 args.multitest_signif_val, args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
-                exclude_name, bedgraph=bedgraph_fn, rr=rr, test_run=args.test_run)
+                exclude_name, bedgraph=bedgraph_fn, test_run=args.test_run)
     else:
         print 'Other options not defined yet, choose from', \
                 sample_types['exp_absolute'], 'or', sample_types['exp_diff']

@@ -11,6 +11,8 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "pre-release"
 __version__ = '0.1'
 
+### This file is deprecated. A Chroms table is now kept in the ChippyDB
+
 mouse_chroms = tuple(map(str, range(1,20)+['X', 'Y', 'MT']))
 human_chroms = tuple(map(str, range(1,23)+['X', 'Y', 'MT']))
 cerevisiae_chroms = tuple(['I','II','III','IV','V','VI','VII','VIII',
@@ -30,17 +32,18 @@ class Chromosomes:
         self.species = species
         self.chroms = chroms
 
-def chromHandle(species='mouse', chroms=mouse_chroms, rr=RunRecord()):
+def chromHandle(species='mouse', chroms=mouse_chroms):
     """chrom_handle provides the safe way of creating an instance of
     Chrom and returning THE existing instance of Chromosomes. """
+    rr = RunRecord('chromHandle')
     try:
         chromsInstance = Chromosomes(species, chroms)
-        rr.addInfo('chromHandle', 'Chromosomes instance created', True)
-        rr.addInfo('chromHandle', 'Chromosomes instance species', species)
-        rr.addInfo('chromHandle', 'Chromosomes instance chromosomes', chroms)
+        rr.addInfo('Chromosomes instance created', True)
+        rr.addInfo('Chromosomes instance species', species)
+        rr.addInfo('Chromosomes instance chromosomes', chroms)
     except Chromosomes, c:
         chromsInstance = c
         if species or chroms:
-            rr.addWarning('chromHandle', 'provided species', species)
-            rr.addWarning('chromHandle', 'provided chromosomes', chroms)
-    return chromsInstance, rr
+            rr.addWarning('provided species', species)
+            rr.addWarning('provided chromosomes', chroms)
+    return chromsInstance

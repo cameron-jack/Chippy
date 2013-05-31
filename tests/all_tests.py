@@ -39,6 +39,7 @@ def suite():
         'test_parse_bed',
         'test_parse_rdump',
         'test_parse_sam',
+        'test_run_record',
         'test_syntax',
         'test_util'
         ]
@@ -74,4 +75,7 @@ if __name__ == '__main__':
             unittest.main(defaultTest='suite', argv=sys.argv)
         finally:
             sys.stdout = orig
-            remove_RR_log()
+            try:
+                remove_RR_log()
+            except OSError:
+                pass # no clean-up required

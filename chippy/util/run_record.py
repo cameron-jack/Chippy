@@ -8,6 +8,7 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.2'
 import logging, sys, os
+from math import ceil
 
 LOG_FN = 'ChipPy.log'
 
@@ -62,16 +63,18 @@ class RunRecord(object):
 
     def addCommands(self, command_args):
         """ groups together command-line args and adds to log """
-        for i in range(len(command_args)/3):
-            if i+3 <= len(command_args)-1:
-                args = [command_args[i*3], command_args[(i*3)+1],
-                        command_args[(i*3)+2]]
-            elif i+2 == len(command_args)-1:
-                args = [command_args[i*3], command_args[(i*3)+1]]
-            elif i == len(command_args)-1:
-                args = [command_args[i*3]]
-
-            self.addInfo(command_args[0] +' command-line', ' '.join(args))
+        if len(command_args) == 0:
+            self.addInfo('command-line', 'No arguments given')
+        else:
+            for i in range(int(ceil(len(command_args)/3.0))):
+                if i*3+2 <= len(command_args)-1:
+                    args = [command_args[i*3], command_args[(i*3)+1],
+                            command_args[(i*3)+2]]
+                elif i*3+1 <= len(command_args)-1:
+                    args = [command_args[i*3], command_args[(i*3)+1]]
+                elif i*3 <= len(command_args)-1:
+                    args = [command_args[i*3]]
+                self.addInfo(command_args[0] +' command-line', ' '.join(args))
 
     def getMessageTable(self):
         """docstring for display"""

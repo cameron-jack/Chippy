@@ -4,7 +4,9 @@
 # run suite by executing this file
 #
 
-import sys, os
+import sys, os, logging
+sys.path.extend(['..'])
+from chippy.util.run_record import remove_RR_log
 
 p = os.path.abspath(__file__)
 p = p.split('tests')[0]
@@ -58,6 +60,7 @@ class BoobyTrappedStream(object):
 
 
 if __name__ == '__main__':
+    logging.disable(logging.CRITICAL)
     if '--debug' in sys.argv:
         s = suite()
         s.debug()
@@ -71,3 +74,4 @@ if __name__ == '__main__':
             unittest.main(defaultTest='suite', argv=sys.argv)
         finally:
             sys.stdout = orig
+            remove_RR_log()

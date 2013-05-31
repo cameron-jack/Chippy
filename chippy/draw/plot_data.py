@@ -62,16 +62,16 @@ class PlotLine(PlotData):
     def __repr__(self):
         return self.counts, self.rank, self.label
 
-    def applySmoothing(self, smooth_width, rr=RunRecord()):
+    def applySmoothing(self, smooth_width):
         """ User-directed binning or smoothing of count line
         data is done here """
         self.counts = smooth(self.counts, smooth_width)
-        return rr
 
-    def applyBinning(self, bin_width, rr=RunRecord()):
+    def applyBinning(self, bin_width):
         """ For every bin_width, sum the counts. Output array size is
         same, just filled with sum values. Bin_width must be an integer
         factor of the window size """
+        rr = RunRecord('apply_binning')
         if bin_width and bin_width > 0:
             if len(self.counts)%bin_width:
                 rr.display()
@@ -85,5 +85,4 @@ class PlotLine(PlotData):
                 for i in xrange(bin_width):
                     tmp_array[k+i] = bin_sum
         self.counts = tmp_array
-        return rr
 

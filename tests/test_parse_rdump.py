@@ -1,12 +1,11 @@
 import sys
-sys.path.append('..')
+sys.path.extend(['..'])
 
-import numpy
 from cogent import LoadTable
 from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
-from chippy.parse.r_dump import remove_probesets, SimpleRdumpToTable, convert
+from chippy.parse.r_dump import remove_probesets, simpleRdumpToTable, convert
 
 _sample_dump = LoadTable(header=['ENSEMBL', 'probeset', 'exp'],
         rows=[['id1',"0|1|2","13.6|13.4|13.6"],
@@ -62,7 +61,7 @@ class ExcludingProbesets(TestCase):
         """parsing an rdump with no filtering returns same number of rows"""
         tmp_file = 'sample_rdump.txt'
         _sample_dump.writeToFile(tmp_file, sep='\t')
-        rdumped, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdumped = simpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
                 probeset_label='probeset', exp_label='exp',
                 allow_probeset_many_gene=True)
         self.assertEqual(rdumped.Shape[0], _sample_dump.Shape[0])
@@ -74,7 +73,7 @@ class ExcludingProbesets(TestCase):
         """filtered rdumps should exclude probesets that map to many genes"""
         tmp_file = 'sample_rdump.txt'
         _sample_dump.writeToFile(tmp_file, sep='\t')
-        rdumped, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdumped = simpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
                 probeset_label='probeset', exp_label='exp',
                 allow_probeset_many_gene=False)
         self.assertTrue(rdumped.Shape[0] < _sample_dump.Shape[0])
@@ -87,7 +86,7 @@ class ExcludingProbesets(TestCase):
         remove_files([tmp_file], error_on_missing=False)
     
     def test_rdump_parse_validate(self):
-        """validate arg to SimpleRdumpToTable rdump works"""
+        """validate arg to simpleRdumpToTable rdump works"""
         tmp_file = 'sample_rdump.txt'
         sub = LoadTable(header=['ENSEMBL', 'probeset', 'exp'],
                 rows=[['id1',"0|1|2","13.6|13.4|13.6"],
@@ -96,11 +95,11 @@ class ExcludingProbesets(TestCase):
         table = _sample_dump.appended(None, sub)
         table.writeToFile(tmp_file, sep='\t')
         # validate will cause an exception to be raised when True
-        self.assertRaises(RuntimeError, SimpleRdumpToTable, tmp_file,
+        self.assertRaises(RuntimeError, simpleRdumpToTable, tmp_file,
                 stable_id_label='ENSEMBL', probeset_label='probeset',
                 exp_label='exp', validate=True)
         # but not when False
-        rdump, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
+        rdump = simpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL',
             probeset_label='probeset', exp_label='exp', validate=False)
         
         # a different number of probeset, exp values should have less rows
@@ -109,7 +108,7 @@ class ExcludingProbesets(TestCase):
                 ['id2',"3|1","9.9|13.6"],
                 ['id3',"4|5","12.7"]])
         sub.writeToFile(tmp_file, sep='\t')
-        got, rr = SimpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL', probeset_label='probeset',
+        got = simpleRdumpToTable(tmp_file, stable_id_label='ENSEMBL', probeset_label='probeset',
                 exp_label='exp', validate=True)
         self.assertEquals(got.getRawData('ENSEMBL'), ['id1','id2'])
         remove_files([tmp_file], error_on_missing=False)

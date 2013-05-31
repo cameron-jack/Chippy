@@ -1,12 +1,9 @@
-""" Maintains and controls data for any genome region for which we are
-collecting data"""
 from __future__ import division
 
 import sys
 sys.path.extend(['..'])
 import numpy
 
-# from chippy.util.run_record import RunRecord
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 __author__ = "Cameron Jack"
@@ -19,6 +16,9 @@ __status__ = "Pre-release"
 __version__ = '0.1'
 
 class ROI(object):
+    """ Maintains and controls data for any genome region for which we
+        are collecting data.
+    """
     def __init__(self, gene, start, end, label=None):
         """ All coordinates are in Python 0-based [,) space """
         super(ROI, self).__init__()
@@ -50,8 +50,8 @@ class ROI(object):
             offset_left = self.end - entry_end
             offset_right = self.end - entry_start
 
-        assert offset_left < offset_right, 'left slicing coord must be less '+\
-                                       'than right slicing coord'
+        assert offset_left < offset_right, 'left slicing coord must be '+\
+                'less than right slicing coord'
 
         # Limit the offsets to (0, len(roi.counts))
         offset_left = max(offset_left, 0)

@@ -5,13 +5,13 @@ from chippy.util.run_record import RunRecord
 from chippy.util.definition import LOG_DEBUG, LOG_INFO, LOG_WARNING, \
     LOG_ERROR, LOG_CRITICAL
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "alpha"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'pre-release'
 __version__ = '0.1'
 
 def convert(to_float=False, strict=False):
@@ -72,9 +72,8 @@ def validate_exps(probeset_ids, probeset_exps):
 
     return new_ids, new_exps
 
-def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
-        exp_label='', allow_probeset_many_gene=False, validate=True,
-        run_record=None):
+def simpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
+        exp_label='', allow_probeset_many_gene=False, validate=True):
     """returns a cogent table object
     
     Handles case where probset id's and expressions scores are separated by
@@ -94,8 +93,7 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
 
     Needs to be able to ignore string entries in place of float/double
     """
-    if run_record is None:
-        run_record = RunRecord()
+    rr = RunRecord('simpleRdumpToTable')
     
     # forces reading in as string
     converter = ConvertFields([])
@@ -130,27 +128,22 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
     
     table = LoadTable(header=table.Header, rows=new_rows)
     if lost_probesets:
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-                'probesets not matched to expression values', lost_probesets)
+        rr.addCritical('probesets not matched to expression values',
+                lost_probesets)
     
     if validate:
         assert probeset_label and exp_label and stable_id_label,\
-            'Must provide all required column labels to validate'
+                'Must provide all required column labels to validate'
         stable_ids = table.getDistinctValues(stable_id_label)
         if len(stable_ids) != table.Shape[0]:
             raise RuntimeError('Non unique stable IDs')
         
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-            'validation', 'genes were all unique')
-            
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-            'validation', 'numbers of probesets matched expression records')
-        
-    
+        rr.addInfo('validation', 'genes were all unique')
+        rr.addInfo('validation', 'numbers of probesets matched expression records')
+
     # look for cases where a probeset maps to multiple genes
     if not allow_probeset_many_gene:
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-            'Probesets map to a single gene', '')
+        rr.addInfo('Probesets must map to a single gene', True)
         
         probeset_gene = {}
         gene_problem_probesets = {}
@@ -182,12 +175,9 @@ def SimpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
             if row is not None:
                 rows.append(row)
         
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-            'No. dropped probesets', len(bad_probesets))
-        run_record.addMessage('SimpleRdumpToTable', LOG_INFO,
-            'No. genes dropped in probeset filter', table.Shape[0]-len(rows))
+        rr.addInfo('No. dropped probesets', len(bad_probesets))
+        rr.addInfo('No. genes dropped in probeset filter',
+                table.Shape[0]-len(rows))
         table = LoadTable(header=table.Header, rows=rows)
-        
-    
-    return table, run_record
 
+    return table

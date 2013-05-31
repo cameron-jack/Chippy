@@ -38,7 +38,9 @@ script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def main():
-    rr = RunRecord()
+    rr = RunRecord('start_chippy_db')
+    rr.addCommands(sys.argv)
+
     args = script_info['args'].parse()
     create_path(args.save_db_path)
 
@@ -50,30 +52,34 @@ def main():
     species = args.species
     chippy_db_name = 'chippy_' + str(release) +'_' + species + '.db'
     db_path = os.path.join(args.save_db_path, chippy_db_name)
-    session = make_session(db_path)
-    hostname = args.hostname
-    username = args.username
-    password = args.password
+    if not os.path.exists(db_path):
+        session = make_session(db_path)
+
+        hostname = args.hostname
+        username = args.username
+        password = args.password
     
-    account = HostAccount(hostname, username, password, port=args.port)
-    add_ensembl_gene_data(session, args.species,
-            ensembl_release=args.ensembl_release, account=account)
+        account = HostAccount(hostname, username, password, port=args.port)
+        add_ensembl_gene_data(session, args.species,
+                ensembl_release=args.ensembl_release, account=account)
 
-    CREATE_DUMMY_DATA = False
-    if CREATE_DUMMY_DATA:
-        success, rr = create_dummy_flat_expr(session, rr=rr)
-        if success:
-            print 'Dummy flat data added successfully'
-        else:
-            print 'Dummy flat data failed to upload to DB. Expect bigger problems'
+        CREATE_DUMMY_DATA = True
+        if CREATE_DUMMY_DATA:
+            success = create_dummy_flat_expr(session)
+            if success:
+                print 'Dummy flat data added successfully'
+            else:
+                print 'Dummy flat data failed to upload to DB. Expect bigger problems'
 
-        success, rr = create_dummy_spread_expr(session, rr=rr)
-        if success:
-            print 'Dummy spread data added successfully'
-        else:
-            print 'Dummy spread data failed to upload to DB. Expect bigger problems'
+            success = create_dummy_spread_expr(session)
+            if success:
+                print 'Dummy spread data added successfully'
+            else:
+                print 'Dummy spread data failed to upload to DB. Expect bigger problems'
 
-    rr.addInfo('start_chippy_db' ,'Chippy DB written to:', db_path)
+        rr.addInfo('Chippy DB written', db_path)
+    else:
+        rr.addError('Chippy DB with this name already exists', db_path)
     rr.display()
 
 if __name__ == "__main__":

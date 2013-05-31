@@ -3,7 +3,6 @@ from __future__ import division
 
 import sys
 sys.path.extend(['..'])
-import numpy
 
 from cogent.format.bedgraph import bedgraph
 from chippy.core.region_of_interest import ROI
@@ -22,11 +21,11 @@ __email__ = "cameron.jack@anu.edu.au"
 __status__ = "Pre-release"
 __version__ = '0.1'
 
-def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
+def write_to_bedgraph(bedgraph_fn, ROIs):
     """ ROIs sorted by chromosome then start location get written as
-    bedgraphs using PyCogent's BEDgraph writer.
+        bedgraphs using PyCogent's BEDgraph writer.
     """
-
+    rr = RunRecord('write_to_bedgraph')
     ROIs = sorted(ROIs, key=lambda roi: (roi.chrom, roi.start))
 
     record_tuples = []
@@ -35,8 +34,7 @@ def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
             if c != 0:
                 pos = roi.start + i # BEDgraph is 0-based like Python
                 record_tuples.append((roi.chrom, pos, pos, c))
-    rr.addInfo('write_to_bedgraph', 'number of records to combine',
-            len(record_tuples))
+    rr.addInfo('number of records to combine', len(record_tuples))
     bedgraph_data = bedgraph(record_tuples, digits=None, name=bedgraph_fn,
             description='Study of filename', color=(0,0,255))
 
@@ -44,12 +42,10 @@ def write_to_bedgraph(bedgraph_fn, ROIs, rr=RunRecord()):
     bgfile.write(''.join(bedgraph_data)+'\n')
     bgfile.close()
 
-    rr.addInfo('write_to_bedgraph', 'BEDgraph data written to', bedgraph_fn)
-    return rr
+    rr.addInfo('BEDgraph data written to', bedgraph_fn)
 
 def get_counts_ranks_ids(genes, BAMorBED, expr_area,
-            chr_prefix, window_radius=1000, bedgraph=None,
-            rr=RunRecord(), ui=None):
+            chr_prefix, window_radius=1000, bedgraph=None, ui=None):
     """ window length=2*window_radius (Start of feature is right of centre.
         Build regions of interest (ROI) and return as lists of
         counts, ranks and ensembl_ids, sorted by rank.
@@ -58,6 +54,7 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
         Returns counts, ranks, labels, and possible normalisation factors:
         number of tags (reads), number of bases counted.
     """
+    rr = RunRecord('get_counts_ranks_ids')
     regionsOfInterest = []
 
     if expr_area.lower() == 'tss':
@@ -79,11 +76,11 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
         rr.display()
         raise RuntimeError('No regions of interest in genome created')
 
-    ROIs, num_tags, num_bases, rr = get_region_counts(BAMorBED,
-            regionsOfInterest, chr_prefix=chr_prefix, rr=rr)
+    ROIs, num_tags, num_bases = get_region_counts(BAMorBED,
+            regionsOfInterest, chr_prefix=chr_prefix)
 
     if bedgraph:
-        rr = write_to_bedgraph(bedgraph, ROIs, rr)
+        write_to_bedgraph(bedgraph, ROIs)
 
     ROIs = sorted(ROIs, key=lambda roi: roi.rank)
     counts = []; ranks = []; ensembl_ids = []
@@ -92,14 +89,14 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
         ranks.append(roi.rank)
         ensembl_ids.append(roi.gene_id)
 
-    return counts, ranks, ensembl_ids, num_tags, num_bases, rr
+    return counts, ranks, ensembl_ids, num_tags, num_bases
 
 def centred_counts_for_genes(session, sample_name, expr_area, species,
         BAMorBED, chr_prefix, window_radius=1000,
         include_target=None, exclude_target=None,
-        bedgraph=None, rr=RunRecord(),
-        test_run=False):
+        bedgraph=None, test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
+    rr = RunRecord('centred_counts_for_genes')
 
     print 'Getting ranked expression instances'
     expressed_genes = get_ranked_abs_expr_genes(session, sample_name,
@@ -110,16 +107,13 @@ def centred_counts_for_genes(session, sample_name, expr_area, species,
         rr.display()
         raise RuntimeError('No expressed genes available for pairing ' +\
                            'with counts data. Halting.')
-    rr.addInfo('count_tags', 'Sample counts name',
-            sample_name)
-    rr.addInfo('count_tags', 'Total expression data',
-         len(expressed_genes))
+    rr.addInfo('Sample counts name', sample_name)
+    rr.addInfo('Total expression data', len(expressed_genes))
 
     print 'Decorating for', len(expressed_genes), 'genes'
-    counts, ranks, ensembl_ids, num_tags, num_bases, rr =\
+    counts, ranks, ensembl_ids, num_tags, num_bases =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, expr_area,
-            chr_prefix, window_radius=window_radius, bedgraph=bedgraph,
-            rr=rr)
+            chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,
@@ -130,14 +124,15 @@ def centred_counts_for_genes(session, sample_name, expr_area, species,
                 'tag count': num_tags,
                 'base count': num_bases}})
 
-    return data, rr
+    return data
 
 def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
         BAMorBED, chr_prefix, window_radius,
         multitest_signif_val, include_target=None, exclude_target=None,
-        bedgraph=None, rr=RunRecord(), test_run=False):
+        bedgraph=None, test_run=False):
     """returns a RegionCollection object wrapping the counts, ranks etc ..
     related to an expression difference experiment"""
+    rr = RunRecord('centred_diff_counts_for_genes')
 
     print 'Getting ranked expression difference instances'
     expressed_diff = get_ranked_diff_expr_genes(session, sample_name,
@@ -148,15 +143,12 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
         rr.display()
         raise RuntimeError('No expressed genes available for pairing ' +\
                 'with counts data. Halting.')
-    rr.addInfo('count_tags', 'Sample diff counts name',
-            sample_name)
-    rr.addInfo('count_tags', 'Total expression data',
-            len(expressed_diff))
+    rr.addInfo('Sample diff counts name', sample_name)
+    rr.addInfo('Total expression data', len(expressed_diff))
 
-    counts, ranks, ensembl_ids, num_tags, num_bases, rr =\
+    counts, ranks, ensembl_ids, num_tags, num_bases =\
             get_counts_ranks_ids(expressed_diff, BAMorBED, expr_area,
-            chr_prefix, window_radius=window_radius, bedgraph=bedgraph,
-            rr=rr)
+            chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
 
     data = RegionCollection(counts=counts, ranks=ranks,
         labels=ensembl_ids,
@@ -167,5 +159,5 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area, species,
                 'tag count': num_tags,
                 'base count': num_bases}})
 
-    return data, rr
+    return data
 

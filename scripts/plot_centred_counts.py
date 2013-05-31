@@ -59,13 +59,13 @@ class Study(object):
             self.window_radius = len(self.data_collection.counts[0])/2
 
     def filterByGenes(self, db_path, chrom=None, include_sample=None,
-            exclude_sample = None, rr=RunRecord()):
+            exclude_sample = None):
         """ keep only results that match selected genes """
+        rr = RunRecord('filterByGenes')
         if not include_sample and not exclude_sample:
-            return rr
+            return
 
-        rr.addInfo('Study.filterByGenes', 'Starting no. of genes',
-                self.data_collection.N)
+        rr.addInfo('Starting no. of genes', self.data_collection.N)
 
         session = make_session(db_path)
         if include_sample:
@@ -78,8 +78,7 @@ class Study(object):
 
         self.data_collection =\
                 self.data_collection.filteredByLabel(filter_gene_ids)
-        rr.addInfo('Study.filterByGenes', 'Remaining genes',
-                self.data_collection.N)
+        rr.addInfo('Remaining genes', self.data_collection.N)
 
         if self.data_collection is None or\
            self.data_collection.ranks.max() == 0:
@@ -90,42 +89,33 @@ class Study(object):
         total_features = self.data_collection.ranks.max()
         self.data_collection.ranks /= total_features
 
-        return rr
-
-    def filterByCutoff(self, cutoff=None, rr=RunRecord()):
+    def filterByCutoff(self, cutoff=None):
         """ keep only results that pass Chebyshev cutoff """
+        rr = RunRecord('filterByCutoff')
 
-        rr.addInfo('Study.filterByCutoff', 'Starting no. of genes',
-                self.data_collection.N)
+        rr.addInfo('Starting no. of genes', self.data_collection.N)
 
         # exclude outlier genes using one-sided Chebyshev
         if cutoff is not None and cutoff != 0.0:
             try:
                 cutoff = float(cutoff)
                 if cutoff < 0.0 or cutoff >= 1.0:
-                    rr.addError('Study.filterByCutoff', 'Cutoff out of range',
-                            cutoff)
-                    rr.addInfo('Study.filterByCutoff',
-                            'Cutoff set to default', 0.05)
+                    rr.addError('Cutoff out of range', cutoff)
+                    rr.addInfo('Cutoff set to default', 0.05)
                     cutoff = 0.05
             except ValueError:
-                rr.addError('_filter_collection', 'Cutoff not given as float',
-                        cutoff)
-                rr.addInfo('_filter_collection', 'Cutoff set to default',
-                        0.05)
+                rr.addError('Cutoff not given as float', cutoff)
+                rr.addInfo('Cutoff set to default', 0.05)
                 cutoff = 0.05
             # Do Chebyshev filtering
 
             self.data_collection =\
                     self.data_collection.filteredChebyshevUpper(p=cutoff)
-            rr.addInfo('Study.filterByCutoff',
-                    'Used Chebyshev filter cutoff', cutoff)
-            rr.addInfo('Study.filterByCutoff',
-                    'No. genes after normalisation filter',
+            rr.addInfo('Used Chebyshev filter cutoff', cutoff)
+            rr.addInfo('No. genes after normalisation filter',
                     self.data_collection.N)
         else:
-            rr.addInfo('Study.filterCollection',
-                    'Outlier cutoff filtering', 'Off')
+            rr.addInfo('Outlier cutoff filtering', 'Off')
 
         if self.data_collection is None or\
                 self.data_collection.ranks.max() == 0:
@@ -135,31 +125,29 @@ class Study(object):
         # total_features used to normalise coloring
         total_features = self.data_collection.ranks.max()
         self.data_collection.ranks /= total_features
-        return rr
 
-    def normaliseByBases(self, rr=RunRecord()):
+    def normaliseByBases(self):
         # This requires 'base count' to be present in the collection
+        rr = RunRecord('normaliseByBases')
         try:
             norm_bases = self.data_collection.info['args']['base count']
         except KeyError:
-            rr.addError('Study.normaliseByBases', 'Info field not found',
-                    'base count')
-            return rr
+            rr.addError('Info field not found', 'base count')
+            return
 
-        rr.addInfo('normalisedStudy', 'normalising by RPMs',
-                float(1000000/norm_bases))
+        rr.addInfo('normalising by RPMs', float(1000000/norm_bases))
         normalised_counts = []
         for c in self.data_collection.counts:
             c = c * 1000000 / norm_bases
             normalised_counts.append(c)
         self.data_collection.counts = normalised_counts
-        return rr
 
-    def _groupAllGeneCounts(self, confidence_intervals ,rr=RunRecord()):
+    def _groupAllGeneCounts(self, confidence_intervals=None):
         """ Group counts for all genes and return as a single PlotLine.
             Called by asPlotLines or _groupNGeneCounts().
             Returns a list.
         """
+        rr = RunRecord('_groupAllGeneCounts')
         counts, ranks = self.data_collection.transformed(\
                 counts_func=self.counts_func)
         if not len(counts):
@@ -169,13 +157,14 @@ class Study(object):
         # Always name single lines by their collection name
         label = self.collection_label
         plot_lines = [PlotLine(counts, ranks, label, study=label)]
-        return plot_lines, rr
+        return plot_lines
 
-    def _groupNoGeneCounts(self, rr=RunRecord()):
+    def _groupNoGeneCounts(self):
         """ Don't group counts. Simply return a PlotLine for each set of
             counts.
             Called by asPlotLines()
         """
+        rr = RunRecord('_groupNoGeneCounts')
         counts = self.data_collection.counts
         ranks = self.data_collection.ranks
         labels = self.data_collection.labels
@@ -200,14 +189,14 @@ class Study(object):
         if len(plot_lines) == 1:
             plot_lines[0].label = [self.collection_label]
 
-        return plot_lines, rr
+        return plot_lines
 
-    def _groupNGeneCounts(self, group_size, confidence_intervals,
-            rr=RunRecord()):
+    def _groupNGeneCounts(self, group_size, confidence_intervals):
         """ Group counts for N genes and return as PlotLines. Defaults to
             _groupAllGeneCounts() if group size is too large.
             Called by asPlotLines()
         """
+        rr = RunRecord('_groupNGeneCounts')
         plot_lines = []
         for index, (c,r,l) in enumerate(self.data_collection.\
                 iterTransformedGroups(group_size=group_size,
@@ -217,38 +206,37 @@ class Study(object):
 
         # If no data was returned default to groupAllCollectionCounts
         if not len(plot_lines):
-            rr.addWarning('_group_feature_counts', 'Defaulting to ALL '\
-                    'features. Not enough features for group of size',
-                    group_size)
-            plotLines, rr = self.groupAllGeneCounts(rr)
-            return plotLines, rr
+            rr.addWarning('Defaulting to ALL features. Not enough '+\
+                    'features for group of size', group_size)
+            plotLines = self.groupAllGeneCounts()
+            return plotLines
 
         # If a single line is created label it with the collection name
         if len(plot_lines) == 1:
             plot_lines[0].label = [self.collection_label]
 
-        return plot_lines, rr
+        return plot_lines
 
     def asPlotLines(self, studies, group_size, group_location,
-            confidence_intervals, rr=RunRecord()):
+            confidence_intervals):
         """ returns a list of PlotLine objects from this study """
+        rr = RunRecord('asPlotLines')
+
         if type(group_size) is str and group_size.lower() == 'all':
-            plot_lines, rr = self._groupAllGeneCounts(confidence_intervals,
-                    rr=rr)
+            plot_lines= self._groupAllGeneCounts(confidence_intervals)
         elif type(group_size) is int:
             if group_size == 1:
-                plot_lines, rr = self._groupNoGeneCounts(rr)
+                plot_lines = self._groupNoGeneCounts()
             else:
-                plot_lines, rr = self._groupNGeneCounts(group_size,
-                        confidence_intervals, rr)
+                plot_lines = self._groupNGeneCounts(group_size,
+                        confidence_intervals)
         else:
             rr.display()
             raise RuntimeError('group_size wrong type or value' +\
                     str(group_size) + ' ' + str(type(group_size)))
 
         if group_location:
-            rr.addInfo('Study.groupNGeneCounts',
-                    'grouping genes from location', group_location)
+            rr.addInfo('grouping genes from location', group_location)
             if group_location.lower() == 'top':
                 plot_lines = [plot_lines[0]]
             elif group_location.lower() == 'middle':
@@ -256,9 +244,8 @@ class Study(object):
             elif group_location.lower() == 'bottom':
                 plot_lines = [plot_lines[-1]]
 
-        rr.addInfo('Study.asPlotLines',
-                'Plottable lines from study', len(plot_lines))
-        return plot_lines, rr
+        rr.addInfo('Plottable lines from study', len(plot_lines))
+        return plot_lines
 
 def interpret_group_size(str_group_size):
     """ group_size is provided as a string so special term 'All' may be
@@ -269,9 +256,9 @@ def interpret_group_size(str_group_size):
         group_size = 'All'
     return group_size
 
-def load_studies(collections, counts_func, rr):
+def load_studies(collections, counts_func):
     """ load all collection data and apply filtering if needed """
-
+    rr = RunRecord('load_studies')
     # Parse glob file names
     collection_files = collections
     dir_name = os.path.dirname(collection_files)
@@ -299,49 +286,49 @@ def load_studies(collections, counts_func, rr):
         raise RuntimeError('No valid data files loaded')
 
     window_radius = int(min(window_radii))
-    rr.addInfo('plot_centred_counts',
-            'Max common window radius', window_radius)
 
-    rr.addInfo('plot_centred_counts',
-            'Total data collections', len(studies))
-    return studies, window_radius, rr
+    rr.addInfo('Max common window radius', window_radius)
+    rr.addInfo('Total data collections', len(studies))
 
-def set_up_series_plots_dir(plot_filename, rr=RunRecord()):
+    return studies, window_radius
+
+def set_up_series_plots_dir(plot_filename):
     """ Create directory structure for series plots """
+    rr = RunRecord('set_up_series_plot_dir')
+
     save_dir = dirname_or_default(plot_filename)
     basename = os.path.basename(plot_filename)
 
     plot_series_dir = os.path.join(save_dir,
         '%s-series' % basename[:basename.rfind('.')])
     create_path(plot_series_dir)
-    rr.addInfo('plot_centred_counts',
-        'Plotting as a series to', plot_series_dir)
-    return plot_series_dir, rr
+    rr.addInfo('Plotting as a series to', plot_series_dir)
+    return plot_series_dir
 
-def set_counts_function(metric, rr=RunRecord()):
+def set_counts_function(metric):
     """ Sets the feature counting metric function"""
+    rr = RunRecord('set_counts_function')
     if metric.lower() == 'mean counts':
         counts_func = column_mean
-        rr.addInfo('set_counts_metric', 'Counts metric set to',
-            'column_mean')
+        rr.addInfo('Counts metric set to', 'column_mean')
     elif metric.lower() == 'frequency counts':
         counts_func = column_sum
-        rr.addInfo('set_counts_metric', 'Counts metric set to',
-            'column_sum')
+        rr.addInfo('Counts metric set to', 'column_sum')
     elif metric.lower() == 'standard deviation':
         counts_func = stdev
-        rr.addInfo('set_counts_metric', 'Counts metric set to',
-            'stdev')
+        rr.addInfo('Counts metric set to', 'stdev')
     else:
         rr.display()
         raise RuntimeError('Invalid metric given: ' + metric +\
                 ' Should be one of: Mean counts, Frequency counts or'+\
                 ' Standard deviation.')
-    return counts_func, rr
+    return counts_func
 
-def div_plots(plot_lines, div_study_name, rr):
+def div_plots(plot_lines, div_study_name):
     """ Divides the counts values in plot_lines by those in the divisor
             lines """
+    rr = RunRecord('div_plots')
+
     # build two matching sized dicts of lines indexed by rank
     ranked_plot_lines = {}
     dividing_plot_lines = {}
@@ -368,10 +355,10 @@ def div_plots(plot_lines, div_study_name, rr):
             line.counts /= dividing_plot_lines[ranked_index].counts
             out_lines.append(line)
 
-    return out_lines, rr
+    return out_lines
 
-def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None,
-        rr=RunRecord()):
+def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None):
+    rr = RunRecord('set_plot_colors')
     # Hack time: this is just for David's Cell-cycle plots
     if len(studies) == 3 and len(plot_lines) == 3:
         # We're going to use black/white, green and magenta, for G1, M, S
@@ -411,7 +398,7 @@ def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None,
         # coolwarm, RdBu, jet - all decent options
         cmap = 'RdBu'
 
-    return plot_lines, cmap, rr
+    return plot_lines, cmap
 
 script_info = {}
 script_info['title'] = 'Plot read counts heat-mapped by gene expression'
@@ -456,21 +443,20 @@ def main():
         12) Create Plot
         13) Save Plot
     """
-    rr = RunRecord()
+    rr = RunRecord('plot_centred_counts')
+    rr.addCommands(sys.argv)
     args = script_info['args'].parse()
 
     # 1: Set feature counting metric
-    counts_func, rr = set_counts_function(args.metric, rr)
+    counts_func = set_counts_function(args.metric)
 
     # 2: Load studies
     print 'Loading counts data'
-    studies, window_radius, rr =\
-            load_studies(args.collection, counts_func, rr)
+    studies, window_radius = load_studies(args.collection, counts_func)
 
     # 3: Load divisor study if provided
     if args.div is not None:
-        div_studies, div_window_radius, rr =\
-                load_studies(args.div, counts_func, rr)
+        div_studies, div_window_radius = load_studies(args.div, counts_func)
         if div_window_radius == window_radius:
             print 'Windows match - using div study'
             studies.append(div_studies[0])
@@ -484,49 +470,47 @@ def main():
     # 4: Normalise counts if require
     if args.normalise_by_RPM:
         for study in studies:
-            rr = study.normaliseByBases(rr=rr)
+            study.normaliseByBases()
 
     # 5: Specify genes of interest to direct study
     for study in studies:
-        rr = study.filterByGenes(args.db_path, chrom=args.chrom,
+        study.filterByGenes(args.db_path, chrom=args.chrom,
                 include_sample=args.include_target,
-                exclude_sample=args.exclude_target, rr=rr)
+                exclude_sample=args.exclude_target)
 
     # 6: Filter studies by statistical cutoff
     for study in studies:
-        rr = study.filterByCutoff(args.cutoff, rr=rr)
+        study.filterByCutoff(args.cutoff)
 
     # 7: Create plot lines for each study in studies
     group_size = interpret_group_size(args.group_size)
     plot_lines = []
     for study in studies:
-        lines, rr = study.asPlotLines(studies, group_size,
-                args.group_location, args.confidence_intervals, rr)
+        lines = study.asPlotLines(studies, group_size,
+                args.group_location, args.confidence_intervals)
         for line in lines:
             plot_lines.append(line)
 
-    rr.addInfo('plot_centred_counts', 'Total number of lines '+\
-            'from all studies', len(plot_lines))
+    rr.addInfo('Total number of lines from all studies', len(plot_lines))
 
     # 8: smooth and/or bin plot lines as required
     if args.binning and args.binning > 0:
         for line in plot_lines:
-            rr = line.applyBinning(args.binning, rr)
+            line.applyBinning(args.binning)
         rr.addInfo('plot_centred_counts', 'lines binned to width',
                 args.binning)
 
     if args.smoothing and args.smoothing > 0:
         for line in plot_lines:
-            rr = line.applySmoothing(args.smoothing, rr)
+            line.applySmoothing(args.smoothing)
         rr.addInfo('plot_centred_counts', 'lines smoothed to width',
                 args.smoothing)
 
     # 9: Do plot division if required
     if div_name:
-        plot_lines, rr = div_plots(plot_lines, div_name, rr)
+        plot_lines = div_plots(plot_lines, div_name)
 
-    rr.addInfo('plot_centred_counts', 'Total number of lines '+\
-            'to plot', len(plot_lines))
+    rr.addInfo('Total number of lines to plot', len(plot_lines))
 
     # 10: set basic plotting info
     ylim = None
@@ -537,8 +521,7 @@ def main():
 
     # if we have a plot series, create a directory to write plots
     if args.plot_series and not args.test_run:
-        plot_series_dir, rr = set_up_series_plots_dir(args.plot_filename,
-                rr=RunRecord())
+        plot_series_dir = set_up_series_plots_dir(args.plot_filename)
         filename_series = []
     else:
         plot_series_dir = None
@@ -565,21 +548,21 @@ def main():
 
     # 11: set line colors
     cmap = None
-    plot_lines, cmap, rr = set_plot_colors(plot_lines, studies,\
-            args.bgcolor, args.grey_scale, cmap=cmap, rr=rr)
+    plot_lines, cmap = set_plot_colors(plot_lines, studies,\
+            args.bgcolor, args.grey_scale, cmap=cmap)
 
     # 12: Create plot
-    rr = plot(x, y_series=None, plot_lines=plot_lines, color_series=None,
+    plot(x, y_series=None, plot_lines=plot_lines, color_series=None,
             series_labels=series_labels, filename_series=filename_series,
             label_coords=label_coords, cmap=cmap,
             alpha=args.line_alpha, xlabel=args.xlabel,
             ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-            labels=None, labels_size=args.legend_font_size, rr=rr)
+            labels=None, labels_size=args.legend_font_size)
 
     # 13: save plots
     # if series, create directory
     if args.plot_series and not args.test_run:
-        rr = set_up_series_plots_dir(args.plot_filename, rr)
+        set_up_series_plots_dir(args.plot_filename)
 
     if args.plot_filename and not args.test_run:
         if '.pdf' in args.plot_filename.lower():

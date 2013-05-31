@@ -22,7 +22,7 @@ from chippy.express.db_query import get_total_gene_count, \
 
 from chippy.express.db_populate import add_expression_diff_study, \
         add_sample, add_chroms
-from chippy.parse.r_dump import SimpleRdumpToTable
+from chippy.parse.r_dump import simpleRdumpToTable
 
 __author__ = "Gavin Huttley, Cameron Jack"
 __copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
@@ -690,15 +690,15 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         reffile1 = ReferenceFile(self.reffile_path1, today)
         reffile2 = ReferenceFile(self.reffile_path2, today)
         name, desc = self.sample
-        success, rr = add_sample(self.session, name, desc)
+        success = add_sample(self.session, name, desc)
         self.assertTrue(success)
         self.session.add_all([reffile1, reffile2])
         self.session.commit()
-        table, rr = SimpleRdumpToTable(self.dpath, stable_id_label='gene',
-                        probeset_label='probeset', exp_label='exp')
-        rr = add_expression_diff_study(self.session, 'sample1', self.dpath, table,
-            self.reffile_path1, self.reffile_path2, ensembl_id_label='gene',
-            rr=rr, show_progress=False)
+        table = simpleRdumpToTable(self.dpath, stable_id_label='gene',
+                probeset_label='probeset', exp_label='exp')
+        add_expression_diff_study(self.session, 'sample1', self.dpath, table,
+                self.reffile_path1, self.reffile_path2,
+                ensembl_id_label='gene', show_progress=False)
     
     def setUp(self):
         """docstring for add_files_samples"""

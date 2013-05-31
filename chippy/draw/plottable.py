@@ -60,7 +60,7 @@ class _Plottable(object):
         
         self.height = height
         self.width = width
-        self._setBackground(bgcolor, grid_off, vline)
+        self._set_background(bgcolor, grid_off, vline)
 
         if xaxis_lims:
             self.xlims = xaxis_lims
@@ -85,11 +85,11 @@ class _Plottable(object):
 
     ### private helper methods
 
-    def _autoGridLines(self, y_ceiling, test_run=False):
+    def _auto_grid_lines(self, y_ceiling, test_run=False):
         """ Returns a float that is a 'round' looking number to use for
             the grid lines
         """
-        rr = RunRecord('_autoGridLines')
+        rr = RunRecord('_auto_grid_lines')
         if y_ceiling > 0:
             ypower = log10(y_ceiling)
             if ypower < 0:
@@ -111,14 +111,14 @@ class _Plottable(object):
             rr.addInfo('Y-grid-line spacing', '%e' % grid_line_val)
         return grid_line_val
 
-    def _autoYlims(self, y=None, plot_lines=None, rounding=True,
+    def _auto_y_lims(self, y=None, plot_lines=None, rounding=True,
             test_run=False):
         """ Takes either a list of y values or a list of plotlines.
             Returns ylims(y_min_limit, y_max_limit)
             Cannot have negative y-axis.
             Defaults to min = 0.0, max = 1.0
         """
-        rr = RunRecord('_autoYlims')
+        rr = RunRecord('_auto_y_lims')
         # Get min/max y-axis values
         y_min_limit = PINF
         y_max_limit = NINF
@@ -137,7 +137,7 @@ class _Plottable(object):
 
         else:
             rr.display()
-            raise RuntimeError('No y array or plotlines provided')
+            raise RuntimeError('No y-array or plotlines provided')
 
         if rounding:
             # Round min/max values to whole values for nice plots
@@ -182,7 +182,7 @@ class _Plottable(object):
 
     ### private methods called internally as needed
     
-    def _getFigureAndAxes(self, title=None, xlabel=None, ylabel=None):
+    def _get_figure_and_axes(self, title=None, xlabel=None, ylabel=None):
         """returns the figure and axis ready for display"""
         if self.fig is not None:
             return self.fig, self.ax
@@ -264,7 +264,7 @@ class _Plottable(object):
 
         return self.fig, self.ax
 
-    def _setBackground(self, bgcolor, grid_off, vline):
+    def _set_background(self, bgcolor, grid_off, vline):
         """ Called during initialisation.
 
         Sets the background to either black or white. White plots are
@@ -293,7 +293,7 @@ class _Plottable(object):
         self.vline = dict(x=x, linewidth=vline_width,
                 linestyle=vline_style, color=vline_color)
 
-    def _setAxes(self, y_vals=None, plot_lines=None, y_limits=None,
+    def _set_axes(self, y_vals=None, plot_lines=None, y_limits=None,
             y_tick_val=None, y_tick_interval=None, test_run=False):
         """ Gets called by the __call__ method but is also available for
         re-scaling of plots.
@@ -302,14 +302,14 @@ class _Plottable(object):
         auto-calculate.
         2) Set y-tick-space or auto-calculate
         """
-        rr = RunRecord('_setAxes')
+        rr = RunRecord('_set_axes')
         if y_limits:
             y_min_limit, y_max_limit = y_limits
             assert y_min_limit < y_max_limit, 'y-axis minimum value '+\
                     'must be less than y-axis maximum value'
             self.ylims = (y_min_limit, y_max_limit)
         elif plot_lines or y_vals: # auto-calculate y-axis min and max
-            self.ylims = self._autoYlims(y=y_vals,
+            self.ylims = self._auto_y_lims(y=y_vals,
                     plot_lines=plot_lines, test_run=test_run)
         else:
             rr.display()
@@ -318,7 +318,7 @@ class _Plottable(object):
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
         if y_tick_val is None:
-            y_tick_val = self._autoGridLines(y_max_limit, test_run=test_run)
+            y_tick_val = self._auto_grid_lines(y_max_limit, test_run=test_run)
 
         if not y_tick_interval is None:
             # If y_tick_val is even, then set to 2, otherwise 1.
@@ -351,8 +351,8 @@ class _Plottable(object):
             pyplot.legend(self._legend_patches, self._legend_labels,
                     prop=prop)
 
-    def checkYAxisScale(self, maxY=None, plot_lines=None):
-        rr = RunRecord('checkYAxisScale')
+    def check_y_axis_scale(self, maxY=None, plot_lines=None):
+        rr = RunRecord('check_y_axis_scale')
         if plot_lines:
             maxY = 0
             for line in plot_lines:
@@ -386,12 +386,12 @@ class PlottableSingle(_Plottable):
         self._set_axes(y_vals=y, plotlines=None, y_limits=None,
                 y_tick_val=None, y_tick_interval=None, test_run=False)
 
-        self.fig, self.ax = self._getFigureAndAxes(title=title,
+        self.fig, self.ax = self._get_figure_and_axes(title=title,
                 xlabel=xlabel, ylabel=ylabel)
 
         self.clean=clean
 
-        self.checkYAxisScale(y)
+        self.check_y_axis_scale(y)
             
         patches = pyplot.plot(x, y, color=color, linewidth=self.linewidth,
                 label=label)
@@ -443,10 +443,10 @@ class PlottableGroups(_Plottable):
             assert label_coords is not None
             label_x, label_y = label_coords
 
-        self._setAxes(y_vals=y_series, plot_lines=plot_lines, y_limits=None,
+        self._set_axes(y_vals=y_series, plot_lines=plot_lines, y_limits=None,
                 y_tick_val=None, y_tick_interval=None, test_run=False)
 
-        self.fig, self.ax = self._getFigureAndAxes(title=title,
+        self.fig, self.ax = self._get_figure_and_axes(title=title,
                 xlabel=xlabel, ylabel=ylabel)
 
         self.clean=clean
@@ -501,5 +501,5 @@ class PlottableGroups(_Plottable):
                 lower = -1.96 * stderr + y
                 pyplot.fill_between(x, upper, lower, alpha=0.2, color=color)
 
-        self.checkYAxisScale(maxY=max(y), plot_lines=plot_lines)
+        self.check_y_axis_scale(maxY=max(y), plot_lines=plot_lines)
 

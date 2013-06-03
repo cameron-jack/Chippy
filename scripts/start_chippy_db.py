@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""creates the gene feature database - must be run first"""
+'''creates the gene feature database - must be run first'''
 import sys
 sys.path.extend(['..', '../src'])
 
@@ -13,20 +13,21 @@ from chippy.express.db_populate import add_ensembl_gene_data, \
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2012"
-__credits__ = ["Gavin Huttley, Cameron Jack, Anuj Pahwa"]
-__license__ = "GPL"
-__version__ = "0.9.dev"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2012'
+__credits__ = ['Gavin Huttley', 'Cameron Jack', 'Anuj Pahwa']
+__license__ = 'GPL'
+__version__ = '0.9.dev'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 
 script_info = {}
 script_info['title'] = 'Creates a chippy project'
-script_info['script_description'] = "Makes a chippy SQLite database."
-script_info['brief_description'] = "Makes a ChipPy SQLite DB from an "+\
-                                   "Ensembl source"
+script_info['script_description'] = 'Makes a chippy SQLite database.'
+script_info['brief_description'] = 'Makes a ChipPy SQLite DB from an '+\
+                                   'Ensembl source'
+script_info['output_description'] = 'chippy sqlite database .db file'
 script_info['version'] = __version__
 
 # Process command-line arguments
@@ -82,5 +83,5 @@ def main():
         rr.addError('Chippy DB with this name already exists', db_path)
     rr.display()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

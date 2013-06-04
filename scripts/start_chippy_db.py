@@ -25,16 +25,17 @@ __status__ = 'Pre-release'
 script_info = {}
 script_info['title'] = 'Creates a chippy project'
 script_info['script_description'] = 'Makes a chippy SQLite database.'
-script_info['brief_description'] = 'Makes a ChipPy SQLite DB from an '+\
-                                   'Ensembl source'
+script_info['brief_description'] =\
+    'Makes a ChipPy SQLite DB from an Ensembl source'
 script_info['output_description'] = 'chippy sqlite database .db file'
 script_info['version'] = __version__
 
 # Process command-line arguments
 req_args = ['save_db_path', 'ensembl_release', 'species',
             'hostname', 'username', 'password', 'port']
+opt_args = ['dummy_data']
 
-script_info['args'] = Args(required_args=req_args)
+script_info['args'] = Args(required_args=req_args, optional_args=opt_args)
 script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
@@ -64,8 +65,7 @@ def main():
         add_ensembl_gene_data(session, args.species,
                 ensembl_release=args.ensembl_release, account=account)
 
-        CREATE_DUMMY_DATA = True
-        if CREATE_DUMMY_DATA:
+        if args.dummy_data:
             success = create_dummy_flat_expr(session)
             if success:
                 print 'Dummy flat data added successfully'

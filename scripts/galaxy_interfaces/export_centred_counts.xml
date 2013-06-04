@@ -48,9 +48,9 @@
 
 	</command>
 	<inputs>
-		<param label="Path to ChippyDB" name="db_path" optional="False" type="data"/>
-		<param label="Path to the plottable data" name="collection" optional="False" type="text"/>
-		<param label="Select the type of data you want entered from target_genes exp_absolute exp_diff" name="sample_type" optional="False" type="select">
+		<param label="--db_path: Path to ChippyDB" name="db_path" optional="False" type="data"/>
+		<param label="-c/--collection: Path to the plottable data" name="collection" optional="False" type="text"/>
+		<param label="--sample_type: Select the type of data you want entered from target_genes exp_absolute exp_diff" name="sample_type" optional="False" type="select">
 			<option value="target_genes">
 				target_genes
 			</option>
@@ -61,8 +61,8 @@
 				exp_diff
 			</option>
 		</param>
-		<param label="Read counts. Either an indexed BAM or a BED file" name="BAMorBED" optional="False" type="text"/>
-		<param label="Expression area options: TSS, Exon_3p, Intron-3p, Both-3p" name="expression_area" optional="False" type="select">
+		<param label="-B/--BAMorBED: Read counts. Either an indexed BAM or a BED file" name="BAMorBED" optional="False" type="text"/>
+		<param label="--expression_area: Expression area options: TSS, Exon_3p, Intron-3p, Both-3p" name="expression_area" optional="False" type="select">
 			<option value="TSS">
 				TSS
 			</option>
@@ -76,13 +76,13 @@
 				Both_3p
 			</option>
 		</param>
-		<param label="Enable Output to BEDgraph during export. Save name is same as ChipPy DBbut with a '_expression-name.bedgraph' extension" name="make_bedgraph" selected="False" type="boolean"/>
-		<param label="Ignore any saved files" name="overwrite" selected="False" type="boolean"/>
-		<param label="output to tab delimited format" name="tab_delimited" selected="False" type="boolean"/>
-		<param default="" label="String added by aligner to prefix chromosome numbers/names." name="chr_prefix" optional="True" type="text"/>
-		<param default="1000" label="Region size around TSS" name="window_radius" optional="True" type="integer"/>
-		<param default="None" label="Restrict plot to genes that pass multitest signficance,valid values: 1, 0, -1" name="multitest_signif_val" optional="True" type="integer"/>
-		<param label="A Target Gene List in ChipPyDB" name="include_target" optional="True" type="select">
+		<param label="--make_bedgraph: Enable Output to BEDgraph during export. Save name is same as ChipPy DBbut with a '_expression-name.bedgraph' extension" name="make_bedgraph" selected="False" type="boolean"/>
+		<param label="-f/--overwrite: Ignore any saved files" name="overwrite" selected="False" type="boolean"/>
+		<param label="--tab_delimited: output to tab delimited format" name="tab_delimited" selected="False" type="boolean"/>
+		<param default="" label="--chr_prefix: String added by aligner to prefix chromosome numbers/names." name="chr_prefix" optional="True" type="text"/>
+		<param default="1000" label="--window_radius: Region size around TSS" name="window_radius" optional="True" type="integer"/>
+		<param default="None" label="--multitest_signif_val: Restrict plot to genes that pass multi-test significance. Valid values: 1, 0, -1" name="multitest_signif_val" optional="True" type="integer"/>
+		<param label="--include_target: A Target Gene List in ChipPyDB" name="include_target" optional="True" type="select">
 			<option selected="True" value="None">
 				Selection is Optional
 			</option>
@@ -93,7 +93,7 @@
 				none
 			</option>
 		</param>
-		<param label="A Target Gene List in ChipPyDB" name="exclude_target" optional="True" type="select">
+		<param label="--exclude_target: A Target Gene List in ChipPyDB" name="exclude_target" optional="True" type="select">
 			<option selected="True" value="None">
 				Selection is Optional
 			</option>
@@ -104,10 +104,11 @@
 				none
 			</option>
 		</param>
-		<param label="Test run, don't write output" name="test_run" selected="False" type="boolean"/>
+		<param label="-t/--test_run: Test run, don't write output" name="test_run" selected="False" type="boolean"/>
 	</inputs>
 	<outputs/>
 	<help>
 		Saves centred counts for TSS and Exon-3prime, Intron-3prime or Exon 3&amp;5-prime boundaries for a given window size. Reads count info from an indexed BAM or a BED file
+Generates a Pickle file or a gzipped tab-delimited file that can be used for plotting of subsets of genes.
 	</help>
 </tool>

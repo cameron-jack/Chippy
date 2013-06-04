@@ -374,7 +374,7 @@ class Args(object):
                 help='password for SQL Ensembl server')
         self._inc_arg('--port', default=None, type=int,
                 help='Port for SQL Ensembl server')
-        self._inc_arg('--dummy_data', default=False,
+        self._inc_arg('--dummy_data', default=False, action='store_true',
                 help='Create dummy expression data sets')
 
     def _add_misc_args(self):

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """dumps a RegionCollection compressed file"""
 from __future__ import division
 

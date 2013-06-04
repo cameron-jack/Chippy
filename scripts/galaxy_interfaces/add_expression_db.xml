@@ -40,9 +40,9 @@
 
 	</command>
 	<inputs>
-		<param label="Path to ChippyDB" name="db_path" optional="False" type="data"/>
-		<param label="Path to the expression/gene data file. Must be tab delimited." name="expression_data" optional="False" type="text"/>
-		<param label="Select the type of data you want entered from target_genes exp_absolute exp_diff" name="sample_type" optional="False" type="select">
+		<param label="--db_path: Path to ChippyDB" name="db_path" optional="False" type="data"/>
+		<param label="-e/--expression_data: Path to the expression/gene data file. Must be tab delimited." name="expression_data" optional="False" type="text"/>
+		<param label="--sample_type: Select the type of data you want entered from target_genes exp_absolute exp_diff" name="sample_type" optional="False" type="select">
 			<option value="target_genes">
 				target_genes
 			</option>
@@ -53,16 +53,17 @@
 				exp_diff
 			</option>
 		</param>
-		<param label="Allow probesets that map to multiple genes" name="allow_probeset_many_gene" selected="False" type="boolean"/>
-		<param default="gene" label="Column containing the Ensembl gene stable ID" name="gene_id_heading" optional="True" type="text"/>
-		<param default="probeset" label="Column containing the probeset IDs" name="probeset_heading" optional="True" type="text"/>
-		<param default="exp" label="Column containing the expression scores" name="expression_heading" optional="True" type="text"/>
-		<param default="None" label="Related file 1" name="reffile1" optional="True" type="text"/>
-		<param default="None" label="Related file 2" name="reffile2" optional="True" type="text"/>
-		<param label="Test run, don't write output" name="test_run" selected="False" type="boolean"/>
+		<param label="--allow_probeset_many_gene: Allow probesets that map to multiple genes" name="allow_probeset_many_gene" selected="False" type="boolean"/>
+		<param default="gene" label="--gene_id_heading: Column containing the Ensembl gene stable ID" name="gene_id_heading" optional="True" type="text"/>
+		<param default="probeset" label="--probeset_heading: Column containing the probeset IDs" name="probeset_heading" optional="True" type="text"/>
+		<param default="exp" label="--expression_heading: Column containing the expression scores" name="expression_heading" optional="True" type="text"/>
+		<param default="None" label="--reffile1: Related file 1" name="reffile1" optional="True" type="text"/>
+		<param default="None" label="--reffile2: Related file 2" name="reffile2" optional="True" type="text"/>
+		<param label="-t/--test_run: Test run, don't write output" name="test_run" selected="False" type="boolean"/>
 	</inputs>
 	<outputs/>
 	<help>
 		Add an expression study or a differential expression study from a tab delimited file, or load an ENSEMBL gene list as target genes.
+None.
 	</help>
 </tool>

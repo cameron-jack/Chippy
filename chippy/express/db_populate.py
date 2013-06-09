@@ -13,18 +13,18 @@ from cogent.util.progress_display import display_wrap
 from chippy.express.db_schema import Chroms, Gene, Exon, \
             TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.express.db_query import  get_stable_id_genes_mapping, \
-        get_expr_counts, get_diff_counts, get_target_counts
+        get_diff_counts, get_expression_counts, get_targetgene_counts
 from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
-__version__ = '0.1'
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
+__version__ = '0.3'
 
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
@@ -211,7 +211,7 @@ def add_expression_study(session, sample_name, data_path, table,
         return False
 
     if unknown_ids:
-        rr.addError('Number of unknown gene Ensembl IDs', unknown_ids)
+        rr.addWarning('Number of unknown gene Ensembl IDs', unknown_ids)
     rr.addInfo('Total genes', total)
     return True
 
@@ -381,7 +381,7 @@ def add_target_genes(session, sample_name, data_path, table,
 def check_existing_data(session, sample_name):
     """ Check if data is already loaded for a given sample name.
     Return the existing sample type and data set size (or None/None) """
-    existing_data = get_expr_counts(session, sample_name)
+    existing_data = get_expression_counts(session, sample_name)
     if existing_data > 0:
         existing_type = sample_types['exp_absolute']
         return existing_data, existing_type
@@ -391,7 +391,7 @@ def check_existing_data(session, sample_name):
             existing_type = sample_types['exp_absolute']
             return existing_data, existing_type
 
-    existing_data = get_target_counts(session, sample_name)
+    existing_data = get_targetgene_counts(session, sample_name)
     if existing_data > 0:
         existing_type = sample_types['target_genes']
         return existing_data, existing_type

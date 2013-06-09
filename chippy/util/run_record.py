@@ -41,40 +41,66 @@ class RunRecord(object):
             self.logger.addHandler(fh)
             self.logger.addHandler(ch)
 
+    def _as_short_strings(self, value_parts):
+        """ splits a multi-component value (e.g. list) into
+            parts of no more than max_chars
+        """
+        MAX_CHARS = 35
+        print_parts = ''
+        for part in value_parts:
+            if len(print_parts) < MAX_CHARS:
+                print_parts = ' '.join([print_parts, str(part)])
+            else:
+                yield print_parts
+                print_parts = str(part)
+        yield print_parts
+
     def addDebug(self, message='', value=''):
         """ adds a debugging message about an execution """
-        self.logger.debug(message + '\t' + str(value))
+        if type(value)==list or type(value)==tuple:
+            for short_str in self._as_short_strings(value):
+                self.logger.debug(message + '\t' + short_str)
+        else:
+            self.logger.debug(message + '\t' + str(value))
 
     def addInfo(self, message='', value=''):
         """ adds a communication to the user about runtime """
-        self.logger.info(message + '\t' + str(value))
+        if type(value)==list or type(value)==tuple:
+            for short_str in self._as_short_strings(value):
+                self.logger.info(message + '\t' + short_str)
+        else:
+            self.logger.info(message + '\t' + str(value))
 
     def addWarning(self, message='', value=''):
         """ adds a runtime warning """
-        self.logger.warning(message + '\t' + str(value))
+        if type(value)==list or type(value)==tuple:
+            for short_str in self._as_short_strings(value):
+                self.logger.warning(message + '\t' + short_str)
+        else:
+            self.logger.warning(message + '\t' + str(value))
 
     def addError(self, message='', value=''):
         """ report a non-critical runtime error """
-        self.logger.error(message + '\t' + str(value))
+        if type(value)==list or type(value)==tuple:
+            for short_str in self._as_short_strings(value):
+                self.logger.error(message + '\t' + short_str)
+        else:
+            self.logger.error(message + '\t' + str(value))
 
     def addCritical(self, message='', value=''):
         """ report a catastrophic failure """
-        self.logger.critical(message + '\t' + str(value))
+        if type(value)==list or type(value)==tuple:
+            for short_str in self._as_short_strings(value):
+                self.logger.critical(message + '\t' + short_str)
+        else:
+            self.logger.critical(message + '\t' + str(value))
 
     def addCommands(self, command_args):
         """ groups together command-line args and adds to log """
         if len(command_args) == 0:
             self.addInfo('command-line', 'No arguments given')
         else:
-            for i in range(int(ceil(len(command_args)/3.0))):
-                if i*3+2 <= len(command_args)-1:
-                    args = [command_args[i*3], command_args[(i*3)+1],
-                            command_args[(i*3)+2]]
-                elif i*3+1 <= len(command_args)-1:
-                    args = [command_args[i*3], command_args[(i*3)+1]]
-                elif i*3 <= len(command_args)-1:
-                    args = [command_args[i*3]]
-                self.addInfo(command_args[0] +' command-line', ' '.join(args))
+            self.addInfo('command-line', command_args)
 
     def getMessageTable(self):
         """docstring for display"""

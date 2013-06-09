@@ -13,7 +13,7 @@ from chippy.util.command_args import Args
 from chippy.util.run_record import RunRecord
 
 __author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -33,8 +33,7 @@ script_info['authors'] = __author__
 script_info['output_description']= 'None.'
 
 # Process command-line arguments
-req_args = ['expression_data', 'new_sample',
-        'sample_type']
+req_args = ['expression_data', 'new_sample', 'sample_type']
 opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
         'gene_id_heading', 'probeset_heading', 'expression_heading',
         'test_run']
@@ -60,6 +59,14 @@ def main():
         description = description.strip()
     else:
         raise RuntimeError("Please provide 'Name : Description'")
+
+    ref_file = args.expression_data
+
+    # Check that ReferenceFile is unique
+    if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
+        rr.addCritical('ReferenceFile already loaded', ref_file)
+        rr.display()
+        sys.exit(1)
 
     if sample_types[args.sample_type] in\
             (sample_types['exp_absolute'], sample_types['exp_diff']):

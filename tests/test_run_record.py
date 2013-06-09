@@ -7,28 +7,21 @@ from chippy.util.run_record import RunRecord, LOG_FN
 
 class TestRunRecord(TestCase):
     def test_add_commands(self):
-        """ test that RunRecord.addCommands correctly logs a max of three
-            commands per line and doesn't fail with numbers that aren't
-            multiples of three
+        """ test that RunRecord.addCommands correctly logs long lines of text
         """
         logging.disable(logging.NOTSET)
         rr = RunRecord('test_add_commands')
         rr.addCommands([])
-        rr.addCommands(['abc'])
-        rr.addCommands(['abc', 'def'])
-        rr.addCommands(['abc', 'def', 'ghi'])
-        rr.addCommands(['abc', 'def', 'ghi', 'jkl'])
-        rr.addCommands(['abc', 'def', 'ghi', 'jkl', 'mno'])
+        cmd_line = 'This is a list of command arguments that probably '+\
+                   'do not exist in the real world'
+        cmds = cmd_line.split(' ')
+        rr.addCommands(cmds)
 
         recorded_lines = [
             'ChipPy.test_add_commands\tINFO\tcommand-line\tNo arguments given',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tabc',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tabc def',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tabc def ghi',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tabc def ghi',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tjkl',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tabc def ghi',
-            'ChipPy.test_add_commands\tINFO\tabc command-line\tjkl mno'
+            'ChipPy.test_add_commands\tINFO\tcommand-line\tThis is a list of command arguments',
+            'ChipPy.test_add_commands\tINFO\tcommand-line\tthat probably do not exist in the real',
+            'ChipPy.test_add_commands\tINFO\tcommand-line\tworld'
         ]
 
         log_file = open(LOG_FN, 'r')
@@ -37,6 +30,7 @@ class TestRunRecord(TestCase):
             #print repr(recorded_lines[n])
             #print repr('\t'.join(line_parts[1:]))
             assert '\t'.join(line_parts[1:]) == recorded_lines[n]
+
 
         logging.disable(logging.CRITICAL)
 

@@ -7,95 +7,28 @@ from chippy.express.db_schema import Chroms, Gene, Exon, TargetGene,\
 from chippy.util.run_record import RunRecord
 from chippy.express.util import single_gene, _one
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
-import functools
+import functools # for use with decorator-style wrappers
 
-### Private helper functions ###
+### NOTES ###
+# This file is structured into a number of function groupings
+# 1. Private helper functions
+# 2. Public misc. functions
+# 3. Public table entry query functions
+# 4. Public table entry counting functions
+### END NOTES ###
 
-def _get_sample(session, sample_name):
-    """ returns a single sample, or None """
-    try:
-        sample = session.query(Sample).filter(Sample.name==sample_name).one()
-    except NoResultFound:
-        sample = None
-    return sample
+### 1. Private helper functions ###
 
-def _get_gene_expression_query(session, sample_name, data_path=None,
-                               test_run=False):
-    """returns a query instance"""
-    sample = _get_sample(session, sample_name)
-    if sample is None:
-        raise RuntimeError('Unknown sample name: %s' % sample_name)
-
-    if data_path is not None:
-        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
-        filter(ReferenceFile.name==data_path))
-        if not data_path:
-            raise RuntimeError('Unknown data_path %s' % data_path)
-
-        reffile_id = reffile_id[0]
-
-    if data_path:
-        # used to reconstruct the origin of a sample
-        query = session.query(Expression).join(Gene).filter(
-            and_(Expression.sample_id==sample.sample_id,
-                Expression.reffile_id==reffile_id)).\
-        options(contains_eager('gene'))
-    else:
-        query = session.query(Expression).join(Gene).filter(
-            Expression.sample_id==sample.sample_id).\
-        options(contains_eager('gene'))
-
-    return query
-
-def _get_gene_expression_diff_query(session, sample_name, data_path=None,
-                                    multitest_signif_val=None, test_run=False):
-    """returns a query instance for expression difference """
-    sample = _get_sample(session, sample_name)
-    if sample is None:
-        raise RuntimeError('Unknown sample name: %s' % sample_name)
-
-    if data_path is not None:
-        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
-        filter(ReferenceFile.name==data_path))
-        if not data_path:
-            raise RuntimeError('Unknown data_path %s' % data_path)
-
-        reffile_id = reffile_id[0]
-
-    if data_path:
-        if multitest_signif_val is None:
-            query = session.query(ExpressionDiff).join(Gene).filter(
-                and_(ExpressionDiff.sample_id==sample.sample_id,
-                    ExpressionDiff.reffile_id==reffile_id)).\
-            options(contains_eager('gene'))
-        else:
-            query = session.query(ExpressionDiff).join(Gene).filter(
-                and_(ExpressionDiff.sample_id==sample.sample_id,
-                    ExpressionDiff.multitest_signif==multitest_signif_val,
-                    ExpressionDiff.reffile_id==reffile_id)).\
-            options(contains_eager('gene'))
-    else:
-        if multitest_signif_val is None:
-            query = session.query(ExpressionDiff).join(Gene).filter(
-                and_(ExpressionDiff.sample_id==sample.sample_id)).\
-            options(contains_eager('gene'))
-        else:
-            query = session.query(ExpressionDiff).join(Gene).filter(
-                and_(ExpressionDiff.sample_id==sample.sample_id,
-                    ExpressionDiff.multitest_signif==multitest_signif_val)).\
-            options(contains_eager('gene'))
-
-    return query
-
+# Wrapper to ensure _entries functions behave consistently
 def _safe_query(query_function):
     """ Wraps a query function to return a list or an empty list """
     @functools.wraps(query_function)
@@ -106,6 +39,7 @@ def _safe_query(query_function):
             return []
     return safe_query
 
+# Wrapper to ensure _counts functions behave consistently
 def _safe_counts(counts_function):
     """ Wraps a count function to return an int or 0 """
     @functools.wraps(counts_function)
@@ -116,25 +50,116 @@ def _safe_counts(counts_function):
             return 0
     return safe_counts
 
-def _set_genes_conditions(chrom=None, biotype='protein_coding', stable_ids=None):
-    """ helper method for get_genes() and get_genes_counts() """
-    if type(stable_ids) == str:
-        stable_ids = [stable_ids]
+# Core sample retrieval function
+def _get_sample(session, sample_name):
+    """ returns a single sample, or None """
+    try:
+        sample = session.query(Sample).filter(Sample.name==sample_name).one()
+    except NoResultFound:
+        sample = None
+    return sample
 
-    if stable_ids:
-        condition = Gene.ensembl_id.in_(stable_ids)
-    elif chrom and biotype:
-        condition = and_(Gene.chrom==str(chrom),
-            Gene.biotype==biotype)
-    elif chrom:
-        condition = Gene.chrom==str(chrom)
-    elif biotype:
-        condition = Gene.biotype==biotype
+### Private get_table_query functions
+def _get_reffiles_query(session, reffile_name=None, sample_name=None):
+    """ returns a query for reffiles """
+    query = session.query(ReferenceFile)
+    if reffile_name is not None:
+        query = query.filter(ReferenceFile.name==reffile_name)
+    if sample_name is not None:
+        query = query.join(Sample).filter(Sample.name==sample_name)
+    return query
+
+def _get_gene_query(session, biotype='protein_coding', chrom=None, data_path=None):
+    """ returns total unique gene entries"""
+    query = session.query(Gene)
+    if chrom:
+        query = query.filter(Gene.chrom==chrom)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+    return query
+
+def _get_exon_query(session, gene_id=None):
+    if gene_id:
+        return session.query(Exon).filter(Exon.gene_id==gene_id)
     else:
-        condition = None
-    return condition
+        return session.query(Exon)
 
-### Public interface ###
+def _get_expression_query(session, sample_name=None,
+        biotype='protein_coding', chrom=None, data_path=None):
+    """ Returns expression table query """
+    query = session.query(Expression)
+    if sample_name is not None:
+        sample = _get_sample(session, sample_name)
+        if sample is None:
+            raise RuntimeError('Unknown sample name: %s' % sample_name)
+        query = query.filter(Expression.sample_id==sample.sample_id)
+
+    if data_path is not None:
+        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
+                filter(ReferenceFile.name==data_path))
+        if not data_path:
+            raise RuntimeError('Unknown data_path %s' % data_path)
+        reffile_id = reffile_id[0]
+        query = query.filter(Expression.reffile_id==reffile_id)
+
+        # used to reconstruct the origin of a sample
+    query = query.join(Gene)
+
+    if chrom is not None:
+        query = query.filter(Gene.chrom==chrom)
+    if biotype is not None:
+        query = query.filter(Gene.biotype==biotype)
+    return query
+
+def _get_diff_query(session, sample_name=None, biotype='protein_coding',
+        multitest_signif_val=None, chrom=None, data_path=None):
+    """ Returns ExpressionDiff table query """
+    query = session.query(ExpressionDiff)
+    if sample_name is not None:
+        sample = _get_sample(session, sample_name)
+        if not sample:
+            raise RuntimeError('No sample with name ' + sample_name)
+
+        query = query.filter(ExpressionDiff.sample_id==sample.sample_id)
+
+    if data_path is not None:
+        reffile_id = _one(session.query(ReferenceFile.reffile_id).\
+        filter(ReferenceFile.name==data_path))
+        if not data_path:
+            raise RuntimeError('Unknown data_path %s' % data_path)
+        reffile_id = reffile_id[0]
+        query = query.filter(Expression.reffile_id==reffile_id)
+
+    if multitest_signif_val is not None:
+        query = query.filter(ExpressionDiff.multitest_signif==\
+                                 multitest_signif_val)
+    query = query.join(Gene)
+    if chrom is not None:
+        query = query.filter(Gene.chrom==chrom)
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+    return query
+
+def _get_targetgene_query(session, sample_name=None, biotype='protein_coding'):
+    """ Returns target_gene records for a given sample """
+    rr = RunRecord('get_targets')
+    if sample_name is not None:
+        sample = _get_sample(session, sample_name)
+        if sample is None:
+            rr.addError('Using all samples, as no sample matches name',
+                    sample_name)
+            query = session.query(TargetGene)
+        else:
+            query = session.query(TargetGene).\
+                    filter(TargetGene.sample_id==sample.sample_id)
+    else: # get them all
+        query = session.query(TargetGene)
+
+    if biotype:
+        query = query.filter(Gene.biotype==biotype)
+    return query
+
+### 2. Public misc. functions
 
 def make_session(db_path):
     """ Isolates DB type from path """
@@ -144,91 +169,28 @@ def make_session(db_path):
 def get_sample_choices(session):
     """returns the available choices for samples in the DB"""
     samples = [str(s.name) + ' : ' + str(s.description)\
-               for s in get_samples(session)]
+               for s in get_sample_entries(session)]
     # These are valid null samples
     samples.append('None')
     return samples
 
-def get_chroms(session, species):
+def get_chroms(session):
     """ return list of chroms from ',' separated string """
+    rr = RunRecord('get_chroms')
     try:
-        chroms = session.query(Chroms).filter(Chroms.species==species).one()
+        chroms = session.query(Chroms).one()
         chroms = chroms.chromStr.split(',')
     except NoResultFound:
         chroms = []
-        print 'No chroms found for species:', species
+        rr.addError('Chroms found', None)
     return chroms
 
-@_safe_query
-def get_samples(session):
-    """ Returns all samples, [] on failure """
-    return session.query(Sample).all()
-
-@_safe_counts
-def get_samples_counts(session):
-    """ Returns the integer count of samples, 0 on failure """
-    return session.query(Sample).count()
-
-@_safe_query
-def get_target_samples(session):
-    """ Returns samples for target genes, [] on failure """
-    return session.query(Sample).join(TargetGene).all()
-
-@_safe_counts
-def get_target_samples_counts(session):
-    """ Returns count of samples for target genes, 0 on failure """
-    return session.query(Sample).join(TargetGene).count()
-
-@_safe_query
-def get_genes(session, chrom=None, biotype='protein_coding',
-        stable_ids=None):
-    """ returns the Gene's for the indicated release, chrom,
-    biotype OR ensembl stable ID.
-    
-    Note: if stable_ids provided, all arguments other are ignored.
-    """
-    condition = _set_genes_conditions(chrom=chrom, biotype=biotype,
-            stable_ids=stable_ids)
-
-    query = session.query(Gene)
-    if condition is not None:
-        query = query.filter(condition)
-    return query.all()
-
-@_safe_counts
-def get_genes_counts(session, chrom=None, biotype='protein_coding',
-                     stable_ids=None):
-    """ returns the count of Gene's for the indicated release, chrom,
-    biotype OR ensembl stable ID.
-
-    Note: if stable_ids provided, all arguments other are ignored.
-    """
-    condition = _set_genes_conditions(chrom=chrom, biotype=biotype,
-        stable_ids=stable_ids)
-
-    query = session.query(Gene)
-    if condition is not None:
-        query = query.filter(condition)
-    return query.count()
-
-@_safe_query
-def get_exons(session, gene_id=None):
-    """ returns all exons, or just those for a specific gene stable_id """
-    if gene_id:
-        query = session.query(Exon).filter(Exon.gene_id==gene_id)
-    else:
-        query = session.query(Exon)
-    return query.all()
-
-@_safe_counts
-def get_exons_counts(session, gene_id=None):
-    """ returns counts of all exons, or just those for a specific gene
-            stable_id """
-    if gene_id:
-        query = session.query(Exon).filter(Exon.gene_id==gene_id)
-    else:
-        query = session.query(Exon)
-    return query.count()
+def get_species(session):
+    """ returns the species value from Chroms table """
+    try:
+        return session.query(Chroms).one().species
+    except NoResultFound:
+        return None
 
 def get_stable_id_genes_mapping(session):
     """ get ensembl genes as a dict indexed by ensembl_id or empty dict"""
@@ -239,43 +201,37 @@ def get_stable_id_genes_mapping(session):
         ids_genes = {'None':'None'}
     return ids_genes
 
-# Complex/Meta Queries
-
 def get_gene_ids(session, chrom=None, include_target=None,
         exclude_target=None):
     """ returns a list (or counts) of ensembl_ids restricted by chrom,
         include and exclude target_gene lists.
     """
 
-    # limit plot by chrom if provided
-    genes = get_genes(session, chrom=chrom)
+    # limit by chrom if provided
+    genes = get_gene_entries(session, chrom=chrom)
     stable_ids = [g.ensembl_id for g in genes]
 
     if include_target is not None:
-        genes = get_target_genes(session, include_target)
+        genes = _get_targetgene_query(session, include_target)
         include_ids = [g.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids).\
                 intersection(set(include_ids)))
 
     if exclude_target is not None:
-        genes = get_target_genes(session, exclude_target)
+        genes = _get_targetgene_query(session, exclude_target)
         exclude_ids = [g.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids).\
                 intersection(set(exclude_ids)))
 
     return stable_ids
 
-def get_ranked_abs_expr_genes(session, sample_name,
-        biotype='protein_coding', data_path=None, include_target=None,
-        exclude_target=None, rank_by='mean', test_run=False):
+def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
+        chrom=None, data_path=None, include_target=None, exclude_target=None,
+        rank_by='mean'):
     """returns all ranked genes from a sample"""
-    query = _get_gene_expression_query(session, sample_name,
-            data_path=data_path, test_run=test_run)
-    
-    if biotype:
-        query = query.filter(Gene.biotype==biotype)
 
-    records = query.all()
+    records = get_expression_entries(session, sample_name=sample_name,
+            biotype=biotype, chrom=chrom, data_path=data_path)
 
     genes = []
     for expressed in records:
@@ -285,26 +241,18 @@ def get_ranked_abs_expr_genes(session, sample_name,
 
     # keep only those genes in the include target gene set if provided
     if include_target is not None:
-        try:
-            include_gene_ids = set([gene.ensembl_id for gene in \
-                    get_target_genes(session, include_target, \
-                    test_run=test_run)])
-        except NoResultFound:
-            include_gene_ids = None
-        if include_gene_ids:
+        include_genes = get_targetgene_entries(session, include_target)
+        if len(include_genes) > 0:
+            include_gene_ids = set([tg.gene.ensembl_id for tg in include_genes])
             genes = [gene for gene in genes if gene.ensembl_id in \
                     include_gene_ids]
 
     # keep only those genes not in the exclude target gene set if provided
     if exclude_target is not None:
-        try:
-            exclude_gene_ids = set([gene.ensembl_id for gene in \
-                    get_target_genes(session, exclude_target,
-                    test_run=test_run)])
-        except NoResultFound:
-            exclude_gene_ids = None
-        if exclude_gene_ids:
-            genes = [gene for gene in genes if not gene.ensembl_id in \
+        exclude_genes = get_targetgene_entries(session, sample_name=exclude_target)
+        if len(exclude_genes) > 0:
+            exclude_gene_ids = set([tg.gene.ensembl_id for tg in exclude_genes])
+            genes = [gene for gene in genes if gene.ensembl_id not in \
                     exclude_gene_ids]
 
     # set rank
@@ -313,7 +261,7 @@ def get_ranked_abs_expr_genes(session, sample_name,
     elif rank_by.lower() == 'max':
         scored = [(g.MaxScore, g) for g in genes]
     else:
-        raise NotImplementedError
+        raise NotImplementedError('Can only set by mean or max')
     
     # Make sure we get highest first
     scored = reversed(sorted(scored))
@@ -324,18 +272,14 @@ def get_ranked_abs_expr_genes(session, sample_name,
 
     return genes
 
-def get_ranked_diff_expr_genes(session, sample_name, multitest_signif_val=None,
-        biotype='protein_coding', data_path=None, include_target=None,
-        exclude_target=None, rank_by='mean', test_run=False):
+def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
+        biotype='protein_coding', chrom=None, data_path=None, include_target=None,
+        exclude_target=None, rank_by='mean'):
     """returns all ranked genes from a sample difference experiment"""
-    query = _get_gene_expression_diff_query(session, sample_name,
-            data_path=data_path,multitest_signif_val=multitest_signif_val,
-            test_run=test_run)
 
-    if biotype:
-        query = query.filter(Gene.biotype==biotype)
-
-    records = query.all()
+    records = get_diff_entries(session, sample_name=sample_name,
+            biotype=biotype, data_path=data_path, chrom=chrom,
+            multitest_signif_val=multitest_signif_val)
 
     genes = []
     for expressed_diff in records:
@@ -345,27 +289,19 @@ def get_ranked_diff_expr_genes(session, sample_name, multitest_signif_val=None,
 
     # keep only those genes in the include target gene set if provided
     if include_target is not None:
-        include_genes = get_target_genes(session, include_target,
-                test_run=test_run)
-        if include_genes:
-            include_id_set = set([gene.ensembl_id for gene in include_genes])
-            final_genes = []
-            for gene in genes:  # if it intersects then keep it
-                if len(include_id_set.intersection(set([gene.ensembl_id]))) > 0:
-                    final_genes.append(gene)
-            genes = final_genes
+        include_genes = get_targetgene_entries(session, include_target)
+        if len(include_genes) > 0:
+            include_gene_ids = set([tg.gene.ensembl_id for tg in include_genes])
+            genes = [gene for gene in genes if gene.ensembl_id in\
+                    include_gene_ids]
 
     # keep only those genes not in the exclude target gene set if provided
     if exclude_target is not None:
-        exclude_genes = get_target_genes(session, exclude_target,
-            test_run=test_run)
-        if exclude_genes:
-            exclude_id_set = set([gene.ensembl_id for gene in exclude_genes])
-            final_genes = []
-            for gene in genes: # if it doesn't intersect then keep it
-                if len(exclude_id_set.intersection(set([gene.ensembl_id]))) == 0:
-                    final_genes.append(gene)
-            genes = final_genes
+        exclude_genes = get_targetgene_entries(session, exclude_target)
+        if len(exclude_genes) > 0:
+            exclude_gene_ids = set([tg.gene.ensembl_id for tg in exclude_genes])
+            genes = [gene for gene in genes if gene.ensembl_id not in\
+                    exclude_gene_ids]
 
     # set rank
     if rank_by.lower() == 'mean':
@@ -384,187 +320,109 @@ def get_ranked_diff_expr_genes(session, sample_name, multitest_signif_val=None,
 
     return genes
 
-def get_ranked_genes_per_chrom(session, sample_name, species, chrom,
-        biotype='protein_coding', data_path=None, test_run=False):
-    """returns genes from a chromosome"""
-    assert chrom in get_chroms(session, species)
-    genes = get_ranked_abs_expr_genes(session, sample_name,
-            biotype=biotype, data_path=data_path, test_run=test_run)
-    genes = (g for g in genes if g.chrom==chrom)
-    return tuple(genes)
-
-def get_diff_ranked_genes_per_chrom(session, sample_name,
-        multitest_signif_val, species, chrom, biotype='protein_coding',
-        data_path=None, test_run=False):
-    """returns difference experiment genes from a chromosome"""
-    assert chrom in get_chroms(session, species)
-    genes = get_ranked_diff_expr_genes(session, sample_name,
-            multitest_signif_val, biotype=biotype, data_path=data_path,
-            test_run=test_run)
-    genes = (g for g in genes if g.chrom==chrom)
-    return tuple(genes)
+### Public DB query functions ###
+# For querying tables: Sample, ReferenceFile, Gene, Exon, Expression,
+# ExpressionDiff, TargetGene (Chrom query functions are in the Public
+# misc. functions section)
 
 @_safe_query
-def get_target_genes(session, target_gene_sample_name, test_run=False):
-    """returns target genes, not ranked"""
-    target_sample = _get_sample(session, target_gene_sample_name)
-    if not target_sample:
-        raise RuntimeError('No target_sample with name ' +\
-                target_gene_sample_name)
-    query = session.query(Gene).join(TargetGene).\
-            filter(TargetGene.sample_id==target_sample.sample_id)
-    return query
+def get_sample_entries(session):
+    """ Returns all samples, [] on failure """
+    return session.query(Sample).all()
 
 @_safe_query
-def get_expr_entries(session, sample_name=None, biotype='protein_coding',
-        test_run=False):
-    """ Returns expression records for a given sample """
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
+def get_gene_entries(session, biotype='protein_coding', chrom=None, data_path=None):
+    """ returns the number of gene entries"""
+    query = _get_gene_query(session, biotype=biotype, chrom=chrom,
+            data_path=data_path)
+    return query.distinct().all()
 
-        query = session.query(Expression).\
-                filter(Expression.sample_id==sample.sample_id)
-        if biotype:
-            query = query.filter(Gene.biotype==biotype)
-        return query.all()
-    else:
-        query = session.query(Expression)
-        if biotype:
-            query = query.filter(Gene.biotype==biotype)
-        return query.all()
+@_safe_query
+def get_expression_entries(session, sample_name=None,
+        biotype='protein_coding', chrom=None, data_path=None):
+    """ returns the number of Expression entries"""
+    query = _get_expression_query(session, sample_name=sample_name,
+        biotype=biotype, chrom=chrom, data_path=data_path)
+    return query.distinct().all()
+
+@_safe_query
+def get_diff_entries(session, sample_name=None,
+        biotype='protein_coding', chrom=None,
+        multitest_signif_val=None, data_path=None):
+    """ Returns number of unique ExpressionDiff entries """
+    query = _get_diff_query(session, sample_name=sample_name,
+            biotype=biotype, multitest_signif_val=multitest_signif_val,
+            chrom=chrom, data_path=data_path)
+    return query.distinct().all()
+
+@_safe_query
+def get_targetgene_entries(session, sample_name=None, biotype='protein_coding'):
+    """ Returns target_gene records for a given sample """
+    query = _get_targetgene_query(session, sample_name, biotype=biotype)
+    return query.all()
+
+@_safe_query
+def get_reffile_entries(session, reffile_name=None, sample_name=None):
+    query = _get_reffiles_query(session, reffile_name=reffile_name, sample_name=sample_name)
+    return query.all()
+
+@_safe_query
+def get_exon_entries(session, gene_id=None, biotype='protein_coding'):
+    """ returns all exons, or just those for a specific gene stable_id """
+    query = _get_exon_query(session, gene_id=gene_id)
+    return query.all()
+
+### Public DB count functions ###
+# For counting tables: Sample, ReferenceFile, Gene, Exon, Expression,
+# ExpressionDiff, TargetGene (Chrom query functions are in the Public
+# misc. functions section)
 
 @_safe_counts
-def get_expr_counts(session, sample_name=None, biotype='protein_coding',
-                     test_run=False):
-    """ Returns expression records for a given sample """
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
+def get_sample_counts(session):
+    """ Returns the integer count of samples, 0 on failure """
+    return session.query(Sample).count()
 
-        query = session.query(Expression).\
-        filter(Expression.sample_id==sample.sample_id)
-        if biotype:
-            query = query.filter(Gene.biotype==biotype)
-        return query.count()
-    else:
-        query = session.query(Expression)
-        if biotype:
-            query = query.filter(Gene.biotype==biotype)
-        return query.count()
+@_safe_counts
+def get_gene_counts(session, biotype='protein_coding', data_path=None):
+    """ returns the number of gene entries"""
+    query = _get_gene_query(session, biotype=biotype,
+            data_path=data_path)
+    return query.distinct().count()
 
-@_safe_query
-def get_diff_entries(session, sample_name=None, biotype='protein_coding',
-        multitest_signif_val=None, test_run=False):
-    """ Returns expression_diff records for a given sample """
-
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
-
-        query = session.query(ExpressionDiff).\
-                filter(ExpressionDiff.sample_id==sample.sample_id)
-        #if biotype:
-        #    query = query.filter(Gene.biotype==biotype)
-        if multitest_signif_val is not None:
-            query = query.filter(ExpressionDiff.multitest_signif==\
-                    multitest_signif_val)
-        return query.all()
-    else:
-        query = session.query(ExpressionDiff)
-        #if biotype:
-        #    query = query.filter(Gene.biotype==biotype)
-        if multitest_signif_val is not None:
-            query = query.filter(ExpressionDiff.multitest_signif==\
-                    multitest_signif_val)
-        return query.all()
+@_safe_counts
+def get_expression_counts(session, sample_name=None,
+        biotype='protein_coding', data_path=None):
+    """ returns the number of Expression entries"""
+    query = _get_expression_query(session, sample_name=sample_name,
+        biotype=biotype, data_path=data_path)
+    return query.distinct().count()
 
 @_safe_counts
 def get_diff_counts(session, sample_name=None, biotype='protein_coding',
-                     multitest_signif_val=None, test_run=False):
-    """ Returns expression_diff records for a given sample """
+        chrom=None, multi_signif_val=None, data_path=None):
+    """ Returns number of unique ExpressionDiff entries """
+    query = _get_diff_query(session, sample_name=sample_name,
+        biotype=biotype, chrom=chrom, multitest_signif_val=multi_signif_val,
+        data_path=data_path)
+    return query.distinct().count()
 
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
-
-        query = session.query(ExpressionDiff).\
-        filter(ExpressionDiff.sample_id==sample.sample_id)
-        #if biotype:
-        #    query = query.filter(Gene.biotype==biotype)
-        if multitest_signif_val is not None:
-            query = query.filter(ExpressionDiff.multitest_signif==\
-                                 multitest_signif_val)
-        return query.counts()
-    else:
-        query = session.query(ExpressionDiff)
-        #if biotype:
-        #    query = query.filter(Gene.biotype==biotype)
-        if multitest_signif_val is not None:
-            query = query.filter(ExpressionDiff.multitest_signif==\
-                                 multitest_signif_val)
-        return query.counts()
-
-@_safe_query
-def get_target_entries(session, sample_name=None, test_run=False):
+@_safe_counts
+def get_targetgene_counts(session, sample_name=None, biotype='protein_coding', data_path=None):
     """ Returns target_gene records for a given sample """
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
-        query = session.query(TargetGene).\
-                filter(TargetGene.sample_id==sample.sample_id)
-        return query.all()
-    else: # get them all
-        query = session.query(TargetGene)
-        return query.all()
+    query = _get_targetgene_query(session, sample_name, biotype=biotype)
+    return query.count()
 
 @_safe_counts
-def get_target_counts(session, sample_name=None, test_run=False):
-    """ Returns target_gene records for a given sample """
-    if sample_name:
-        sample = _get_sample(session, sample_name)
-        if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
-        query = session.query(TargetGene).\
-        filter(TargetGene.sample_id==sample.sample_id)
-        return query.counts()
-    else: # get them all
-        query = session.query(TargetGene)
-        return query.counts()
-
-### Public total gene number count DB functions ###
+def get_reffile_counts(session, reffile_name=None, sample_name=None):
+    query = _get_reffiles_query(session, reffile_name=reffile_name, sample_name=sample_name)
+    return query.count()
 
 @_safe_counts
-def get_total_gene_count(session, sample_name,
-        biotype='protein_coding', data_path=None, test_run=False):
-    """ returns the number of gene entries"""
-    query = _get_gene_expression_query(session, sample_name,
-            data_path, test_run)
-    if biotype:
-        query = query.filter(Gene.biotype==biotype)
-    return query.distinct().count()
+def get_exon_counts(session, gene_id=None, biotype='protein_coding'):
+    """ returns counts of all exons, or just those for a specific gene
+            stable_id """
+    query = _get_exon_query(session, gene_id=gene_id)
+    return query.count()
 
-@_safe_counts
-def get_total_diff_gene_count(session, sample_name,
-        biotype='protein_coding', data_path=None, test_run=False):
-    """ returns the number of diff gene entries """
-    query = _get_gene_expression_diff_query(session, sample_name,
-            data_path, test_run)
-    if biotype:
-        query = query.filter(Gene.biotype==biotype)
-    return query.distinct().count()
-
-@_safe_counts
-def get_total_target_gene_count(session, sample_name,
-        biotype='protein_coding', data_path=None, test_run=False):
-    """ returns the number of target gene entries """
-    query = session.query(TargetGene)
-    if biotype:
-        query = query.filter(Gene.biotype==biotype)
-    return query.distinct().count()
+### END of db_query
 

@@ -8,7 +8,6 @@ sys.path.extend(['..', '../src'])
 
 from chippy.core.count_tags import centred_counts_for_genes,\
             centred_diff_counts_for_genes
-from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
@@ -48,28 +47,28 @@ script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
 script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
-def get_collection(session, sample_name, expr_area, species, BAMorBED,
+def get_collection(session, sample_name, expr_area, BAMorBED,
         chr_prefix, window_radius,
         multitest_signif_val, filename, overwrite, sample_type,
         tab_delimited, include_target=None, exclude_target=None,
-        bedgraph=None, test_run=False):
+        bedgraph=None):
 
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute']:
             print "Collecting data for absolute expression experiment"
             data_collection = centred_counts_for_genes(session,
-                    sample_name, expr_area, species, BAMorBED,
+                    sample_name, expr_area, BAMorBED,
                     chr_prefix, window_radius,
                     include_target, exclude_target,
-                    bedgraph, test_run)
+                    bedgraph)
         
         elif sample_type == sample_types['exp_diff']:
             print "Collecting data for difference expression experiment"
             data_collection = centred_diff_counts_for_genes(
-                    session, sample_name, expr_area, species,
+                    session, sample_name, expr_area,
                     BAMorBED, chr_prefix,
                     window_radius, multitest_signif_val, include_target,
-                    exclude_target, bedgraph, test_run)
+                    exclude_target, bedgraph)
             
         else:
             print "Experiment type %s not supported" % sample_type
@@ -94,8 +93,7 @@ def main():
         raise RuntimeError('No samples available')
 
     db_name = str(args.db_path).split('/')[-1]
-    species = db_name.split('_')[-1].rstrip('.db')
-    
+
     sample_name = args.sample.split(' : ')[0]
     print "Loading counts data for '%s'" % sample_name
     sample_type = sample_types[args.sample_type]
@@ -125,11 +123,11 @@ def main():
 
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
-        get_collection(session, sample_name, args.expression_area, species,
+        get_collection(session, sample_name, args.expression_area,
                 args.BAMorBED, args.chr_prefix, args.window_radius,
                 args.multitest_signif_val, args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
-                exclude_name, bedgraph=bedgraph_fn, test_run=args.test_run)
+                exclude_name, bedgraph=bedgraph_fn)
     else:
         print 'Other options not defined yet, choose from', \
                 sample_types['exp_absolute'], 'or', sample_types['exp_diff']

@@ -15,22 +15,22 @@ from sqlalchemy.exc import IntegrityError
 from chippy.express.db_schema import Gene, Exon, TargetGene, \
         Expression, ExpressionDiff, ReferenceFile, Sample
 
-from chippy.express.db_query import get_total_gene_count, \
-        get_ranked_abs_expr_genes, get_ranked_genes_per_chrom, get_genes,\
-        get_expr_entries, get_diff_entries, get_target_entries,get_ranked_diff_expr_genes,\
-        get_diff_ranked_genes_per_chrom, get_chroms, make_session
+from chippy.express.db_query import get_expression_counts, \
+        get_genes_by_ranked_expr, get_genes_by_ranked_diff, get_gene_entries,\
+        get_expression_entries, get_diff_entries, get_targetgene_entries, \
+        get_reffile_entries, get_chroms, get_species, make_session
 
 from chippy.express.db_populate import add_expression_diff_study, \
         add_sample, add_chroms
 from chippy.parse.r_dump import simpleRdumpToTable
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
 now = datetime.datetime.now()
@@ -49,7 +49,6 @@ def add_all_gene_exons(session, genes):
             data.append(exon)
     session.add_all(data)
     session.commit()
-
 
 class TestDbBase(TestCase):
     def setUp(self):
@@ -76,7 +75,7 @@ class TestRefFiles(TestDbBase):
         reffile_a.sample = sample
         self.session.add_all([reffile_a, sample])
         self.session.commit()
-        reffiles = self.session.query(ReferenceFile).all()
+        reffiles = get_reffile_entries(self.session)
         self.assertEqual(reffiles[0].sample.name, 'A')
 
 class TestChrom(TestDbBase):
@@ -87,8 +86,10 @@ class TestChrom(TestDbBase):
     def test_add_and_get_species_chroms(self):
         self.assertTrue(add_chroms(self.session, self.species, self.chromlist))
 
-        chroms = get_chroms(self.session, self.species)
-        self.assertTrue(set(self.chromlist)==set(chroms))
+        stored_chroms = get_chroms(self.session)
+        self.assertTrue(set(self.chromlist)==set(stored_chroms))
+        stored_species = get_species(self.session)
+        self.assertTrue(stored_species == self.species)
 
 class TestGene(TestDbBase):
     """test gene properties"""
@@ -565,23 +566,23 @@ class TestQueryFunctions(TestDbBase):
     def test_counting_genes(self):
         """correctly return number of genes for a sample"""
         # return correct number with/without filename
-        self.assertEqual(get_total_gene_count(self.session, 'sample 1'), 4)
-        self.assertEqual(get_total_gene_count(self.session, 'sample 1',
-            data_path='file-1.txt'), 4)
+        self.assertEqual(get_expression_counts(self.session, 'sample 1'), 4)
+        self.assertEqual(get_expression_counts(self.session, 'sample 1',
+                data_path='file-1.txt'), 4)
         # return correct number if no records, no file
-        self.assertEqual(get_total_gene_count(self.session,
-            'sample 1', data_path='file-no-data.txt'), 0)
+        self.assertEqual(get_expression_counts(self.session,
+                'sample 1', data_path='file-no-data.txt'), 0)
         # return correct number if no records, wrong biotype
-        self.assertEqual(get_total_gene_count(self.session,
-            'sample 1', biotype='miRNA'), 0)
+        self.assertEqual(get_expression_counts(self.session,
+                'sample 1', biotype='miRNA'), 0)
     
     def test_get_expressed_genes_from_chrom_order(self):
         """should return the correct number of expressed genes from a chrom"""
         # Add chroms to compare against
         add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
 
-        ranked = get_ranked_genes_per_chrom(self.session,
-            'sample 1', TestChrom.species,'2')
+        ranked = get_genes_by_ranked_expr(self.session,
+            'sample 1', chrom='2')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
         
@@ -591,30 +592,29 @@ class TestQueryFunctions(TestDbBase):
     def test_get_ranks_scores(self):
         """return correct gene mean ranks and mean scores"""
         self.setUp(force=True, singleton=True)
-        genes = get_ranked_abs_expr_genes(self.session,
+        genes = get_genes_by_ranked_expr(self.session,
             'sample 1')
         expected_ranks = {'PLUS-1':4, 'PLUS-3':3, 'MINUS-1':2, 'MINUS-3':1}
         expected_scores = {'PLUS-1':21, 'PLUS-3':22, 'MINUS-1':23, 'MINUS-3':24}
         for gene in genes:
-            self.assertEqual(gene.Rank,
-                        expected_ranks[gene.ensembl_id])
-            self.assertEqual(gene.MeanScore,
-                        expected_scores[gene.ensembl_id])
+            self.assertEqual(gene.Rank, expected_ranks[gene.ensembl_id])
+            self.assertEqual(gene.MeanScore, expected_scores[gene.ensembl_id])
     
     def test_get_ranked_genes_order(self):
         """return correct gene order"""
         self.setUp(force=True, singleton=True)
-        ranked = get_ranked_abs_expr_genes(self.session, 'sample 1')
+        ranked = get_genes_by_ranked_expr(self.session, 'sample 1')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
     
     def test_query_genes_release(self):
         """return correct genes for a release"""
-        genes = get_genes(self.session) # returns all genes
+        #TODO: actually check gene entries, not just length of results
+        genes = get_gene_entries(self.session) # returns all genes
         self.assertEqual(len(genes), 4)
-        genes = get_genes(self.session, 2) # returns chrom2 genes
+        genes = get_gene_entries(self.session, chrom='2') # returns chrom2 genes
         self.assertEqual(len(genes), 2)
-        genes = get_genes(self.session, biotype='miRNA') # returns none
+        genes = get_gene_entries(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes), 0)
 
     def test_query_expressed_genes_with_inclusive_target_genes(self):
@@ -624,13 +624,13 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        included_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        included_genes = get_genes_by_ranked_expr(self.session, 'sample 1',
                 include_target='target 1')
         self.assertTrue(len(included_genes) == 1)
         self.assertTrue(included_genes[0].ensembl_id == 'PLUS-1')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        included_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        included_genes = get_genes_by_ranked_expr(self.session, 'sample 1',
                 include_target='target 2')
         self.assertTrue(len(included_genes) == 4)
         self.assertTrue(included_genes[0].ensembl_id == 'MINUS-3')
@@ -639,7 +639,7 @@ class TestQueryFunctions(TestDbBase):
         self.assertTrue(included_genes[3].ensembl_id == 'PLUS-1')
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        remaining_genes = get_genes_by_ranked_expr(self.session, 'sample 1',
                 include_target='target 3')
         self.assertTrue(len(remaining_genes) == 0)
 
@@ -650,20 +650,20 @@ class TestQueryFunctions(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
-            exclude_target='target 1')
+        non_overlapping_genes = get_genes_by_ranked_expr(self.session,
+                'sample 1', exclude_target='target 1')
         self.assertTrue(len(non_overlapping_genes) == 3)
         self.assertTrue(non_overlapping_genes[0].ensembl_id == 'MINUS-3')
         self.assertTrue(non_overlapping_genes[1].ensembl_id == 'MINUS-1')
         self.assertTrue(non_overlapping_genes[2].ensembl_id == 'PLUS-3')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        non_overlapping_genes = get_genes_by_ranked_expr(self.session, 'sample 1',
             exclude_target='target 2')
         self.assertTrue(len(non_overlapping_genes) == 0)
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        non_overlapping_genes = get_ranked_abs_expr_genes(self.session, 'sample 1',
+        non_overlapping_genes = get_genes_by_ranked_expr(self.session, 'sample 1',
             exclude_target='target 3')
         self.assertTrue(len(non_overlapping_genes) == 4)
         self.assertTrue(non_overlapping_genes[0].ensembl_id == 'MINUS-3')
@@ -807,8 +807,8 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         # Add chroms to compare against
         add_chroms(self.session, TestChrom.species, TestChrom.chromlist)
 
-        ranked = get_diff_ranked_genes_per_chrom(self.session,
-            'sample1', 1, TestChrom.species, '2')
+        ranked = get_genes_by_ranked_diff(self.session,
+                'sample1', multitest_signif_val=1, chrom='2')
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
 
@@ -817,13 +817,13 @@ class TestQueryFunctionsExpDiff(TestDbBase):
     
     def test_get_expressed_diff_genes(self):
         """return genes ranked by foldchange"""
-        genes = get_ranked_diff_expr_genes(self.session, self.sample[0])
+        genes = get_genes_by_ranked_diff(self.session, self.sample[0])
         self.assertTrue(len(genes) == 4)
         for i in range(3):
             self.assertTrue(genes[i].Rank < genes[i+1].Rank)
         
         # sample up genes
-        genes = get_ranked_diff_expr_genes(self.session, self.sample[0],
+        genes = get_genes_by_ranked_diff(self.session, self.sample[0],
             multitest_signif_val=1)
         self.assertTrue(len(genes) == 2)
         expect_order = ['PLUS-1', 'PLUS-3']
@@ -831,7 +831,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
             self.assertEqual(genes[i].ensembl_id, expect_order[i])
         
         # sample down genes
-        genes = get_ranked_diff_expr_genes(self.session, self.sample[0],
+        genes = get_genes_by_ranked_diff(self.session, self.sample[0],
             multitest_signif_val=-1)
         self.assertTrue(len(genes) == 2)
         expect_order = ['MINUS-1', 'MINUS-3']
@@ -845,13 +845,13 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             include_target='target 1')
         self.assertTrue(len(remaining_genes) == 1)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             include_target='target 2')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')
@@ -860,7 +860,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(remaining_genes[3].ensembl_id == 'MINUS-3')
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             include_target='target 3')
         self.assertTrue(len(remaining_genes) == 0)
 
@@ -871,7 +871,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.populate_target_data()
 
         # Test 1 overlap, 4 sample and 2 target genes
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             exclude_target='target 1')
         self.assertTrue(len(remaining_genes) == 3)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-3')
@@ -879,12 +879,12 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-3')
 
         # Test 4 overlap, 4 sample and 4 target genes
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             exclude_target='target 2')
         self.assertTrue(len(remaining_genes) == 0)
 
         # Test 0 overlap, 4 sample and 1 non-matching target gene
-        remaining_genes = get_ranked_diff_expr_genes(self.session, 'sample1',
+        remaining_genes = get_genes_by_ranked_diff(self.session, 'sample1',
             exclude_target='target 3')
         self.assertTrue(len(remaining_genes) == 4)
         self.assertTrue(remaining_genes[0].ensembl_id == 'PLUS-1')

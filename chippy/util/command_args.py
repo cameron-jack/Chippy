@@ -60,11 +60,12 @@ class Args(object):
         if self.db_path is None:
             return ['None', 'none']
         session = db_query.make_session(str(self.db_path))
-        samples = ['%s : %s' % (str(s.name), str(s.description))
-                for s in db_query.get_samples(session)]
+        samples = db_query.get_sample_choices(session)
+        #samples = ['%s : %s' % (str(s.name), str(s.description))
+        #        for s in db_query.get_samples(session)]
         # These are valid null samples
-        samples.insert(-1, 'None')
-        samples.insert(-1, 'none')
+        #samples.insert(-1, 'None')
+        #samples.insert(-1, 'none')
         session.close()
         return samples
 
@@ -72,8 +73,7 @@ class Args(object):
         if self.db_path is None:
             return []
         session = db_query.make_session(str(self.db_path))
-        species = self.db_path.split('_')[2].split('.')[0]
-        chroms = get_chroms(session, species)
+        chroms = get_chroms(session)
         if not chroms: # must return something or opt build will fail
             chroms = ['None', 'none']
         return chroms

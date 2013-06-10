@@ -126,7 +126,12 @@ class RunRecord(object):
             print LOG_FN +' contains date-time stamps'
             print table
 
+    def dieOnCritical(self, message='', value=''):
+        """ log a CRITICAL failure, display all run records and die """
+        self.addCritical(message=message, value=value)
+        self.display()
+        sys.exit(1)
+
 def remove_RR_log():
     """ delete the current ChipPy.log file, such as when running tests """
     os.remove(LOG_FN)
-

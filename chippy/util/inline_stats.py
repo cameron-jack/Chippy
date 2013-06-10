@@ -2,18 +2,17 @@ from __future__ import division
 
 import numpy, cPickle
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
-__credits__ = ["Gavin Huttley"]
-__license__ = "GPL"
-__maintainer__ = "Gavin Huttley"
-__email__ = "Gavin.Huttley@anu.edu.au"
-__status__ = "alpha"
+__author__ = 'Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley'
+__credits__ = ['Gavin Huttley']
+__license__ = 'GPL'
+__maintainer__ = 'Gavin Huttley'
+__email__ = 'Gavin.Huttley@anu.edu.au'
+__status__ = 'alpha'
 __version__ = '0.1'
 
 def value_at_expanded_index(values, counts, index):
     """return the value at index from expansion, using counts, of values"""
-    num = 0
     cumsum = counts.cumsum()
     
     for i in range(cumsum.shape[0]):

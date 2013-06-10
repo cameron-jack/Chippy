@@ -6,13 +6,13 @@ import numpy
 
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
-__author__ = "Cameron Jack"
-__copyright__ = "Copyright 2011-2012, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
 class ROI(object):

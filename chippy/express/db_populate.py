@@ -157,7 +157,7 @@ def add_expression_study(session, sample_name, data_path, table,
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
         session.rollback()
-        raise RuntimeError('error querying for a sample')
+        rr.dieOnCritical('querying sample', 'Failed')
     
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
@@ -245,8 +245,8 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
         session.rollback()
-        raise RuntimeError('error querying for a sample')
-    
+        rr.dieOnCritical('querying sample', 'Failed')
+
     ref_a = _one(session.query(ReferenceFile).filter_by(name=ref_a_path))
     if not ref_a:
         rr.addWarning('Could not find a record for ref_a ' + ref_a_path,
@@ -261,8 +261,8 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     
     if not ref_a or not ref_b:
         rr.display()
-        raise RuntimeError('Reference files not added yet?')
-    
+        rr.dieOnCritical('Reference files', 'Not added')
+
     data = []
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
@@ -321,7 +321,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     session.commit()
 
     if unknown_ids:
-        rr.addError('Number of unknown gene Ensembl IDs',
+        rr.addWarning('Number of unknown gene Ensembl IDs',
                 unknown_ids)
     rr.addInfo('Total significantly up-regulated genes',
             signif_up_total)
@@ -349,18 +349,16 @@ def add_target_genes(session, sample_name, data_path, table,
     sample = _one(session.query(Sample).filter_by(name=sample_name))
     if not sample:
         session.rollback()
-        raise RuntimeError('error querying for a sample')
-    
+        rr.dieOnCritical('querying for sample', 'Failed')
+
     reffile = session.query(ReferenceFile).filter_by(name=data_path).all()
     if len(reffile) == 0:
         reffile = ReferenceFile(data_path, today)
         reffile.sample = sample
         data.append(reffile)
     else: # Don't overwrite anything, exit instead
-        rr.addWarning('File already loaded', data_path)
-        rr.display()
-        sys.exit(-1)
-    
+        rr.dieOnCritical('File already loaded', data_path)
+
     ensembl_ids = table.getRawData(ensembl_id_label)
 
     for id_chunk in _chunk_id_list(ensembl_ids, 100):
@@ -438,8 +436,7 @@ def add_data(session, name, description, path, expr_table,
         add_target_genes(session, name, path, expr_table,
                 ensembl_id_label=gene_id_heading)
     else:
-        rr.display()
-        raise RuntimeError('Unknown sample type')
+        rr.dieOnCritical('Unknown sample type', sample_type)
 
     return success
 

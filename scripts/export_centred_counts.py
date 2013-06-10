@@ -13,13 +13,13 @@ from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
 script_info = {}
@@ -52,10 +52,10 @@ def get_collection(session, sample_name, expr_area, BAMorBED,
         multitest_signif_val, filename, overwrite, sample_type,
         tab_delimited, include_target=None, exclude_target=None,
         bedgraph=None):
-
+    rr = RunRecord('get_collection')
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute']:
-            print "Collecting data for absolute expression experiment"
+            print 'Collecting data for absolute expression experiment'
             data_collection = centred_counts_for_genes(session,
                     sample_name, expr_area, BAMorBED,
                     chr_prefix, window_radius,
@@ -63,7 +63,7 @@ def get_collection(session, sample_name, expr_area, BAMorBED,
                     bedgraph)
         
         elif sample_type == sample_types['exp_diff']:
-            print "Collecting data for difference expression experiment"
+            print 'Collecting data for difference expression experiment'
             data_collection = centred_diff_counts_for_genes(
                     session, sample_name, expr_area,
                     BAMorBED, chr_prefix,
@@ -71,16 +71,15 @@ def get_collection(session, sample_name, expr_area, BAMorBED,
                     exclude_target, bedgraph)
             
         else:
-            print "Experiment type %s not supported" % sample_type
-            sys.exit()
-            
+            rr.dieOnCritical('Experiment type not supported', sample_type)
+
         if data_collection is not None:
             data_collection.writeToFile(filename, as_table=tab_delimited,
                     compress_file=True)
         else:
-            sys.stderr.write('No data_collection was returned!\n')
+            rr.dieOnCritical('No data collection was returned', 'Failed')
     else:
-        print 'Existing output at %s' % filename
+        print 'Existing output at', filename
 
 def main():
     """ Returns a pickle of size window length containing chromatin mapping
@@ -90,12 +89,12 @@ def main():
 
     args = script_info['args'].parse()
     if args.sample is None:
-        raise RuntimeError('No samples available')
+        rr.dieOnCritical('No samples provided', 'Failed')
 
     db_name = str(args.db_path).split('/')[-1]
 
     sample_name = args.sample.split(' : ')[0]
-    print "Loading counts data for '%s'" % sample_name
+    print 'Loading counts data for', sample_name
     sample_type = sample_types[args.sample_type]
 
     include_name = None
@@ -108,8 +107,8 @@ def main():
 
     if (args.multitest_signif_val is not None) and not \
             (-1 <= args.multitest_signif_val <= 1):
-        raise RuntimeError('multitest_signif_val is not -1, 0, 1' +\
-                ' or None. Halting execution.')
+        rr.dieOnCritical('Multitest_signif_val should be -1, 0, 1',
+                args.multitest_signif_val)
 
     session = db_query.make_session(args.db_path)
 

@@ -50,15 +50,15 @@ def main():
 
     args = script_info['args'].parse()
     session = db_query.make_session(args.db_path)
+    if args.sample is None:
+        rr.dieOnCritical('No sample provided','Failed')
 
-    if args.new_sample is None:
-        raise RuntimeError('No sample specified')
-    elif args.new_sample.count(':') == 1:
+    if args.new_sample.count(':') == 1:
         name, description = args.new_sample.split(':')
         name = name.strip()
         description = description.strip()
     else:
-        raise RuntimeError("Please provide 'Name : Description'")
+        rr.dieOnCritical('Sample needs to be in the form', 'Name : Description')
 
     ref_file = args.expression_data
 

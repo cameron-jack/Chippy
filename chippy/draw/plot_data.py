@@ -69,14 +69,13 @@ class PlotLine(PlotData):
 
     def applyBinning(self, bin_width):
         """ For every bin_width, sum the counts. Output array size is
-        same, just filled with sum values. Bin_width must be an integer
-        factor of the window size """
+            same, just filled with sum values. Bin_width must be an integer
+            factor of the window size
+        """
         rr = RunRecord('apply_binning')
         if bin_width and bin_width > 0:
             if len(self.counts)%bin_width:
-                rr.display()
-                raise RuntimeError('Bin width must an integer '\
-                        'factor of the window size')
+                rr.dieOnCritical('Bin width is not an integer factor of window size', bin_width)
             tmp_array = numpy.array(self.counts)
             for k in self.counts[:-bin_width:bin_width]:
                 bin_sum = 0

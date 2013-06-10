@@ -165,9 +165,8 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
                     invalid_flag_count += 1
             filled_ROIs.append(roi)
         else:
-            rr.display()
-            raise RuntimeError('samtools view failed. Is the BAM sorted? '+\
-                    'Does it have an index file?')
+            rr.dieOnCritical('Samtools view failed', 'Sorted? Indexed?')
+
     rr.addInfo('Number of BAM records evaluated', bam_lines_seen)
     rr.addInfo('Number of valid BAM records seen', valid_flag_count)
     rr.addInfo('Number of invalid BAM records seen', invalid_flag_count)
@@ -185,9 +184,7 @@ def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
         filled_ROIs, num_tags, num_bases = read_BED(BAMorBED,
                 ROIs, chr_prefix)
     else:
-        rr.display()
-        raise RuntimeError("File name given doesn't resemble BAM or BED ",
-                BAMorBED)
+        rr.dieOnCritical('File not recognised as BAM or BED', BAMorBED)
 
     rr.addInfo('Number of read tags counted', num_tags)
     rr.addInfo('Number of total bases counted', num_bases)

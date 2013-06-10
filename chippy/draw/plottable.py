@@ -104,9 +104,7 @@ class _Plottable(object):
                 else:
                     grid_line_val = y_ceiling/10.0
         else:
-            rr.display()
-            raise RuntimeError('Exiting: Maximum y-axis value '\
-                               'meaningless: ' + str(y_ceiling))
+            rr.dieOnCritical('Inappropriate y-axis value', y_ceiling)
         if test_run:
             rr.addInfo('Y-grid-line spacing', '%e' % grid_line_val)
         return grid_line_val
@@ -134,15 +132,12 @@ class _Plottable(object):
             else: # just a single counts array, so single line
                 y_min_limit = min(y[0])
                 y_max_limit = max(y[0])
-
         else:
-            rr.display()
-            raise RuntimeError('No y-array or plotlines provided')
+            rr.dieOnCritical('No y-array or plotlines provided', 'Failed')
 
         if rounding:
             # Round min/max values to whole values for nice plots
 
-            rounding_places = 1
             # For fractional counts then scale the rounding appropriately
             if y_max_limit > 0:
                 ypower = log10(y_max_limit) # check scale
@@ -165,9 +160,7 @@ class _Plottable(object):
                 y_floor = 0.0
                 y_ceiling = 1.0
             else:
-                rr.display()
-                raise RuntimeError('Exiting: Maximum y-axis value somehow '\
-                               + 'negative: %e' % y_max_limit)
+                rr.dieOnCritical('Negative max y-axis value', y_max_limit)
         else:
             y_floor = y_min_limit
             y_ceiling = y_max_limit
@@ -312,8 +305,7 @@ class _Plottable(object):
             self.ylims = self._auto_y_lims(y=y_vals,
                     plot_lines=plot_lines, test_run=test_run)
         else:
-            rr.display()
-            raise RuntimeError('y data, plot_lines or y_limits must be provided')
+            rr.dieOnCritical('y data, plotlines or ylimits', 'Values missing')
 
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
@@ -417,8 +409,7 @@ class PlottableGroups(_Plottable):
         rr = RunRecord('PlottableGroups__call__')
 
         if not y_series and not plot_lines:
-            rr.display()
-            raise RuntimeError('No data to plot in PlottableGroups')
+            rr.dieOnCritical('No data supplied', 'Failed')
 
         bbox = dict(facecolor='b', alpha=0.5)
 

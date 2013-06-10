@@ -73,8 +73,7 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
                 regionsOfInterest.append(roi)
 
     if not len(regionsOfInterest):
-        rr.display()
-        raise RuntimeError('No regions of interest in genome created')
+        rr.dieOnCritical('No Regions of Interest created')
 
     ROIs, num_tags, num_bases = get_region_counts(BAMorBED,
             regionsOfInterest, chr_prefix=chr_prefix)
@@ -103,9 +102,8 @@ def centred_counts_for_genes(session, sample_name, expr_area,
             include_target=include_target, exclude_target=exclude_target)
 
     if not expressed_genes:
-        rr.display()
-        raise RuntimeError('No expressed genes available for pairing ' +\
-                           'with counts data. Halting.')
+        rr.dieOnCritical('Expressed genes', 'not present')
+
     rr.addInfo('Sample counts name', sample_name)
     rr.addInfo('Total expression data', len(expressed_genes))
 
@@ -129,8 +127,9 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area,
         BAMorBED, chr_prefix, window_radius,
         multitest_signif_val, include_target=None, exclude_target=None,
         bedgraph=None):
-    """returns a RegionCollection object wrapping the counts, ranks etc ..
-    related to an expression difference experiment"""
+    """ returns a RegionCollection object wrapping the counts, ranks, etc,
+        related to an expression difference experiment
+    """
     rr = RunRecord('centred_diff_counts_for_genes')
 
     print 'Getting ranked expression difference instances'
@@ -139,9 +138,8 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area,
             include_target=include_target, exclude_target=exclude_target)
 
     if not expressed_diff:
-        rr.display()
-        raise RuntimeError('No expressed genes available for pairing ' +\
-                'with counts data. Halting.')
+        rr.dieOnCritical('Expressed genes', 'not present')
+
     rr.addInfo('Sample diff counts name', sample_name)
     rr.addInfo('Total expression data', len(expressed_diff))
 
@@ -150,8 +148,8 @@ def centred_diff_counts_for_genes(session, sample_name, expr_area,
             chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
 
     data = RegionCollection(counts=counts, ranks=ranks,
-        labels=ensembl_ids,
-        info={'total expressed genes': len(expressed_diff),
+            labels=ensembl_ids,
+            info={'total expressed genes': len(expressed_diff),
                 'args': {'window_radius': window_radius,
                 'sample_name': sample_name,
                 'species': get_species(session),

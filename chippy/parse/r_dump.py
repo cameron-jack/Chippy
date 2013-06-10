@@ -56,13 +56,14 @@ def remove_probesets(row, probesets, probeset_index, exp_index):
     return row
 
 def validate_exps(probeset_ids, probeset_exps):
+    rr = RunRecord('validate_exps')
     new_ids = []
     new_exps = []
 
     # takes care of uneven probe/expr info
     # breaks current test for unevenness
     if len(probeset_ids) != len (probeset_exps):
-        raise RuntimeError('Different number of probesets to expression values')
+        rr.dieOnCritical('Probsets not matching expression values', 'Failure')
 
     for i in range (len(probeset_ids)):
         if type(probeset_exps[i]) == str:
@@ -136,8 +137,8 @@ def simpleRdumpToTable(path, sep='\t', stable_id_label='', probeset_label='',
                 'Must provide all required column labels to validate'
         stable_ids = table.getDistinctValues(stable_id_label)
         if len(stable_ids) != table.Shape[0]:
-            raise RuntimeError('Non unique stable IDs')
-        
+            rr.dieOnCritical('Non unique stable IDs', 'Failure')
+
         rr.addInfo('validation', 'genes were all unique')
         rr.addInfo('validation', 'numbers of probesets matched expression records')
 

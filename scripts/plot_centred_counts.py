@@ -19,12 +19,12 @@ from chippy.util.util import create_path, dirname_or_default
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Anuj Pahwa, Cameron Jack'
-__credits__ = ['Gavin Huttley, Cameron Jack']
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
-__status__ = 'alpha'
-__version__ = '0.1'
+__status__ = 'Release'
+__version__ = '0.2'
 
 class Study(object):
     """ Specifies the RegionCollection associated with an expression
@@ -37,14 +37,14 @@ class Study(object):
     def __init__(self, collection_fn, counts_func,
             *args, **kwargs):
         super(Study, self).__init__(*args, **kwargs)
-
+        rr = RunRecord('Study')
         # Keep the source file name for labelling purposes
         fn = collection_fn.split('/')[-1].rstrip('.gz')
         self.collection_label = fn.replace('_', ' ')
         try:
             self.data_collection = RegionCollection(filename=collection_fn)
         except IOError:
-            raise RuntimeError('Collection will not load: ' + collection_fn)
+            rr.dieOnCritical('Collection will not load', collection_fn)
 
         # Frequency normalized counts need to be converted
         if counts_func is column_sum:
@@ -81,9 +81,8 @@ class Study(object):
         rr.addInfo('Remaining genes', self.data_collection.N)
 
         if self.data_collection is None or\
-           self.data_collection.ranks.max() == 0:
-            rr.display()
-            raise RuntimeError('No valid data remaining after filtering')
+                self.data_collection.ranks.max() == 0:
+            rr.dieOnCritical('No genes remaining after filtering', 'Failure' )
 
         # total_features used to normalise coloring
         total_features = self.data_collection.ranks.max()
@@ -119,8 +118,7 @@ class Study(object):
 
         if self.data_collection is None or\
                 self.data_collection.ranks.max() == 0:
-            rr.display()
-            raise RuntimeError('No valid data remaining after filtering')
+            rr.dieOnCritical('No data after filtering', 'Failure')
 
         # total_features used to normalise coloring
         total_features = self.data_collection.ranks.max()
@@ -151,9 +149,8 @@ class Study(object):
         counts, ranks = self.data_collection.transformed(\
                 counts_func=self.counts_func)
         if not len(counts):
-            rr.display()
-            raise RuntimeError('No counts data returned in '+\
-                    'Study.groupAllGeneCounts')
+            rr.dieOnCritical('No counts data in', 'Study.groupAllGeneCounts')
+
         # Always name single lines by their collection name
         label = self.collection_label
         plot_lines = [PlotLine(counts, ranks, label, study=label)]
@@ -182,8 +179,7 @@ class Study(object):
 
         # If no data was returned default to groupAllCollectionCounts
         if not len(plot_lines):
-            rr.display()
-            raise RuntimeError('No data in collection')
+            rr.dieOnCritical('No data in collection', 'Failure')
 
         # If a single line is created label it with the collection name
         if len(plot_lines) == 1:
@@ -231,9 +227,8 @@ class Study(object):
                 plot_lines = self._groupNGeneCounts(group_size,
                         confidence_intervals)
         else:
-            rr.display()
-            raise RuntimeError('group_size wrong type or value' +\
-                    str(group_size) + ' ' + str(type(group_size)))
+            rr.dieOnCritical('group_size, wrong type or value',
+                    [type(group_size), group_size])
 
         if group_location:
             rr.addInfo('grouping genes from location', group_location)
@@ -273,17 +268,14 @@ def load_studies(collections, counts_func):
     for collection_file in collection_file_names:
         study = Study(collection_file, counts_func)
         if study is None:
-            rr.display()
-            raise RuntimeError('Study: ' + collection_file +\
-                    ' could not load. Exiting.')
+            rr.dieOnCritical('Could not load study', collection_file)
         else:
             studies.append(study)
             window_radii.append(study.window_radius)
 
     # Find max common windows size
     if not len(studies):
-        rr.display()
-        raise RuntimeError('No valid data files loaded')
+        rr.dieOnCritical('No valid data files', 'Failure')
 
     window_radius = int(min(window_radii))
 
@@ -318,10 +310,7 @@ def set_counts_function(metric):
         counts_func = stdev
         rr.addInfo('Counts metric set to', 'stdev')
     else:
-        rr.display()
-        raise RuntimeError('Invalid metric given: ' + metric +\
-                ' Should be one of: Mean counts, Frequency counts or'+\
-                ' Standard deviation.')
+        rr.dieOnCritical('Invalid count metric', metric)
     return counts_func
 
 def div_plots(plot_lines, div_study_name):
@@ -342,15 +331,13 @@ def div_plots(plot_lines, div_study_name):
 
     # sanity check
     if len(ranked_plot_lines) == 0:
-        rr.display()
-        raise RuntimeError('No plot lines to plot. Was the only study '+\
-                           'also the div study?')
+        rr.dieOnCritical('No plot lines.', 'Same study as div plot?')
 
     out_lines = []
     for ranked_index, div_index in zip(ranked_plot_lines, dividing_plot_lines):
         if ranked_index != div_index:
-            rr.display()
-            raise RuntimeError('Div and study indices do not match')
+            rr.dieOnCritical('Div and study plot lines do not match',
+                    [len(ranked_plot_lines), len(dividing_plot_lines)])
         for line in ranked_plot_lines[ranked_index]:
             line.counts /= dividing_plot_lines[ranked_index].counts
             out_lines.append(line)
@@ -462,8 +449,8 @@ def main():
             studies.append(div_studies[0])
             div_name = div_studies[0].collection_label
         else:
-            rr.display()
-            raise RuntimeError('Non matching data and div windows')
+            rr.dieOnCritical('Differing Data and Div window sizes',
+                    [div_window_radius, window_radius])
     else:
         div_name = None
 
@@ -516,7 +503,7 @@ def main():
     ylim = None
     if args.ylim is not None:
         if ',' not in args.ylim:
-            raise RuntimeError('ylim must be comma separated')
+            rr.dieOnCritical('ylim must be comma separated', ylim)
         ylim = map(float, args.ylim.strip().split(','))
 
     # if we have a plot series, create a directory to write plots

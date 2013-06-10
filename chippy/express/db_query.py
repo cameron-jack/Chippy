@@ -87,18 +87,19 @@ def _get_exon_query(session, gene_id=None):
 def _get_expression_query(session, sample_name=None,
         biotype='protein_coding', chrom=None, data_path=None):
     """ Returns expression table query """
+    rr = RunRecord('_get_expression_query')
     query = session.query(Expression)
     if sample_name is not None:
         sample = _get_sample(session, sample_name)
         if sample is None:
-            raise RuntimeError('Unknown sample name: %s' % sample_name)
+            rr.dieOnCritical('Unknown sample name', sample_name)
         query = query.filter(Expression.sample_id==sample.sample_id)
 
     if data_path is not None:
         reffile_id = _one(session.query(ReferenceFile.reffile_id).\
                 filter(ReferenceFile.name==data_path))
         if not data_path:
-            raise RuntimeError('Unknown data_path %s' % data_path)
+            rr.dieOnCritical('Unknown data path', data_path)
         reffile_id = reffile_id[0]
         query = query.filter(Expression.reffile_id==reffile_id)
 
@@ -114,11 +115,12 @@ def _get_expression_query(session, sample_name=None,
 def _get_diff_query(session, sample_name=None, biotype='protein_coding',
         multitest_signif_val=None, chrom=None, data_path=None):
     """ Returns ExpressionDiff table query """
+    rr = RunRecord('_get_diff_query')
     query = session.query(ExpressionDiff)
     if sample_name is not None:
         sample = _get_sample(session, sample_name)
         if not sample:
-            raise RuntimeError('No sample with name ' + sample_name)
+            rr.dieOnCritical('No sample with name', sample_name)
 
         query = query.filter(ExpressionDiff.sample_id==sample.sample_id)
 
@@ -126,7 +128,7 @@ def _get_diff_query(session, sample_name=None, biotype='protein_coding',
         reffile_id = _one(session.query(ReferenceFile.reffile_id).\
         filter(ReferenceFile.name==data_path))
         if not data_path:
-            raise RuntimeError('Unknown data_path %s' % data_path)
+            rr.dieOnCritical('Unknown data path', data_path)
         reffile_id = reffile_id[0]
         query = query.filter(Expression.reffile_id==reffile_id)
 
@@ -229,7 +231,7 @@ def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
         chrom=None, data_path=None, include_target=None, exclude_target=None,
         rank_by='mean'):
     """returns all ranked genes from a sample"""
-
+    rr = RunRecord('get_genes_by_ranked_expr')
     records = get_expression_entries(session, sample_name=sample_name,
             biotype=biotype, chrom=chrom, data_path=data_path)
 
@@ -261,8 +263,8 @@ def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
     elif rank_by.lower() == 'max':
         scored = [(g.MaxScore, g) for g in genes]
     else:
-        raise NotImplementedError('Can only set by mean or max')
-    
+        rr.dieOnCritical('Ranking method not possible', rank_by.lower())
+
     # Make sure we get highest first
     scored = reversed(sorted(scored))
     genes = []
@@ -276,7 +278,7 @@ def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
         biotype='protein_coding', chrom=None, data_path=None, include_target=None,
         exclude_target=None, rank_by='mean'):
     """returns all ranked genes from a sample difference experiment"""
-
+    rr = RunRecord('get_genes_by_ranked_diff')
     records = get_diff_entries(session, sample_name=sample_name,
             biotype=biotype, data_path=data_path, chrom=chrom,
             multitest_signif_val=multitest_signif_val)
@@ -309,7 +311,7 @@ def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
     elif rank_by.lower() == 'max':
         scored = [(g.MaxScore, g) for g in genes]
     else:
-        raise NotImplementedError
+        rr.dieOnCritical('Ranking method not possible', rank_by.lower())
 
     # Make sure we get highest first
     scored = reversed(sorted(scored))
@@ -342,7 +344,7 @@ def get_expression_entries(session, sample_name=None,
         biotype='protein_coding', chrom=None, data_path=None):
     """ returns the number of Expression entries"""
     query = _get_expression_query(session, sample_name=sample_name,
-        biotype=biotype, chrom=chrom, data_path=data_path)
+            biotype=biotype, chrom=chrom, data_path=data_path)
     return query.distinct().all()
 
 @_safe_query
@@ -394,7 +396,7 @@ def get_expression_counts(session, sample_name=None,
         biotype='protein_coding', data_path=None):
     """ returns the number of Expression entries"""
     query = _get_expression_query(session, sample_name=sample_name,
-        biotype=biotype, data_path=data_path)
+            biotype=biotype, data_path=data_path)
     return query.distinct().count()
 
 @_safe_counts
@@ -402,8 +404,8 @@ def get_diff_counts(session, sample_name=None, biotype='protein_coding',
         chrom=None, multi_signif_val=None, data_path=None):
     """ Returns number of unique ExpressionDiff entries """
     query = _get_diff_query(session, sample_name=sample_name,
-        biotype=biotype, chrom=chrom, multitest_signif_val=multi_signif_val,
-        data_path=data_path)
+            biotype=biotype, chrom=chrom,
+            multitest_signif_val=multi_signif_val, data_path=data_path)
     return query.distinct().count()
 
 @_safe_counts

@@ -4,16 +4,16 @@ import gzip
 import numpy
 
 from cogent import LoadTable
-
+from chippy.util.run_record import RunRecord
 from chippy.util.util import make_even_groups
 
-__author__ = "Gavin Huttley"
-__copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
-__credits__ = ["Gavin Huttley"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Gavin Huttley, Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
 def column_sum(data):
@@ -66,6 +66,7 @@ row_mean = _make_mean(1)
 rank_mean = _make_mean(None)
 
 def _get_keep_indices(data, filtered=None):
+    rr = RunRecord('_get_keep_indices')
     keep = range(data.shape[0])
     
     if filtered is not None:
@@ -74,8 +75,8 @@ def _get_keep_indices(data, filtered=None):
             if filtered(data[i]):
                 keep.append(i)
         if len(keep) == 0:
-            raise RuntimeError('Filter operation excluded all data!!')
-    
+            rr.dieOnCritical('No remaing data after filtering', 'Failure')
+
     return keep
 
 class _GenericCollection(object):
@@ -107,7 +108,6 @@ class _GenericCollection(object):
     def Total(self):
         """returns the total sum of counts"""
         return self.counts.sum()
-    
 
 class RegionCollection(_GenericCollection):
     """store counts, ranks, labels, run arguments from a read count session"""
@@ -119,8 +119,7 @@ class RegionCollection(_GenericCollection):
                 self.info) is None, "Conflicting arguments"
             
             self._load(filename)
-    
-    
+
     def __str__(self):
         v = 'RegionCollection(num_records=%s; has_ranks=%s; has_labels=%s)'\
                 % (len(self.counts), self.ranks is not None,
@@ -281,9 +280,10 @@ class RegionCollection(_GenericCollection):
     def filteredChebyshevUpper(self, p=0.05, axis=None):
         """returns a new RegionCollection excluding records with excessive
         reads using a one-sided Chebyshev's inequality"""
+        rr = RunRecord('filteredChebyshevUpper')
         if not (0 <= p <= 1):
-            raise RuntimeError('Probability argument not a valid probability')
-        
+            rr.dieOnCritical('Probability argument', 'Invalid')
+
         k = chebyshev_upper(p)
         if axis is None:
             # only bother computing normalised score for max of each
@@ -305,7 +305,7 @@ class RegionCollection(_GenericCollection):
             else:
                 ranks = None
             new = self.__class__(counts=data, ranks=ranks, labels=labels,
-                info=self.info)
+                    info=self.info)
         else:
             data = normalised_data(self.counts, axis=axis)
             func = lambda x: (x < k).all()
@@ -371,8 +371,7 @@ class RegionCollection(_GenericCollection):
             
             count_data = numpy.array(counts[i])
             yield count_data, rank_data, label_data
-        
-    
+
     def iterDescriptiveStats(self, group_size):
         """return column means & stdevs for each group"""
         for counts, ranks, labels in self.itergroups(group_size):
@@ -392,9 +391,10 @@ class RegionCollection(_GenericCollection):
     def filteredByLabel(self, labels):
         """returns a new collection object with data corresponding to the
         provided labels"""
+        rr = RunRecord('filteredByLabel')
         if self.labels is None:
-            raise RuntimeError('No labels')
-        
+            rr.dieOnCritical('No labels', 'Failure')
+
         if type(labels) == str:
             labels = [labels]
         
@@ -405,5 +405,3 @@ class RegionCollection(_GenericCollection):
                 indices.append(i)
         
         return self.take(indices)
-    
-

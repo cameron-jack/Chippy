@@ -2,7 +2,7 @@ from __future__ import division
 import warnings
 import sys
 sys.path.extend(['..', '../..'])
-
+import numpy
 from matplotlib import pyplot, rc, cm, font_manager
 from matplotlib.mpl import colorbar
 from matplotlib.ticker import MultipleLocator
@@ -405,7 +405,7 @@ class PlottableGroups(_Plottable):
             alpha=None, series_labels=None, label_coords=None, cmap=None,
             colorbar=False, clean=False, xlabel=None, ylabel=None,
             title=None, filename_series=None, labels=None, labels_size=None,
-            stderr=None, show_legend=False, ui=None):
+            stderr=None, show_legend=False, plot_CI=False, ui=None):
         rr = RunRecord('PlottableGroups__call__')
 
         if not y_series and not plot_lines:
@@ -419,6 +419,7 @@ class PlottableGroups(_Plottable):
             y_series = [line.counts for line in plot_lines]
             color_series = [line.color for line in plot_lines]
             labels = [line.label for line in plot_lines]
+
             # Reverse ranks so that rank 0 is colored red, must be in range 0..1
             ranks = sorted([line.rank/len(plot_lines) for line in plot_lines], reverse=True)
         if cmap:
@@ -487,10 +488,10 @@ class PlottableGroups(_Plottable):
                 ax.texts.remove(txt)
 
             # Show confidence interval around each line
-            if stderr:
-                upper = 1.96 * stderr + y
-                lower = -1.96 * stderr + y
-                pyplot.fill_between(x, upper, lower, alpha=0.2, color=color)
+            if plot_CI and plot_lines is not None:
+                upper = 1.96 * plot_lines[i].stderr + y_series[i]
+                lower = -1.96 * plot_lines[i].stderr + y_series[i]
+                pyplot.fill_between(x, upper, lower, alpha=0.3, color='green')
 
         self.check_y_axis_scale(maxY=max(y), plot_lines=plot_lines)
 

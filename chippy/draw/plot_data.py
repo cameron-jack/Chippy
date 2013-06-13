@@ -18,7 +18,7 @@ __version__ = '0.1'
 class PlotData(object):
     """ Abstract Base Class: Represents a data entity to be plotted. """
     def __init__(self, *args, **kwargs):
-        super(PlotData, self).__init__(*args, **kwargs)
+        super(PlotData, self).__init__()
         self.counts = []
         self.rank = 0 # maybe should use -1
         self.label = ''

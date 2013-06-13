@@ -7,7 +7,7 @@ import os, sys, glob
 sys.path.extend(['..'])
 
 import numpy
-
+from math import sqrt
 from chippy.util.command_args import Args
 from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
 from chippy.express.db_query import make_session, get_gene_ids
@@ -140,20 +140,20 @@ class Study(object):
             normalised_counts.append(c)
         self.data_collection.counts = normalised_counts
 
-    def _groupAllGeneCounts(self, confidence_intervals=None):
+    def _groupAllGeneCounts(self):
         """ Group counts for all genes and return as a single PlotLine.
             Called by asPlotLines or _groupNGeneCounts().
             Returns a list.
         """
         rr = RunRecord('_groupAllGeneCounts')
-        counts, ranks = self.data_collection.transformed(\
+        counts, ranks, se = self.data_collection.transformed(\
                 counts_func=self.counts_func)
         if not len(counts):
             rr.dieOnCritical('No counts data in', 'Study.groupAllGeneCounts')
 
         # Always name single lines by their collection name
         label = self.collection_label
-        plot_lines = [PlotLine(counts, ranks, label, study=label)]
+        plot_lines = [PlotLine(counts, ranks, label, study=label, stderr=se)]
         return plot_lines
 
     def _groupNoGeneCounts(self):
@@ -187,18 +187,18 @@ class Study(object):
 
         return plot_lines
 
-    def _groupNGeneCounts(self, group_size, confidence_intervals):
+    def _groupNGeneCounts(self, group_size):
         """ Group counts for N genes and return as PlotLines. Defaults to
             _groupAllGeneCounts() if group size is too large.
             Called by asPlotLines()
         """
         rr = RunRecord('_groupNGeneCounts')
         plot_lines = []
-        for index, (c,r,l) in enumerate(self.data_collection.\
+        for index, (c,r,l,se) in enumerate(self.data_collection.\
                 iterTransformedGroups(group_size=group_size,
                 counts_func=self.counts_func)):
             plot_lines.append(PlotLine(c, rank=index, label=l,
-                    study=self.collection_label))
+                    study=self.collection_label, stderr=se))
 
         # If no data was returned default to groupAllCollectionCounts
         if not len(plot_lines):
@@ -213,19 +213,17 @@ class Study(object):
 
         return plot_lines
 
-    def asPlotLines(self, studies, group_size, group_location,
-            confidence_intervals):
+    def asPlotLines(self, studies, group_size, group_location):
         """ returns a list of PlotLine objects from this study """
         rr = RunRecord('asPlotLines')
 
         if type(group_size) is str and group_size.lower() == 'all':
-            plot_lines= self._groupAllGeneCounts(confidence_intervals)
+            plot_lines= self._groupAllGeneCounts()
         elif type(group_size) is int:
             if group_size == 1:
                 plot_lines = self._groupNoGeneCounts()
             else:
-                plot_lines = self._groupNGeneCounts(group_size,
-                        confidence_intervals)
+                plot_lines = self._groupNGeneCounts(group_size)
         else:
             rr.dieOnCritical('group_size, wrong type or value',
                     [type(group_size), group_size])
@@ -474,7 +472,7 @@ def main():
     plot_lines = []
     for study in studies:
         lines = study.asPlotLines(studies, group_size,
-                args.group_location, args.confidence_intervals)
+                args.group_location)
         for line in lines:
             plot_lines.append(line)
 
@@ -544,7 +542,8 @@ def main():
             label_coords=label_coords, cmap=cmap,
             alpha=args.line_alpha, xlabel=args.xlabel,
             ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-            labels=None, labels_size=args.legend_font_size)
+            labels=None, labels_size=args.legend_font_size,
+            plot_CI=args.confidence_intervals)
 
     # 13: save plots
     # if series, create directory

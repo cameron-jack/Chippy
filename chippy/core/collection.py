@@ -4,17 +4,21 @@ import gzip
 import numpy
 
 from cogent import LoadTable
+from cogent.maths.stats.jackknife import JackknifeStats
 from chippy.util.run_record import RunRecord
 from chippy.util.util import make_even_groups
+from math import sqrt
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
-__credits__ = ['Gavin Huttley, Cameron Jack']
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
 __version__ = '0.1'
+
+
 
 def column_sum(data):
     """returns the column sums"""
@@ -238,15 +242,15 @@ class RegionCollection(_GenericCollection):
     def transformed(self, rank_func=rank_mean, counts_func=column_mean):
         """transforms all counts and ranks"""
         c = counts_func(self.counts)
+        se_array = self.counts.std(axis=0)/sqrt(self.N)
         if counts_func == stdev:
             mean = c.mean()
-            stdev_ = c.std(ddof=1)
-            c = (c - mean)/stdev_
+            c = (c - mean)/c.std(ddof=1)
         if self.ranks is not None:
             r = rank_func(self.ranks)
         else:
             r = None
-        return c, r
+        return c, r, se_array
     
     def take(self, indices):
         """returns new instance corresponding to just the indices"""
@@ -381,12 +385,12 @@ class RegionCollection(_GenericCollection):
                     counts_func=column_mean):
         for counts, ranks, labels in self.itergroups(group_size):
             c = counts_func(counts)
+            se_array = counts.std(axis=0)/sqrt(group_size)
             if counts_func == stdev:
                 mean = c.mean()
-                stdev_ = c.std(ddof=1)
-                c = (c - mean)/stdev_
+                c = (c - mean)/c.std(ddof=1)
             r = rank_func(ranks)
-            yield c, r, labels
+            yield c, r, labels, se_array
     
     def filteredByLabel(self, labels):
         """returns a new collection object with data corresponding to the

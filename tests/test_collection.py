@@ -237,10 +237,10 @@ class CollectionTests(TestCase):
         """correctly return transform counts"""
         input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
         coll = RegionCollection(**input)
-        c, r = coll.transformed()
+        c, r, stderr = coll.transformed()
         self.assertEqual(c, [4,5])
         freqs = coll.asfreqs()
-        c, r = freqs.transformed(counts_func=column_sum)
+        c, r, stderr = freqs.transformed(counts_func=column_sum)
         self.assertFloatEqual(c, numpy.array([20./45., 25./45],dtype=c.dtype))
     
     def test_take(self):

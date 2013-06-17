@@ -15,28 +15,7 @@ __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.1'
 
-class PlotData(object):
-    """ Abstract Base Class: Represents a data entity to be plotted. """
-    def __init__(self, *args, **kwargs):
-        super(PlotData, self).__init__()
-        self.counts = []
-        self.rank = 0 # maybe should use -1
-        self.label = ''
-        self.color = 'grey'
-
-    def countsAsArray(self):
-        """ Return self as numpy array of Y coords """
-        if type(self.counts) == 'numpy.ndarray':
-            return self.counts
-        else:
-            return numpy.array(self.counts)
-
-    def getMaxCount(self):
-        if len(self.counts) > 0:
-            return max(self.counts)
-        return None
-
-class PlotLine(PlotData):
+class PlotLine(object):
     """ Represents an individual line to be plotted.
         Can be smoothed, binned and sorted.
         Comprised of data to be plotted, rank order of data, a label
@@ -45,7 +24,7 @@ class PlotLine(PlotData):
     """
     def __init__(self, counts, rank=None, label=None, study=None,
             *args, **kwargs):
-        super(PlotLine, self).__init__(*args, **kwargs)
+        super(PlotLine, self).__init__()
         self.counts = counts
         self.rank = rank
         self.label = label
@@ -84,4 +63,16 @@ class PlotLine(PlotData):
                 for i in xrange(bin_width):
                     tmp_array[k+i] = bin_sum
         self.counts = tmp_array
+
+    def countsAsArray(self):
+        """ Return self as numpy array of Y coords """
+        if type(self.counts) == 'numpy.ndarray':
+            return self.counts
+        else:
+            return numpy.array(self.counts)
+
+    def getMaxCount(self):
+        if len(self.counts) > 0:
+            return max(self.counts)
+        return None
 

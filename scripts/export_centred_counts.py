@@ -116,7 +116,9 @@ def main():
     if args.make_bedgraph:
         bedgraph_fn = db_name.split('.')[0] + '_'+sample_name+'.bedgraph'
 
-    rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
+    if args.chr_prefix != '':
+        # If it writes nothing then we'll fail to load the table again
+        rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
     rr.addInfo('include gene targets', include_name)
     rr.addInfo('exclude gene targets', exclude_name)
 

@@ -61,10 +61,10 @@ def main():
     ref_file = args.expression_data
 
     # Check that ReferenceFile is unique
-    if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
-        rr.addCritical('ReferenceFile already loaded', ref_file)
-        rr.display()
-        sys.exit(1)
+    #if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
+    #    rr.addCritical('ReferenceFile already loaded', ref_file)
+    #    rr.display()
+    #    sys.exit(1)
 
     if sample_types[args.sample_type] in\
             (sample_types['exp_absolute'], sample_types['exp_diff']):

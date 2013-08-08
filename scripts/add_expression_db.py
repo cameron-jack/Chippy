@@ -50,7 +50,7 @@ def main():
 
     args = script_info['args'].parse()
     session = db_query.make_session(args.db_path)
-    
+
     if args.new_sample.count(':') == 1:
         name, description = args.new_sample.split(':')
         name = name.strip()

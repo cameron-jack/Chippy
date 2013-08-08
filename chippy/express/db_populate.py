@@ -94,7 +94,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                         chrom=gene.Location.CoordName,
                         start=gene.Location.Start, end=gene.Location.End,
                         strand=gene.Location.Strand)
-                total_objects += 1
+
                 unique_gene_ids.add(gene.StableId)
                 data.append(db_gene)
             else:
@@ -107,7 +107,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                     db_exon.gene = db_gene
                     unique_exon_ids.add(exon.StableId)
                     data.append(db_exon)
-                    total_objects += 1
+
                 else:
                     rr.addWarning('Duplicate exon', exon.StableId)
             n += 1
@@ -121,7 +121,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
     chroms = Chroms(species, chromSet)
     data.append(chroms)
 
-    rr.addInfo('Writing objects into db', total_objects)
+    rr.addInfo('Writing objects into db', len(data))
     session.add_all(data)
     session.commit()
     return chroms
@@ -212,7 +212,7 @@ def add_expression_study(session, sample_name, data_path, table,
 
     if unknown_ids:
         rr.addWarning('Number of unknown gene Ensembl IDs', unknown_ids)
-    rr.addInfo('Total genes', total)
+    rr.addInfo('Total genes added', total)
     return True
 
 @display_wrap

@@ -106,7 +106,7 @@ class Gene(Base):
     __table_args__ = (UniqueConstraint('ensembl_id', name='unique'), {})
     
     def __init__(self, ensembl_id, symbol, biotype, description, status, chrom, start, end, strand):
-        self.ensembl_id = ensembl_id
+        self.ensembl_id = str(ensembl_id)
         self.symbol = symbol
         self.biotype = biotype
         self.description = description

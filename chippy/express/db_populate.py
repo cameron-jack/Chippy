@@ -112,7 +112,7 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
                     rr.addWarning('Duplicate exon', exon.StableId)
             n += 1
             if n % 100 == 0:
-                print 'Genes processed:', n,'; Db objects created:', total_objects
+                print 'Genes processed:', n,'; Db objects created:', len(data)
                 if debug:
                     session.add_all(data)
                     session.commit()

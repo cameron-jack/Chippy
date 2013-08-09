@@ -178,7 +178,7 @@ class CentredStudy(object):
         # Get feature window radius
         try:
             self.window_radius =\
-            self.data_collection.info['args']['window_radius']
+                    self.data_collection.info['args']['window_radius']
         except KeyError:
             self.window_radius = len(self.data_collection.counts[0])/2
 
@@ -201,7 +201,7 @@ class CentredStudy(object):
             include_target=include_sample, exclude_target=exclude_sample)
 
         self.data_collection =\
-        self.data_collection.filteredByLabel(filter_gene_ids)
+                self.data_collection.filteredByLabel(filter_gene_ids)
         rr.addInfo('Remaining genes', self.data_collection.N)
 
         if self.data_collection is None or\
@@ -233,15 +233,15 @@ class CentredStudy(object):
                 # Do Chebyshev filtering
 
             self.data_collection =\
-            self.data_collection.filteredChebyshevUpper(p=cutoff)
+                    self.data_collection.filteredChebyshevUpper(p=cutoff)
             rr.addInfo('Used Chebyshev filter cutoff', cutoff)
             rr.addInfo('No. genes after normalisation filter',
-                self.data_collection.N)
+                    self.data_collection.N)
         else:
             rr.addInfo('Outlier cutoff filtering', 'Off')
 
         if self.data_collection is None or\
-           self.data_collection.ranks.max() == 0:
+                self.data_collection.ranks.max() == 0:
             rr.dieOnCritical('No data after filtering', 'Failure')
 
         # total_features used to normalise coloring
@@ -262,7 +262,7 @@ class CentredStudy(object):
         for c in self.data_collection.counts:
             c = c * 1000000 / norm_bases
             normalised_counts.append(c)
-        self.data_collection.counts = normalised_counts
+        self.data_collection.counts = numpy.array(normalised_counts)
 
     def _groupAllGeneCounts(self):
         """ Group counts for all genes and return as a single PlotLine.

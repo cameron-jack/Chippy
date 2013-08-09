@@ -73,7 +73,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     for i, bed_entry in enumerate(bed_data):
         if i % 100 == 0:
             msg = 'Reading BED entries [' + str(i) +\
-                  ' / ' + str(total_BED_lines) + ']\n'
+                  ' / ' + str(total_BED_lines) + ']'
             progress = (float(i)/float(total_BED_lines))
             ui.display(msg=msg, progress=progress)
 

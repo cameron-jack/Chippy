@@ -119,8 +119,8 @@ def centred_counts_for_genes(session, sample_name, expr_area,
                 'sample_name': sample_name,
                 'species': get_species(session),
                 'tag count': num_tags,
-                'base count': num_bases},
-                'mapped tags': mapped_tags})
+                'base count': num_bases,
+                'mapped tags': mapped_tags}})
 
     return data
 

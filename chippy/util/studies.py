@@ -249,14 +249,16 @@ class CentredStudy(object):
         self.data_collection.ranks /= total_features
 
     def normaliseByRPM(self):
-        """ This requires 'tag count' or 'base count' to be present
-            in the collection and gives counts per mapped million tags/bases
+        """ This requires 'mapped tags', 'tag count' or 'base count' to be present
+            in the collection and gives counts per mapped million tags/bases.
+            Mapped tags is the total experimental mapped tags.
+            Tag count and base count are region specific.
         """
         rr = RunRecord('normaliseByRPM')
         try:
-            norm_RPM = self.data_collection.info['args']['tag count']
+            norm_RPM = self.data_collection.info['args']['mapped tags']
         except KeyError:
-            rr.addError('Info field not found', 'tag count')
+            rr.addError('Info field not found', 'mapped tags')
             return
         norm_factor = 1000000.0/norm_RPM
         rr.addInfo('normalising by RPMs', norm_factor)

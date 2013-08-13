@@ -75,7 +75,7 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
     if not len(regionsOfInterest):
         rr.dieOnCritical('No Regions of Interest created')
 
-    ROIs, num_tags, num_bases = get_region_counts(BAMorBED,
+    ROIs, num_tags, num_bases, mapped_tags = get_region_counts(BAMorBED,
             regionsOfInterest, chr_prefix=chr_prefix)
 
     if bedgraph:
@@ -88,7 +88,7 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
         ranks.append(roi.rank)
         ensembl_ids.append(roi.gene_id)
 
-    return counts, ranks, ensembl_ids, num_tags, num_bases
+    return counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags
 
 def centred_counts_for_genes(session, sample_name, expr_area,
         BAMorBED, chr_prefix, window_radius=1000,
@@ -108,7 +108,7 @@ def centred_counts_for_genes(session, sample_name, expr_area,
     rr.addInfo('Total expression data', len(expressed_genes))
 
     print 'Decorating for', len(expressed_genes), 'genes'
-    counts, ranks, ensembl_ids, num_tags, num_bases =\
+    counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, expr_area,
             chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
 
@@ -119,7 +119,8 @@ def centred_counts_for_genes(session, sample_name, expr_area,
                 'sample_name': sample_name,
                 'species': get_species(session),
                 'tag count': num_tags,
-                'base count': num_bases}})
+                'base count': num_bases},
+                'mapped tags': mapped_tags})
 
     return data
 

@@ -50,6 +50,8 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     else:
         bed_data = open(bedfile_path, 'r')
 
+    # get total lines in file for pacing the progress bar, but
+    # this is also the total number of mapped reads for normalisation
     command = 'wc -l ' + bedfile_path
     returncode, stdout, stderr = run_command(command)
     if returncode != 0:
@@ -105,7 +107,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
     rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
 
-    return filled_ROIs + remaining_ROIs, num_tags, num_bases
+    return filled_ROIs + remaining_ROIs, num_tags, num_bases, total_BED_lines
 
 @display_wrap
 def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
@@ -119,7 +121,23 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
     these can be used by later stage for normalisation.
     """
     rr = RunRecord('read_BAM')
-    num_tags = 0; num_bases = 0
+    # Collect stats for counts normalisation
+    num_tags = 0
+    num_bases = 0
+    mapped_tags = 0
+
+    # get total number of mapped tags first
+    command = 'samtools idxstats ' + bamfile_path
+    returncode, stdout, stderr = run_command(command)
+    if returncode != 0:
+        rr.dieOnCritical('Samtools idxstats died', 'Indexed correctly?')
+    else:
+        lines = stdout.split('\n')
+        for line in lines:
+            line_parts = line.split('\t')
+            if len(line_parts) == 4:
+                mapped_reads = line_parts[2]
+                mapped_tags += int(mapped_reads)
 
     valid_flags = set([0, 16, 83, 99, 147, 163])
     filled_ROIs = []
@@ -171,21 +189,23 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
     rr.addInfo('Number of valid BAM records seen', valid_flag_count)
     rr.addInfo('Number of invalid BAM records seen', invalid_flag_count)
 
-    return filled_ROIs, num_tags, num_bases
+    return filled_ROIs, num_tags, num_bases, mapped_tags
 
 def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
     """ direct ROIs to BAM or BED file reader.
     Return ROIs, the number of read tags, the total of all counts """
     rr = RunRecord('get_region_counts')
     if 'bam' in BAMorBED.lower():
-        filled_ROIs, num_tags, num_bases = read_BAM(BAMorBED,
-                ROIs, chr_prefix)
+        filled_ROIs, num_tags, num_bases, mapped_tags =\
+                read_BAM(BAMorBED, ROIs, chr_prefix)
     elif 'bed' in BAMorBED.lower():
-        filled_ROIs, num_tags, num_bases = read_BED(BAMorBED,
-                ROIs, chr_prefix)
+        filled_ROIs, num_tags, num_bases, mapped_tags =\
+                read_BED(BAMorBED, ROIs, chr_prefix)
     else:
         rr.dieOnCritical('File not recognised as BAM or BED', BAMorBED)
 
     rr.addInfo('Number of read tags counted', num_tags)
     rr.addInfo('Number of total bases counted', num_bases)
-    return filled_ROIs, num_tags, num_bases
+    rr.addInfo('Number of mapped tags in experiment', mapped_tags)
+
+    return filled_ROIs, num_tags, num_bases, mapped_tags

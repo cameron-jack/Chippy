@@ -248,19 +248,21 @@ class CentredStudy(object):
         total_features = self.data_collection.ranks.max()
         self.data_collection.ranks /= total_features
 
-    def normaliseByBases(self):
-        # This requires 'base count' to be present in the collection
-        rr = RunRecord('normaliseByBases')
+    def normaliseByRPM(self):
+        """ This requires 'tag count' or 'base count' to be present
+            in the collection and gives counts per mapped million tags/bases
+        """
+        rr = RunRecord('normaliseByRPM')
         try:
-            norm_bases = self.data_collection.info['args']['base count']
+            norm_RPM = self.data_collection.info['args']['tag count']
         except KeyError:
-            rr.addError('Info field not found', 'base count')
+            rr.addError('Info field not found', 'tag count')
             return
-
-        rr.addInfo('normalising by RPMs', float(1000000/norm_bases))
+        norm_factor = 1000000.0/norm_RPM
+        rr.addInfo('normalising by RPMs', norm_factor)
         normalised_counts = []
         for c in self.data_collection.counts:
-            c = c * 1000000 / norm_bases
+            c *= norm_factor
             normalised_counts.append(c)
         self.data_collection.counts = numpy.array(normalised_counts)
 

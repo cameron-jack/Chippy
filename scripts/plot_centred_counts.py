@@ -230,7 +230,7 @@ def main():
     # 4: Normalise counts if require
     if args.normalise_by_RPM:
         for study in studies:
-            study.normaliseByBases()
+            study.normaliseByRPM()
 
     # 5: Specify genes of interest to direct study
     for study in studies:

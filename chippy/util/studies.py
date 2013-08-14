@@ -257,6 +257,7 @@ class CentredStudy(object):
         rr = RunRecord('normaliseByRPM')
         try:
             norm_RPM = self.data_collection.info['args']['mapped tags']
+            rr.addInfo("'mapped tags' value", norm_RPM)
         except KeyError:
             rr.addError('Info field not found', 'mapped tags')
             return
@@ -264,7 +265,7 @@ class CentredStudy(object):
         rr.addInfo('normalising by RPMs', norm_factor)
         normalised_counts = []
         for c in self.data_collection.counts:
-            c *= norm_factor
+            c = c * norm_factor
             normalised_counts.append(c)
         self.data_collection.counts = numpy.array(normalised_counts)
 

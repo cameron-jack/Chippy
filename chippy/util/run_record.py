@@ -61,7 +61,10 @@ class RunRecord(object):
             for short_str in self._as_short_strings(value):
                 self.logger.debug(message + '\t' + short_str)
         else:
-            self.logger.debug(message + '\t' + str(value))
+            value_str = str(value)
+            if len(value_str) == '':
+                value_str = '<EMPTY>'
+            self.logger.debug(message + '\t' + value_str)
 
     def addInfo(self, message='', value=''):
         """ adds a communication to the user about runtime """
@@ -69,7 +72,10 @@ class RunRecord(object):
             for short_str in self._as_short_strings(value):
                 self.logger.info(message + '\t' + short_str)
         else:
-            self.logger.info(message + '\t' + str(value))
+            value_str = str(value)
+            if len(value_str) == '':
+                value_str = '<EMPTY>'
+            self.logger.info(message + '\t' + value_str)
 
     def addWarning(self, message='', value=''):
         """ adds a runtime warning """
@@ -77,7 +83,10 @@ class RunRecord(object):
             for short_str in self._as_short_strings(value):
                 self.logger.warning(message + '\t' + short_str)
         else:
-            self.logger.warning(message + '\t' + str(value))
+            value_str = str(value)
+            if len(value_str) == '':
+                value_str = '<EMPTY>'
+            self.logger.warning(message + '\t' + value_str)
 
     def addError(self, message='', value=''):
         """ report a non-critical runtime error """
@@ -85,7 +94,10 @@ class RunRecord(object):
             for short_str in self._as_short_strings(value):
                 self.logger.error(message + '\t' + short_str)
         else:
-            self.logger.error(message + '\t' + str(value))
+            value_str = str(value)
+            if len(value_str) == '':
+                value_str = '<EMPTY>'
+            self.logger.error(message + '\t' + value_str)
 
     def addCritical(self, message='', value=''):
         """ report a catastrophic failure """
@@ -93,7 +105,10 @@ class RunRecord(object):
             for short_str in self._as_short_strings(value):
                 self.logger.critical(message + '\t' + short_str)
         else:
-            self.logger.critical(message + '\t' + str(value))
+            value_str = str(value)
+            if len(value_str) == '':
+                value_str = '<EMPTY>'
+            self.logger.critical(message + '\t' + value_str)
 
     def addCommands(self, command_args):
         """ groups together command-line args and adds to log """

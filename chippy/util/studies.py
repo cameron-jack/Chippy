@@ -193,9 +193,15 @@ class CentredStudy(object):
 
         session = make_session(db_path)
         if include_sample:
+            rr.addInfo('Restricting plot by include sample', include_sample)
             include_sample = include_sample.split(':')[0].strip()
+
         if include_sample:
+            rr.addInfo('Restricting plot by exclude sample', include_sample)
             exclude_sample = exclude_sample.split(':')[0].strip()
+
+        if chrom is not None:
+            rr.addInfo('Restricting plot to chromosome', chrom)
 
         filter_gene_ids = get_gene_ids(session, chrom=chrom,
             include_target=include_sample, exclude_target=exclude_sample)

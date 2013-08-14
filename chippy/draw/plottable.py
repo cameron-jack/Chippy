@@ -286,8 +286,7 @@ class _Plottable(object):
         self.vline = dict(x=x, linewidth=vline_width,
                 linestyle=vline_style, color=vline_color)
 
-    def _set_axes(self, y_vals=None, plot_lines=None, y_limits=None,
-            y_tick_val=None, y_tick_interval=None, test_run=False):
+    def _set_axes(self, y_vals=None, plot_lines=None, test_run=False):
         """ Gets called by the __call__ method but is also available for
         re-scaling of plots.
 
@@ -296,23 +295,19 @@ class _Plottable(object):
         2) Set y-tick-space or auto-calculate
         """
         rr = RunRecord('_set_axes')
-        if y_limits:
-            y_min_limit, y_max_limit = y_limits
-            assert y_min_limit < y_max_limit, 'y-axis minimum value '+\
-                    'must be less than y-axis maximum value'
-            self.ylims = (y_min_limit, y_max_limit)
-        elif plot_lines or y_vals: # auto-calculate y-axis min and max
-            self.ylims = self._auto_y_lims(y=y_vals,
-                    plot_lines=plot_lines, test_run=test_run)
-        else:
-            rr.dieOnCritical('y data, plotlines or ylimits', 'Values missing')
+        if self.ylims is None:
+            if plot_lines or y_vals: # auto-calculate y-axis min and max
+                self.ylims = self._auto_y_lims(y=y_vals,
+                        plot_lines=plot_lines, test_run=test_run)
+            else:
+                rr.dieOnCritical('y data or plotlines', 'Values missing')
 
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
-        if y_tick_val is None:
+        if self.ytick_interval is None:
             y_tick_val = self._auto_grid_lines(y_max_limit, test_run=test_run)
 
-        if not y_tick_interval is None:
+        if self.y_tick_interval is not None:
             # If y_tick_val is even, then set to 2, otherwise 1.
             if y_tick_val%2 == 0:
                 self.ytick_interval = 2
@@ -375,8 +370,7 @@ class PlottableSingle(_Plottable):
         elif type(color) != str:
             color = cmap(color)
 
-        self._set_axes(y_vals=y, plotlines=None, y_limits=None,
-                y_tick_val=None, y_tick_interval=None, test_run=False)
+        self._set_axes(y_vals=y, plotlines=None, test_run=False)
 
         self.fig, self.ax = self._get_figure_and_axes(title=title,
                 xlabel=xlabel, ylabel=ylabel)
@@ -435,8 +429,7 @@ class PlottableGroups(_Plottable):
             assert label_coords is not None
             label_x, label_y = label_coords
 
-        self._set_axes(y_vals=y_series, plot_lines=plot_lines, y_limits=None,
-                y_tick_val=None, y_tick_interval=None, test_run=False)
+        self._set_axes(y_vals=y_series, plot_lines=plot_lines, test_run=False)
 
         self.fig, self.ax = self._get_figure_and_axes(title=title,
                 xlabel=xlabel, ylabel=ylabel)

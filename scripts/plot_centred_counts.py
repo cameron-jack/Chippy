@@ -261,14 +261,12 @@ def main():
     if args.binning and args.binning > 0:
         for line in plot_lines:
             line.applyBinning(args.binning)
-        rr.addInfo('plot_centred_counts', 'lines binned to width',
-                args.binning)
+        rr.addInfo('lines binned to width', args.binning)
 
     if args.smoothing and args.smoothing > 0:
         for line in plot_lines:
             line.applySmoothing(args.smoothing)
-        rr.addInfo('plot_centred_counts', 'lines smoothed to width',
-                args.smoothing)
+        rr.addInfo('lines smoothed to width', args.smoothing)
 
     # 9: Do plot division if required
     if div_name:

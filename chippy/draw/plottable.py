@@ -41,7 +41,7 @@ class _Plottable(object):
         pad = tick mark padding
         xaxis_lims = (x_min, x_max)
         yaxis_lims = (y_min, y_max)
-        xy_tick_spaces = (x, y)?
+        xy_tick_spaces = (x, y) tick spacing
         xy_tick_intervals = (x, y) display values for ticks every n (int)
         linewidth = thickness of plot lines
         xy_label_fontsizes = (x, y) font size for axis labels
@@ -62,10 +62,8 @@ class _Plottable(object):
         self.width = width
         self._set_background(bgcolor, grid_off, vline)
 
-        if xaxis_lims:
-            self.xlims = xaxis_lims
-        if yaxis_lims:
-            self.ylims = yaxis_lims
+        self.xlims = xaxis_lims
+        self.ylims = yaxis_lims
 
         self.vline = vline
         self.legend_font_size = legend_font_size
@@ -304,19 +302,19 @@ class _Plottable(object):
 
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
-        if self.ytick_interval is None:
-            ytick_val = self._auto_grid_lines(y_max_limit, test_run=test_run)
+        if self.ytick_space is None:
+            self.ytick_space = self._auto_grid_lines(y_max_limit, test_run=test_run)
 
-        if self.ytick_interval is not None:
-            # If y_tick_val is even, then set to 2, otherwise 1.
-            if ytick_val%2 == 0:
+        if self.ytick_interval is None:
+            # If self.ytick_space is even, then set to 2, otherwise 1.
+            if self.ytick_space%2 == 0:
                 self.ytick_interval = 2
             else:
                 self.ytick_interval = 1
 
         rr.addInfo('Y-max plot limit', '{:e}'.format(y_max_limit))
         rr.addInfo('Y-min plot limit', '{:e}'.format(y_min_limit))
-        rr.addInfo('Y-grid-line spacing', '{:e}'.format(ytick_val))
+        rr.addInfo('Y-grid-line spacing', '{:e}'.format(self.ytick_space))
 
     ### public methods for detailing a plottable object
 

@@ -305,18 +305,18 @@ class _Plottable(object):
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
         if self.ytick_interval is None:
-            y_tick_val = self._auto_grid_lines(y_max_limit, test_run=test_run)
+            ytick_val = self._auto_grid_lines(y_max_limit, test_run=test_run)
 
-        if self.y_tick_interval is not None:
+        if self.ytick_interval is not None:
             # If y_tick_val is even, then set to 2, otherwise 1.
-            if y_tick_val%2 == 0:
+            if ytick_val%2 == 0:
                 self.ytick_interval = 2
             else:
                 self.ytick_interval = 1
 
         rr.addInfo('Y-max plot limit', '{:e}'.format(y_max_limit))
         rr.addInfo('Y-min plot limit', '{:e}'.format(y_min_limit))
-        rr.addInfo('Y-grid-line spacing', '{:e}'.format(y_tick_val))
+        rr.addInfo('Y-grid-line spacing', '{:e}'.format(ytick_val))
 
     ### public methods for detailing a plottable object
 

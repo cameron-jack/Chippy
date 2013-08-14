@@ -185,8 +185,9 @@ class CentredStudy(object):
     def filterByGenes(self, db_path, chrom=None, include_sample=None,
                       exclude_sample = None):
         """ keep only results that match selected genes """
+
         rr = RunRecord('filterByGenes')
-        if not include_sample and not exclude_sample:
+        if not include_sample and not exclude_sample and not chrom:
             return
 
         rr.addInfo('Starting no. of genes', self.data_collection.N)
@@ -200,7 +201,7 @@ class CentredStudy(object):
             rr.addInfo('Restricting plot by exclude sample', include_sample)
             exclude_sample = exclude_sample.split(':')[0].strip()
 
-        if chrom is not None:
+        if not chrom is None:
             rr.addInfo('Restricting plot to chromosome', chrom)
 
         filter_gene_ids = get_gene_ids(session, chrom=chrom,
@@ -284,7 +285,7 @@ class CentredStudy(object):
         counts, ranks, se = self.data_collection.transformed(\
             counts_func=self.counts_func)
         if not len(counts):
-            rr.dieOnCritical('No counts data in', 'Study.groupAllGeneCounts')
+            rr.dieOnCritical('No counts data in', 'Study._groupAllGeneCounts')
 
         # Always name single lines by their collection name
         label = self.collection_label
@@ -339,7 +340,7 @@ class CentredStudy(object):
         if not len(plot_lines):
             rr.addWarning('Defaulting to ALL features. Not enough '+\
                           'features for group of size', group_size)
-            plotLines = self.groupAllGeneCounts()
+            plotLines = self._groupAllGeneCounts()
             return plotLines
 
         # If a single line is created label it with the collection name

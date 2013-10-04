@@ -150,12 +150,12 @@ def _get_targetgene_query(session, sample_name=None, biotype='protein_coding'):
         if sample is None:
             rr.addError('Using all samples, as no sample matches name',
                     sample_name)
-            query = session.query(TargetGene)
+            query = session.query(TargetGene).join(Gene)
         else:
-            query = session.query(TargetGene).\
+            query = session.query(TargetGene).join(Gene).\
                     filter(TargetGene.sample_id==sample.sample_id)
     else: # get them all
-        query = session.query(TargetGene)
+        query = session.query(TargetGene).join(Gene)
 
     if biotype:
         query = query.filter(Gene.biotype==biotype)

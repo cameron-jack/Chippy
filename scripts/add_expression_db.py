@@ -66,12 +66,19 @@ def main():
     #    rr.display()
     #    sys.exit(1)
 
-    if sample_types[args.sample_type] in\
-            (sample_types['exp_absolute'], sample_types['exp_diff']):
+    if sample_types[args.sample_type] == sample_types['exp_absolute']:
         expr_table = simpleRdumpToTable(args.expression_data,
                 stable_id_label=args.gene_id_heading,
                 probeset_label=args.probeset_heading,
                 exp_label=args.expression_heading, validate=True)
+
+    elif sample_types[args.sample_type] == sample_types['exp_diff']:
+        # validation breaks with some of Rohan's diff files
+        # he's included all probesets but only the mean score, once.
+        expr_table = simpleRdumpToTable(args.expression_data,
+            stable_id_label=args.gene_id_heading,
+            probeset_label=args.probeset_heading,
+            exp_label=args.expression_heading, validate=False)
     else:
         expr_table = LoadTable(args.expression_data, sep='\t')
 

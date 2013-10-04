@@ -5,10 +5,13 @@ from chippy.express import db_query
 from chippy.express.util import sample_types
 
 from cogent.util.option_parsing import make_option
-from PyQt4 import QtGui
-from argparseui.argparseui import ArgparseUi
-import optparse
-import optparse_gui
+try:
+    from PyQt4 import QtGui
+    from argparseui.argparseui import ArgparseUi
+    GUI_CAPABLE = True
+except ImportError:
+    print 'Install PyQt4 and ArgparseUi modules to enable GUI'
+    GUI_CAPABLE = False
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Anuj Pahwa, Cameron Jack'
@@ -59,27 +62,23 @@ class Args(object):
     def parse(self):
         """
             Returns the result of calling the parser on any input.
-            Supports both command line and graphic interface.
+            Supports both command line and graphic interface through
+            ArgparseUi and PyQt4.
         """
         # This will either use argparse if arguments are provided or will
         # call the ArgparseUi graphic interface (PyQT)
-
-        #app = QtGui.QApplication(sys.argv)
-        #a = ArgparseUi(self.parser)
-        #a.show()
-        #app.exec_()
-        #print ("Ok" if a.result() == 1 else "Cancel")
-        #if a.result() == 1: # Ok pressed
-        #    return a.parse_args()
-        #else:
-        #    return self.parser.parse_args()
-
-        # This will either use argparse if arguments are provided or will
-        # call the optparse_gui graphic interface (wxPython)
-        if 1 == len( sys.argv ):
-            return self.parser.parse_args()
+        if GUI_CAPABLE:
+            app = QtGui.QApplication(sys.argv)
+            a = ArgparseUi(self.parser)
+            a.show()
+            app.exec_()
+            print ("Ok" if a.result() == 1 else "Cancel")
+            if a.result() == 1: # Ok pressed
+                return a.parse_args()
+            else:
+                return self.parser.parse_args()
         else:
-            return self.optgui_parser.parse_args()
+            return self.parser.parse_args()
 
     def _make_sample_choices(self):
         """returns the available choices for samples in the DB"""
@@ -127,10 +126,8 @@ class Args(object):
                 arg_type = kwargs.get('type', None)
                 kwargs['type'] = self._ARG_TO_OPT_TYPE_CONVERTER[arg_type]
         if len(args) == 2:
-            self.optgui_parser.add_option(args[0], args[1], **kwargs)
             cogent_opt = make_option(args[0], args[1], **kwargs)
         else:
-            self.optgui_parser.add_option(args[0], **kwargs)
             cogent_opt = make_option(args[0], **kwargs)
         return cogent_opt
 
@@ -473,7 +470,6 @@ class Args(object):
         self.parser = argparse.ArgumentParser(description=\
                 'All ChipPy options', version='ChipPy r'+str(__version__))
         # optgui_parser is the optparse_gui parser object
-        self.optgui_parser = optparse_gui.OptionParser()
         self.req_cogent_opts = []
         self.opt_cogent_opts = []
         self.db_path = None

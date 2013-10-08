@@ -1,29 +1,31 @@
 from cogent import LoadTable
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
-__credits__ = ["Gavin Huttley", "Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Cameron Jack, Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.2'
 import logging, sys, os
-from math import ceil
 
 LOG_FN = 'ChipPy.log'
 
 class RunRecord(object):
-    """ Python logging with legacy behaviours """
+    """ Python logging with extra, desired behaviours """
     def __init__(self, name=None):
+        """
+            Logger setup code from Python Logging Cookbook
+            http://docs.python.org/2/howto/logging-cookbook.htm
+        """
         super(RunRecord, self).__init__()
 
-        # Logger setup code from Python Logging Cookbook
-        # http://docs.python.org/2/howto/logging-cookbook.html
         base_name = 'ChipPy'
         if name is not None:
             self.logger = logging.getLogger(base_name+'.'+name)
         else:
             self.logger = logging.getLogger(base_name)
+
         if not len(self.logger.handlers):
             self.logger.setLevel(logging.DEBUG)
             # create file handler which logs even debug messages
@@ -117,8 +119,11 @@ class RunRecord(object):
         else:
             self.addInfo('command-line', command_args)
 
-    def getMessageTable(self):
-        """docstring for display"""
+    def getMessageTable(self, last_n_lines=None):
+        """
+            Read the ChipPy.log file return as table, returning
+            only the last n lines if passed an int.
+        """
 
         log_file = open(LOG_FN)
         records = []
@@ -130,11 +135,16 @@ class RunRecord(object):
 
         #header = ['Date/time', 'code_block', 'level', 'message', 'value']
         header = ['code_block', 'level', 'message', 'value']
-        table = LoadTable(header=header, rows=records, sep='\t')
+
+        if type(last_n_lines) is int: # return only last n lines of log file
+            table = LoadTable(header=header, rows=records[-last_n_lines:], sep='\t')
+        else:
+            table = LoadTable(header=header, rows=records, sep='\t')
         return table
 
     def display(self):
-        table = self.getMessageTable()
+        """ Displays the ChipPy.log file contents """
+        table = self.getMessageTable(last_n_lines=30)
         if table is None:
             print 'No log messages'
         else:

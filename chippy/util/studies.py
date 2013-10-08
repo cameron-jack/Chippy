@@ -150,17 +150,17 @@ class MatchedStudy(object):
         rr.addInfo('number of genes kept', kept)
         rr.addInfo('number of genes discarded', removed)
 
-class CentredStudy(object):
+class RegionStudy(object):
     """ Specifies the RegionCollection associated with an expression
             data set.
-    Members: collection (a RegionCollection), window_radius,
+    Members: collection (a RegionCollection), window_start, window_end,
             collection_label
     Methods: filterByGenes, filterByCutoff, normaliseByBases,
             asPlotLines
     """
     def __init__(self, collection_fn, counts_func,
                  *args, **kwargs):
-        super(CentredStudy, self).__init__(*args, **kwargs)
+        super(RegionStudy, self).__init__(*args, **kwargs)
         rr = RunRecord('Study')
         # Keep the source file name for labelling purposes
         fn = collection_fn.split('/')[-1].rstrip('.gz')
@@ -175,12 +175,18 @@ class CentredStudy(object):
             self.data_collection = self.data_collection.asfreqs()
         self.counts_func = counts_func
 
-        # Get feature window radius
+        # Get feature window start and end
         try:
-            self.window_radius =\
-                    self.data_collection.info['args']['window_radius']
+            self.window_start =\
+                    self.data_collection.info['args']['window_start']
         except KeyError:
-            self.window_radius = len(self.data_collection.counts[0])/2
+            rr.dieOnCritical('Collection value not defined', 'window_start')
+
+        try:
+            self.window_end =\
+                    self.data_collection.info['args']['window_end']
+        except KeyError:
+            rr.dieOnCritical('Collection value not defined', 'window_end')
 
     def filterByGenes(self, db_path, chrom=None, include_sample=None,
                       exclude_sample = None):

@@ -6,8 +6,7 @@ import os, sys, glob, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
-from chippy.core.count_tags import centred_counts_for_genes,\
-            centred_diff_counts_for_genes
+from chippy.core.count_tags import centred_counts_for_genes
 from chippy.express import db_query
 from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
@@ -38,9 +37,9 @@ pos_args = ['db_path']
 req_args = ['sample', 'sample_type', 'expression_area',
         'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
-        'count_max_length', 'window_radius', 'multitest_signif_val',
-        'include_target', 'exclude_target', 'test_run',
-        'make_bedgraph']
+        'count_max_length', 'window_start', 'window_end',
+        'multitest_signif_val', 'include_target', 'exclude_target',
+        'test_run', 'make_bedgraph']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -48,28 +47,20 @@ script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def get_collection(session, sample_name, expr_area, BAMorBED,
-        chr_prefix, window_radius,
+        chr_prefix, window_start, window_end,
         multitest_signif_val, filename, overwrite, sample_type,
         tab_delimited, include_target=None, exclude_target=None,
         bedgraph=None):
     rr = RunRecord('get_collection')
     if not os.path.exists(filename) or overwrite:
-        if sample_type == sample_types['exp_absolute']:
+        if sample_type == sample_types['exp_absolute'] or \
+                sample_type == sample_types['exp_diff']:
             print 'Collecting data for absolute expression experiment'
             data_collection = centred_counts_for_genes(session,
-                    sample_name, expr_area, BAMorBED,
-                    chr_prefix, window_radius,
-                    include_target, exclude_target,
-                    bedgraph)
-        
-        elif sample_type == sample_types['exp_diff']:
-            print 'Collecting data for difference expression experiment'
-            data_collection = centred_diff_counts_for_genes(
-                    session, sample_name, expr_area,
-                    BAMorBED, chr_prefix,
-                    window_radius, multitest_signif_val, include_target,
-                    exclude_target, bedgraph)
-            
+                    sample_name, sample_type, expr_area, BAMorBED,
+                    chr_prefix, window_start, window_end,
+                    include_target, exclude_target, bedgraph,
+                    multitest_signif_val=multitest_signif_val)
         else:
             rr.dieOnCritical('Experiment type not supported', sample_type)
 
@@ -82,8 +73,11 @@ def get_collection(session, sample_name, expr_area, BAMorBED,
         print 'Existing output at', filename
 
 def main():
-    """ Returns a pickle of size window length containing chromatin mapping
-     averages per base, one per gene, ranked by expression """
+    """
+        Returns a pickle of size window_start to window_finish containing
+        chromatin mapping averages per base, one per gene, ranked by
+        expression.
+    """
     rr = RunRecord('export_centred_counts')
     rr.addCommands(sys.argv)
 
@@ -125,8 +119,9 @@ def main():
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
         get_collection(session, sample_name, args.expression_area,
-                args.BAMorBED, args.chr_prefix, args.window_radius,
-                args.multitest_signif_val, args.collection, args.overwrite,
+                args.BAMorBED, args.chr_prefix, args.window_start,
+                args.window_end, args.multitest_signif_val,
+                args.collection, args.overwrite,
                 sample_type, args.tab_delimited, include_name,
                 exclude_name, bedgraph=bedgraph_fn)
     else:

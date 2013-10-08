@@ -10,13 +10,13 @@ from sqlalchemy.orm import backref, mapper, relationship, sessionmaker
 from cogent.util.misc import flatten
 from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley, Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
+__author__ = 'Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
 __version__ = '0.1'
 
 ###
@@ -236,6 +236,15 @@ class Gene(Base):
                 ' .Expected: '+str(radius*2)
 
         return start, end
+
+    def getTssWindowCoords(self, window_start, window_end):
+        """returns start, finish relative to the gene TSS """
+        start = self.Tss + window_start # upstream values are negative
+        end = self.Tss + window_end
+
+        assert start < end, 'Start, end coords'+str(start)+', '+str(end)
+
+        return start, end, self.Tss
     
     def getUpstreamCoords(self, radius):
         """returns coords ending at the TSS"""
@@ -245,6 +254,26 @@ class Gene(Base):
         else:
             start, end = tss, tss+radius
         return start, end
+
+    def getIntronExonWindowCoords(self, window_start, window_finish):
+        """ Return windows relative to each intron/exon boundary.
+            We only have exon positions to go by. """
+        # This code is flawed and needs replacing. It is here as a stub.
+
+        if len(self.ExonCoordsByRank) == 1:
+            return []
+        coords = self.ExonCoordsByRank
+        all_coords = []
+        for c in coords:
+            boundary5p, boundary3p = c
+            all_coords.append(boundary5p)
+            if self.strand == MINUS_STRAND:
+                all_coords.append(boundary3p) # 5' start of intron
+            else:
+                all_coords.append(boundary3p) # 5' start of intron
+        return all_coords[1:-1] # leave off start and end of gene
+
+    # All other intron/exon boundary code is screwed up and needs deleting.
 
     def getAllIntronExonPos(self):
         """ returns all 5' intron-exon internal boundary positions """

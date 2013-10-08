@@ -1,17 +1,17 @@
 from __future__ import division
 
-###
-# studies.py
-# Defines combinations of sequence collection and expression study.
-#
-# CentredStudy has been created by Export_Centred_Counts.py
-#
-# MatchedStudy holds ExprGene,ChrmGene lists.
-#
-# _Gene, _ExprGene and _ChrmGene are defined here as abstract genes,
-# and simplified representations of processed expression and mapped
-# sequence data respectively.
-##
+"""
+ studies.py
+ Defines combinations of sequence collection and expression study.
+
+ CentredStudy has been created by Export_Centred_Counts.py
+
+ MatchedStudy holds ExprGene,ChrmGene lists.
+
+ _Gene, _ExprGene and _ChrmGene are defined here as abstract genes,
+ and simplified representations of processed expression and mapped
+ sequence data respectively.
+"""
 
 import os, sys, math
 sys.path.extend(['..', '../src'])

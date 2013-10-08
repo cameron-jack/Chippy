@@ -275,8 +275,10 @@ class Args(object):
                 'Intron_3p', 'Both_3p'], help='Expression area options: '+\
                 'TSS, Exon_3p, Intron-3p, Both-3p')
 
-        self._inc_arg('--window_radius', type=int, default=1000,
-                help='Region size around TSS')
+        self._inc_arg('--window_start', type=int, default=-1000,
+                help='Region start distance relative to feature')
+        self._inc_arg('--window_end', type=int, default=1000,
+            help='Region finish distance relative to feature')
 
         self._inc_arg('--multitest_signif_val', type=int,
                 help='Restrict plot to genes that pass multi-test '+\

@@ -11,7 +11,7 @@ from chippy.util.command_args import Args
 from chippy.core.collection import column_sum, column_mean, stdev
 from chippy.draw.plottable import PlottableGroups
 from chippy.util.run_record import RunRecord
-from chippy.util.studies import CentredStudy
+from chippy.util.studies import RegionStudy
 
 from chippy.util.util import create_path, dirname_or_default
 

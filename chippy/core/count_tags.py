@@ -12,14 +12,14 @@ from chippy.express.db_query import get_genes_by_ranked_expr, \
         get_genes_by_ranked_diff, get_exon_entries, get_species
 from chippy.util.run_record import RunRecord
 
-__author__ = "Gavin Huttley, Cameron Jack"
-__copyright__ = "Copyright 2011-2012, Anuj Pahwa, Gavin Huttley, Cameron Jack"
-__credits__ = ["Gavin Huttley", "Cameron Jack"]
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "Pre-release"
-__version__ = '0.1'
+__author__ = 'Cameron Jack, Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'Pre-release'
+__version__ = '0.3'
 
 def write_to_bedgraph(bedgraph_fn, ROIs):
     """ ROIs sorted by chromosome then start location get written as
@@ -45,10 +45,11 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
     rr.addInfo('BEDgraph data written to', bedgraph_fn)
 
 def get_counts_ranks_ids(genes, BAMorBED, expr_area,
-            chr_prefix, window_radius=1000, bedgraph=None, ui=None):
-    """ window length=2*window_radius (Start of feature is right of centre.
-        Build regions of interest (ROI) and return as lists of
-        counts, ranks and ensembl_ids, sorted by rank.
+            chr_prefix, window_start, window_finish, bedgraph=None, ui=None):
+    """
+        Build regions of interest (ROI) and return as lists of counts, ranks
+        and ensembl_ids, sorted by rank.
+
         All coordinates in Python 0-offset space.
 
         Returns counts, ranks, labels, and possible normalisation factors:
@@ -59,13 +60,15 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
 
     if expr_area.lower() == 'tss':
         for gene in genes:
-            win_start, win_end = gene.getTssCentredCoords(window_radius)
+            win_start, win_end = gene.getTssWindowCoords(window_start, \
+                    window_finish)
             roi = ROI(gene, win_start, win_end)
             regionsOfInterest.append(roi)
 
     elif expr_area.lower() == 'intron-exon':
         for gene in genes:
-            window_list = gene.getAllIntronExonWindows(window_radius)
+            window_list = gene.getIntronExonWindowCoords(window_start, \
+                    window_finish)
             for i, window in enumerate(window_list):
                 win_start, win_end = window
                 roi = ROI(gene, win_start, win_end,
@@ -90,18 +93,26 @@ def get_counts_ranks_ids(genes, BAMorBED, expr_area,
 
     return counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags
 
-def centred_counts_for_genes(session, sample_name, expr_area,
-        BAMorBED, chr_prefix, window_radius=1000,
+def centred_counts_for_genes(session, sample_name, sample_type,
+        expr_area, BAMorBED, chr_prefix, window_start, window_end,
         include_target=None, exclude_target=None,
-        bedgraph=None):
+        bedgraph=None, multitest_signif_val=None):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('centred_counts_for_genes')
 
-    print 'Getting ranked expression instances'
-    expressed_genes = get_genes_by_ranked_expr(session, sample_name,
-            include_target=include_target, exclude_target=exclude_target)
+    expressed_genes = None
+    if sample_type == 'exp_absolute':
+        print 'Getting ranked expression instances'
+        expressed_genes = get_genes_by_ranked_expr(session, sample_name,
+                include_target=include_target, exclude_target=exclude_target)
 
-    if not expressed_genes:
+    elif sample_type == 'exp_diff':
+        print 'Getting ranked expression difference instances'
+        expressed_genes = get_genes_by_ranked_diff(session, sample_name,
+                multitest_signif_val=multitest_signif_val,
+                include_target=include_target, exclude_target=exclude_target)
+
+    if expressed_genes is None:
         rr.dieOnCritical('Expressed genes', 'not present')
 
     rr.addInfo('Sample counts name', sample_name)
@@ -110,52 +121,21 @@ def centred_counts_for_genes(session, sample_name, expr_area,
     print 'Decorating for', len(expressed_genes), 'genes'
     counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, expr_area,
-            chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
+            chr_prefix, window_start=window_start, window_end=window_end,
+            bedgraph=bedgraph)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,
             info={'total expressed genes': len(expressed_genes),
-                'args': {'window_radius': window_radius,
-                'sample_name': sample_name,
-                'species': get_species(session),
-                'tag count': num_tags,
-                'base count': num_bases,
-                'mapped tags': mapped_tags}})
+                'args': {
+                    'window_start': window_start,
+                    'window_end': window_end,
+                    'sample_name': sample_name,
+                    'species': get_species(session),
+                    'tag count': num_tags,
+                    'base count': num_bases,
+                    'mapped tags': mapped_tags
+                }
+            })
 
     return data
-
-def centred_diff_counts_for_genes(session, sample_name, expr_area,
-        BAMorBED, chr_prefix, window_radius,
-        multitest_signif_val, include_target=None, exclude_target=None,
-        bedgraph=None):
-    """ returns a RegionCollection object wrapping the counts, ranks, etc,
-        related to an expression difference experiment
-    """
-    rr = RunRecord('centred_diff_counts_for_genes')
-
-    print 'Getting ranked expression difference instances'
-    expressed_diff = get_genes_by_ranked_diff(session, sample_name,
-            multitest_signif_val=multitest_signif_val,
-            include_target=include_target, exclude_target=exclude_target)
-
-    if not expressed_diff:
-        rr.dieOnCritical('Expressed genes', 'not present')
-
-    rr.addInfo('Sample diff counts name', sample_name)
-    rr.addInfo('Total expression data', len(expressed_diff))
-
-    counts, ranks, ensembl_ids, num_tags, num_bases =\
-            get_counts_ranks_ids(expressed_diff, BAMorBED, expr_area,
-            chr_prefix, window_radius=window_radius, bedgraph=bedgraph)
-
-    data = RegionCollection(counts=counts, ranks=ranks,
-            labels=ensembl_ids,
-            info={'total expressed genes': len(expressed_diff),
-                'args': {'window_radius': window_radius,
-                'sample_name': sample_name,
-                'species': get_species(session),
-                'tag count': num_tags,
-                'base count': num_bases}})
-
-    return data
-

@@ -118,6 +118,7 @@ class Gene(Base):
         self._exon_coords = None
         self._intron_coords = None
         self._tss = None
+        self._gene3p = None
         self._probeset_scores = None
         self._rank_stats = None
     
@@ -213,7 +214,7 @@ class Gene(Base):
         else:
             result = self.ExonCoords
         return result
-    
+
     @property
     def Tss(self):
         """the transcription start site"""
@@ -221,162 +222,195 @@ class Gene(Base):
             self._tss = None
         
         if self._tss is None:
-            if self.strand == 1:
+            if self.strand == PLUS_STRAND:
                 self._tss = self.start
             else:
                 self._tss = self.end
         return self._tss
-    
-    def getTssCentredCoords(self, radius):
-        """returns start, end centred on the gene TSS """
-        start = self.Tss - radius  # Okay to go negative as this is simply an offset
-        end = self.Tss + radius  # even sized window, TSS at first positive position
 
-        assert radius*2 == end - start, 'window size: '+str(end-start)+\
-                ' .Expected: '+str(radius*2)
+    @property
+    def Gene3p(self):
+        """ returns the gene coord at the opposite end to the Tss """
+        if not hasattr(self, '_gene3p'):
+            self._gene3p = None
 
-        return start, end
-
-    def getTssWindowCoords(self, window_start, window_end):
-        """returns start, finish relative to the gene TSS """
-        start = self.Tss + window_start # upstream values are negative
-        end = self.Tss + window_end
-
-        assert start < end, 'Start, end coords'+str(start)+', '+str(end)
-
-        return start, end, self.Tss
-    
-    def getUpstreamCoords(self, radius):
-        """returns coords ending at the TSS"""
-        tss = self.Tss
-        if self.strand == 1:
-            start, end = tss-radius, tss
-        else:
-            start, end = tss, tss+radius
-        return start, end
-
-    def getIntronExonWindowCoords(self, window_start, window_finish):
-        """ Return windows relative to each intron/exon boundary.
-            We only have exon positions to go by. """
-        # This code is flawed and needs replacing. It is here as a stub.
-
-        if len(self.ExonCoordsByRank) == 1:
-            return []
-        coords = self.ExonCoordsByRank
-        all_coords = []
-        for c in coords:
-            boundary5p, boundary3p = c
-            all_coords.append(boundary5p)
-            if self.strand == MINUS_STRAND:
-                all_coords.append(boundary3p) # 5' start of intron
+        if self._gene3p is None:
+            if self.strand == PLUS_STRAND:
+                self._gene3p = self.end
             else:
-                all_coords.append(boundary3p) # 5' start of intron
-        return all_coords[1:-1] # leave off start and end of gene
+                self._gene3p = self.start
+        return self._gene3p
 
-    # All other intron/exon boundary code is screwed up and needs deleting.
+    # All gene related properties and functions appear in 5'->3' order
+    # in the code from this point.
 
-    def getAllIntronExonPos(self):
-        """ returns all 5' intron-exon internal boundary positions """
-        if len(self.ExonCoordsByRank) == 1:
-            return []
-        coords = self.ExonCoordsByRank
-        all_coords = []
-        for c in coords:
-            boundary5p, boundary3p = c
-            all_coords.append(boundary5p)
-            if self.strand == MINUS_STRAND:
-                all_coords.append(boundary3p) # 5' start of intron
-            else:
-                all_coords.append(boundary3p) # 5' start of intron
-        return all_coords[1:-1] # leave off start and end of gene
-
-    def getAllIntronExonWindows(self, size, exon5p=False, intron5p=False):
-        """ Return the windows for each exon-intron or intron-exon
-        boundary. Exons on the 5' side and Intron on the 5' side
-        only are options.
+    def getTssWindowCoords(self, window_upstream, window_downstream):
         """
-        allBasePos = self.getAllIntronExonPos()
-        allWindows = []
-        if exon5p:
-            for i, pos in enumerate(allBasePos):
-                if i%2!=0:
-                    allWindows.append((pos-size,pos+size))
-        elif intron5p:
-            for i,pos in enumerate(allBasePos):
-                if i%2==0:
-                    allWindows.append((pos-size,pos+size))
+            Returns start, finish relative to the gene TSS.
+            'end' will be 1 greater than the actual end position
+        """
+        tss = self.Tss
+
+        if self.strand == PLUS_STRAND:
+            start = tss - window_upstream
+            end = tss + window_downstream # includes site
         else:
-            allWindows = [(pos-size, pos+size) for pos in allBasePos]
+            start = tss - window_downstream
+            end = tss + window_upstream # includes site
 
-        return allWindows
+        assert start < tss < end, 'Start, TSS, End coords' +\
+               str(start) + ', ' + str(tss) + ', ' + str(end)
 
+        return start, end
 
-    def getAllExon3primeWindows(self, size):
-        """returns all exon coords centred on 3' boundary"""
-        if len(self.ExonCoordsByRank) == 1:
-            return None
+    def getUTRExonWindowCoords(self, window_upstream, window_downstream, no_overlap=True):
+        """
+            Returns start, finish relative to the 5'UTR/1st Exon boundary.
+            Proximity is used to test if this position is within a given distance of
+            the TSS. If it is then we exclude these coords.
+        """
+        # for checking proximity
+        tss = self.Tss
+        gene3p = self.Gene3p
 
-        coords = []
-        index = [0, 1][self.strand == 1]
-        for coord in self.ExonCoordsByRank:
-            end = coord[index]
-            coords.append((end-size, end+size))
-        return coords
+        if self.strand == PLUS_STRAND:
+            exon_start = self.ExonCoordsByRank[0][0] # start of first exon
+            start = exon_start - window_upstream
+            end = exon_start + window_downstream # includes site
+            if (start <= tss or end >= gene3p) and no_overlap:
+                return None, None
+        else:
+            exon_start = self.ExonCoordsByRank[0][1] # start of first exon
+            start = exon_start - window_downstream
+            end = exon_start + window_upstream # includes site
+            if (start <= gene3p or end >= tss) and no_overlap:
+                return None, None
 
-    def getAllIntron3primeWindows(self, size):
-        """returns all intron coords centred on 3' boundary"""
+        return start, end
+
+    def getIntronExonWindowCoords(self, window_upstream, window_downstream, no_overlap=True):
+        """
+            Return windows relative to each intron/exon boundary as list.
+            We can go by our listing of gene.introns
+            Here we are looking at the 'feature' being the 5' end of
+            each Intron.
+            Introns do not include UTRs.
+            Genes with a single exon will return an empty list
+            'end' will be 1 greater than the actual end position.
+            no_overlap drops IE boundaries are not within the window
+            distance of UTR/Exon or Exon/UTR boundaries.
+        """
+
+        if len(self.ExonCoordsByRank) < 2:
+            return []
+
+        coords = self.ExonCoordsByRank
+
+        UTR5p = self.ExonCoordsByRank[0][0]
+        UTR3p = self.ExonCoordsByRank[-1][1]
+
+        all_coords = []
+        for c in coords:
+            if self.strand == PLUS_STRAND:
+                site = c[0]
+                start = site - window_upstream
+                end = site + window_downstream # includes site
+                if (start <= UTR5p or end >= UTR3p) and no_overlap:
+                    start = None
+                    end = None
+            else:
+                site = c[1]
+                start = site - window_downstream
+                end = site + window_upstream # includes site
+                if (start >= UTR5p or end <= UTR3p) and no_overlap:
+                    start = None
+                    end = None
+            all_coords.append((start, end))
+
+        return all_coords
+
+    def getExonIntronWindowCoords(self, window_upstream, window_downstream, no_overlap=True):
+        """
+            Return windows relative to each exon/intron boundary as list.
+            We can go by our listing of gene.introns
+            Here we are looking at the 'feature' being the 5' end of
+            each intron (excluding the first).
+            Genes with a single exon will return an empty list
+            'end' will be 1 greater than the actual end position.
+            no_overlap drops EI boundaries are not within the window
+            distance of UTR/Exon or Exon/UTR boundaries.
+        """
+
         if len(self.IntronCoordsByRank) == 0:
-            return None
+            return []
 
-        coords = []
-        index = [0, 1][self.strand == 1]
-        for coord in self.IntronCoordsByRank:
-            end = coord[index]
-            coords.append((end-size, end+size))
-        return coords
+        coords = self.IntronCoordsByRank
 
-    def getIntron3primeByRank(self, rank, size):
-        """returns coord of ranked intron (rank is 1-based) centred on 3'
-        boundary"""
-        assert rank > 0, 'Rank is 1-based'
-        num_introns = len(self.IntronCoordsByRank)
-        if num_introns < rank:
-            return None
+        UTR5p = self.ExonCoordsByRank[0][0]
+        UTR3p = self.ExonCoordsByRank[-1][1]
 
-        coord = self.IntronCoordsByRank[rank-1]
-        index = [0, 1][self.strand == 1]
-        end = coord[index]
-        return end-size, end+size
+        all_coords = []
+        for c in coords:
+            if self.strand == PLUS_STRAND:
+                site = c[0]
+                start = site - window_upstream
+                end = site + window_downstream # includes site
+                if (start <= UTR5p or end >= UTR3p) and no_overlap:
+                    start = None
+                    end = None
+            else:
+                site = c[1]
+                start = site - window_downstream
+                end = site + window_upstream # includes site
+                if (start >= UTR5p or end <= UTR3p) and no_overlap:
+                    start = None
+                    end = None
+            all_coords.append((start, end))
 
-    def getExon3primeByRank(self, rank, size):
-        """returns 3' coord of ranked exon (rank is 1-based) centred on 3'
-        boundary"""
-        assert rank > 0, 'Rank is 1-based'
-        num_exons = len(self.ExonCoordsByRank)
-        if num_exons < rank or num_exons == 1:
-            return None
+        return all_coords
 
-        coord = self.ExonCoordsByRank[rank-1]
-        index = [0, 1][self.strand == 1]
-        end = coord[index]
-        return end-size, end+size
+    def getExonUTRWindowCoords(self, window_upstream, window_downstream, no_overlap=True):
+        """
+            Returns start, finish relative to the last Exon/3'UTR boundary.
+            Proximity is used to test if this position is within a given distance of
+            the 3' end of the gene. If it is then we exclude these coords.
+        """
+        # for checking proximity
+        tss = self.Tss
+        gene3p = self.Gene3p
 
-    def getLastExon3prime(self, size):
-        """get's coord centred on last exon 3' boundary"""
-        coord = self.ExonCoordsByRank[-1]
-        index = [0, 1][self.strand == 1]
-        end = coord[index]
-        return end-size, end+size
+        if self.strand == PLUS_STRAND:
+            exon_end = self.ExonCoordsByRank[-1][1] # start of 3' UTR
+            start = exon_end - window_upstream
+            end = exon_end + window_downstream # includes site
+            if (start <= tss or end >= gene3p) and no_overlap:
+                return None, None
+        else:
+            exon_end = self.ExonCoordsByRank[-1][0] # start of 3' UTR
+            start = exon_end - window_downstream
+            end = exon_end + window_upstream # includes site
+            if (start <= gene3p or end >= tss) and no_overlap:
+                return None, None
 
-    def getLastIntron3prime(self, size):
-        """get's coord centred on last intron 3' boundary"""
-        if len(self.IntronCoordsByRank) == 0:
-            return None
-        coord = self.IntronCoordsByRank[-1]
-        index = [0, 1][self.strand == 1]
-        end = coord[index]
-        return end-size, end+size
+        return start, end
 
+    def getGene3PrimeWindowCoords(self, window_upstream, window_downstream):
+        """
+            Return opposite end of the gene to the TSS
+        """
+        end_site = self.Gene3p
+
+        if self.strand == PLUS_STRAND:
+            start = end_site - window_upstream
+            end = end_site + window_downstream # includes site
+        else:
+            start = end_site - window_downstream
+            end = end_site + window_upstream # includes site
+
+        assert start < end_site < end, 'Start, Gene-3p, End coords' +\
+                          str(start) + ', ' + str(end_site) + ', ' + str(end)
+
+        return start, end
 
 class Exon(Base):
     __tablename__ = 'exon'

@@ -21,7 +21,7 @@ __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
-__version__ = '0.1'
+__version__ = '0.2'
 
 class _Plottable(object):
     """ Base class for handling plotting. Defines the appearance

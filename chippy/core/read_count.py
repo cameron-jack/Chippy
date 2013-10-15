@@ -14,14 +14,14 @@ from chippy.core.region_of_interest import ROI
 from chippy.util.run_record import RunRecord
 from gzip import GzipFile
 
-__author__ = "Cameron Jack, Gavin Huttley"
-__copyright__ = "Copyright 2011-2012, Gavin Huttley, Cameron Jack, Anuj Pahwa"
+__author__ = 'Cameron Jack, Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Cameron Jack', 'Gavin Huttley']
-__license__ = "GPL"
-__maintainer__ = "Cameron Jack"
-__email__ = "cameron.jack@anu.edu.au"
-__status__ = "development"
-__version__ = '0.1'
+__license__ = 'GPL'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'pre-release'
+__version__ = '0.2'
 
 def run_command(command):
     """executes a command"""

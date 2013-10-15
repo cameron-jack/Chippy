@@ -177,16 +177,22 @@ class RegionStudy(object):
 
         # Get feature window start and end
         try:
-            self.window_start =\
-                    self.data_collection.info['args']['window_start']
+            self.window_upstream =\
+                    self.data_collection.info['args']['window_upstream']
         except KeyError:
-            rr.dieOnCritical('Collection value not defined', 'window_start')
+            rr.dieOnCritical('Collection value not defined', 'window_upstream')
 
         try:
-            self.window_end =\
-                    self.data_collection.info['args']['window_end']
+            self.window_downstream =\
+                    self.data_collection.info['args']['window_downstream']
         except KeyError:
-            rr.dieOnCritical('Collection value not defined', 'window_end')
+            rr.dieOnCritical('Collection value not defined', 'window_downstream')
+
+        try:
+            self.feature_type =\
+                    self.data_collection.info['args']['feature_type']
+        except KeyError:
+            self.feature_type = 'Unknown'
 
     def filterByGenes(self, db_path, chrom=None, include_sample=None,
                       exclude_sample = None):

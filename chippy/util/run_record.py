@@ -133,6 +133,9 @@ class RunRecord(object):
                 records.append(line.split('\t')[1:]) # don't display date
         log_file.close()
 
+        if records == []:
+            return None
+
         #header = ['Date/time', 'code_block', 'level', 'message', 'value']
         header = ['code_block', 'level', 'message', 'value']
 
@@ -145,9 +148,7 @@ class RunRecord(object):
     def display(self):
         """ Displays the ChipPy.log file contents """
         table = self.getMessageTable(last_n_lines=30)
-        if table is None:
-            print 'No log messages'
-        else:
+        if table is not None:
             print LOG_FN +' contains date-time stamps'
             print table
 

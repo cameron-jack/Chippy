@@ -5,11 +5,9 @@ sys.path.append('..')
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
-import numpy
 from cogent.util.unit_test import TestCase, main
 
 import datetime
-from sqlalchemy import create_engine, and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from chippy.express.db_schema import Gene, Exon, TargetGene, \
@@ -31,7 +29,7 @@ __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
-__version__ = '0.1'
+__version__ = '0.2'
 
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
@@ -215,6 +213,7 @@ class TestGene(TestDbBase):
     
     def test_gene_tss(self):
         """return correct TSS coordinate"""
+        add_all_gene_exons(self.session, self.genes)
         genes = self.session.query(Gene).all()
         expect = {'PLUS-1': 1000,
             'PLUS-3': 1000,
@@ -223,131 +222,260 @@ class TestGene(TestDbBase):
         for gene in genes:
             self.assertEqual(gene.Tss, expect[gene.ensembl_id])
 
-    def test_gene_upstream(self):
-        """return correct coordinates ending at TSS"""
+    def test_gene_3_prime(self):
+        """ return opposite gene end coord to TSS """
         add_all_gene_exons(self.session, self.genes)
         genes = self.session.query(Gene).all()
-        expect = {'PLUS-1': (500,1000),
-            'PLUS-3': (500, 1000),
-            'MINUS-1': (2000, 2500),
-            'MINUS-3': (2000, 2500)}
+        expect = {'PLUS-1': 2000,
+                  'PLUS-3': 2000,
+                  'MINUS-1': 1000,
+                  'MINUS-3': 1000}
         for gene in genes:
-            self.assertEqual(gene.getUpstreamCoords(500),
-                            expect[gene.ensembl_id])
+            self.assertEqual(gene.Gene3p, expect[gene.ensembl_id])
 
-    def test_anchored_exons_all(self):
-        """return correct 3' coords for all exons"""
+    def test_getTssWindowCoords(self):
+        """
+            Return correct coords up and down-stream from TSS.
+        """
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+
+        # symmetrical tests first
+        upstream = 200
+        downstream = 200
+        expect = {'PLUS-1': (1000 - upstream, 1000 + downstream),
+                  'PLUS-3': (1000 - upstream, 1000 + downstream),
+                  'MINUS-1': (2000 - downstream, 2000 + upstream),
+                  'MINUS-3': (2000 - downstream, 2000 + upstream)}
+        for gene in genes:
+            region = gene.getTssWindowCoords(upstream, downstream)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # asymmetric
+        upstream = 200
+        downstream = 100
+        expect = {'PLUS-1': (1000 - upstream, 1000 + downstream),
+                  'PLUS-3': (1000 - upstream, 1000 + downstream),
+                  'MINUS-1': (2000 - downstream, 2000 + upstream),
+                  'MINUS-3': (2000 - downstream, 2000 + upstream)}
+        for gene in genes:
+            region = gene.getTssWindowCoords(upstream, downstream)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+    def test_getUTRExonWindowCoords(self):
+        """
+            Returns start, finish relative to the 5'UTR/1st Exon boundary.
+            Proximity is used to test if this position is within a given
+            distance of the TSS. If it is then we exclude these coords.
+        """
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+
+        # symmetric window
+        upstream = 200
+        downstream = 200
+        expect = {'PLUS-1': (1050 - upstream, 1050 + downstream),
+                  'PLUS-3': (1050 - upstream, 1050 + downstream),
+                  'MINUS-1': (1950 - downstream, 1950 + upstream),
+                  'MINUS-3': (1900 - downstream, 1900 + upstream)}
+        for gene in genes:
+            region = gene.getUTRExonWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # asymmetric window
+        upstream = 200
+        downstream = 100
+        expect = {'PLUS-1': (1050 - upstream, 1050 + downstream),
+                  'PLUS-3': (1050 - upstream, 1050 + downstream),
+                  'MINUS-1': (1950 - downstream, 1950 + upstream),
+                  'MINUS-3': (1900 - downstream, 1900 + upstream)}
+        for gene in genes:
+            region = gene.getUTRExonWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # now check for a clash with the TSS or Gene3p site
+        upstream = 50
+        downstream = 100
+        expect = {'PLUS-1': (None, None),
+                  'PLUS-3': (None, None),
+                  'MINUS-1': (None, None),
+                  'MINUS-3': (1900 - downstream, 1900 + upstream)}
+        for gene in genes:
+            region = gene.getUTRExonWindowCoords(upstream, downstream, no_overlap=True)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+
+    def test_getExonUTRWindowCoords(self):
+        """
+            Returns start, finish relative to the last Exon/3'UTR boundary.
+            Proximity is used to test if this position is within a given
+            distance of the 3' end of the gene. If it is then we exclude
+            these coords.
+        """
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+
+        # symmetric window
+        upstream = 200
+        downstream = 200
+        expect = {'PLUS-1': (1950 - upstream, 1950 + downstream),
+                  'PLUS-3': (1900 - upstream, 1900 + downstream),
+                  'MINUS-1': (1050 - downstream, 1050 + upstream),
+                  'MINUS-3': (1050 - downstream, 1050 + upstream)}
+        for gene in genes:
+            region = gene.getExonUTRWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # asymmetric window
+        upstream = 200
+        downstream = 100
+        expect = {'PLUS-1': (1950 - upstream, 1950 + downstream),
+                  'PLUS-3': (1900 - upstream, 1900 + downstream),
+                  'MINUS-1': (1050 - downstream, 1050 + upstream),
+                  'MINUS-3': (1050 - downstream, 1050 + upstream)}
+        for gene in genes:
+            region = gene.getExonUTRWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # now check for a clash with the TSS or Gene3p site
+        upstream = 100
+        downstream = 50
+        expect = {'PLUS-1': (None, None),
+                  'PLUS-3': (1900 - upstream, 1900 + downstream),
+                  'MINUS-1': (None, None),
+                  'MINUS-3': (None, None)}
+        for gene in genes:
+            region = gene.getExonUTRWindowCoords(upstream, downstream, no_overlap=True)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+
+    def test_getIntronExonWindowCoords(self):
+        """
+            Return correct coords up and down-stream from Exon5p start.
+            Single exon genes will return no boundaries.
+            The first exon will be ignored as it borders the UTR
+        """
+
         add_all_gene_exons(self.session, self.genes)
         plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
         minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
         minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        # no min_spacing returns all for 3 exons cases
-        win_size = 100
-        expect = {'PLUS-1': None, 'PLUS-3': [(c-win_size, c+win_size)
-                                                for c in [1400, 1700, 1900]],
-                 'MINUS-1': None, 'MINUS-3': [(c-win_size, c+win_size)
-                                                for c in [1800, 1600, 1050]]}
+
+        # symmetric window first
+        upstream = 100
+        downstream = 100
+
+        expect = {'PLUS-1': [], 'PLUS-3': [(c-upstream, c+downstream)
+                                                for c in [1050, 1600, 1800]],
+                 'MINUS-1': [], 'MINUS-3': [(c-downstream, c+upstream)
+                                                for c in [1900, 1700, 1400]]}
 
         for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getAllExon3primeWindows(win_size)
+            got = gene.getIntronExonWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(got, expect[gene.ensembl_id])
+
+        # asymmetric window: 200 upstream, 100 downstream
+        upstream = 200
+        downstream = 100
+        expect = {'PLUS-1': [], 'PLUS-3': [(c-upstream, c+downstream)
+                                                for c in [1050, 1600, 1800]],
+                  'MINUS-1': [], 'MINUS-3': [(c-downstream, c+upstream)
+                                                for c in [1900, 1700, 1400]]}
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getIntronExonWindowCoords(upstream, downstream, no_overlap=False)
+            self.assertEqual(got, expect[gene.ensembl_id])
+
+        # proximity check - wipes out all intron starts close to UTR
+
+        expect = {'PLUS-1': [], 'PLUS-3': [
+                    (None, None),
+                    (1600-upstream, 1600+downstream),
+                    (None, None)
+                ], 'MINUS-1': [], 'MINUS-3': [
+                (None, None),
+                (1700-downstream, 1700+upstream),
+                (1400-downstream, 1400+upstream)
+                ]}
+
+        for gene in (plus1, plus3, minus1, minus3):
+            got = gene.getIntronExonWindowCoords(upstream, downstream, no_overlap=True)
             self.assertEqual(got, expect[gene.ensembl_id])
 
 
-    def test_anchored_introns_all(self):
-        """return correct 3' coords for all intron"""
+    def test_getExonIntronWindowCoords(self):
+        """
+            Return correct coords up and down-stream from Intron5p start
+            Single exon genes will return no boundaries.
+            The last exon will be ignored as it borders UTR.
+        """
         add_all_gene_exons(self.session, self.genes)
         plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
         plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
         minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
         minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        # no min_spacing returns all for 3 intron cases
-        win_size = 100
-        expect = {'PLUS-1': None, 'PLUS-3': [(c-win_size, c+win_size)
-                                                    for c in [1600, 1800]],
-                 'MINUS-1': None, 'MINUS-3': [(c-win_size, c+win_size)
-                                                    for c in [1700, 1400]]}
+
+        # symmetric window first
+        upstream = 100
+        downstream = 100
+
+        expect = {'PLUS-1': [], 'PLUS-3': [(c-upstream, c+downstream)
+                                                for c in [1400, 1700]],
+                  'MINUS-1': [], 'MINUS-3': [(c-downstream, c+upstream)
+                                                for c in [1800, 1600]]}
 
         for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getAllIntron3primeWindows(win_size)
+            got = gene.getExonIntronWindowCoords(upstream, downstream, no_overlap=False)
             self.assertEqual(got, expect[gene.ensembl_id])
 
-
-    def test_anchored_exons_numbered(self):
-        """return correct 3' coords for numbered exon"""
-        add_all_gene_exons(self.session, self.genes)
-        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
-        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
-        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
-        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        # no min_spacing returns all for 3 exons cases, when looping
-        win_size = 100
-        expect = {'PLUS-1': [(1, None)],
-                 'PLUS-3': [(i+1,(c-win_size, c+win_size))
-                                for i, c in enumerate([1400, 1700, 1900])],
-                 'MINUS-1': [(1, None)],
-                 'MINUS-3': [(i+1,(c-win_size, c+win_size))
-                                for i,c in enumerate([1800, 1600, 1050])]}
-        #
-        for gene in (plus1, plus3, minus1, minus3):
-            for rank, expect_val in expect[gene.ensembl_id]:
-                got = gene.getExon3primeByRank(rank, win_size)
-                self.assertEqual(got, expect_val)
-
-
-    def test_anchored_introns_numbered(self):
-        """return correct 3' coords for numbered intron"""
-        add_all_gene_exons(self.session, self.genes)
-        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
-        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
-        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
-        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        win_size = 100
-        expect = {'PLUS-1': [(1, None)],
-                  'PLUS-3': [(i+1,(c-win_size, c+win_size))
-                                        for i, c in enumerate([1600, 1800])],
-                 'MINUS-1': [(1, None)],
-                 'MINUS-3': [(i+1,(c-win_size, c+win_size))
-                                        for i, c in enumerate([1700, 1400])]}
+        # asymmetric window: 200 upstream, 100 downstream
+        upstream = 200
+        downstream = 100
+        expect = {'PLUS-1': [], 'PLUS-3': [(c-upstream, c+downstream)
+                                            for c in [1400, 1700]],
+                  'MINUS-1': [], 'MINUS-3': [(c-downstream, c+upstream)
+                                            for c in [1800, 1600]]}
 
         for gene in (plus1, plus3, minus1, minus3):
-            for rank, expect_val in expect[gene.ensembl_id]:
-                got = gene.getIntron3primeByRank(rank, win_size)
-                self.assertEqual(got, expect_val)
-
-
-    def test_anchored_exons_last(self):
-        """returns genes last exon3' boundary"""
-        add_all_gene_exons(self.session, self.genes)
-        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
-        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
-        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
-        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        win_size = 100
-        expect = {'PLUS-1': (1950-win_size, 1950+win_size),
-                  'PLUS-3': (1900-win_size, 1900+win_size),
-                 'MINUS-1': (1050-win_size, 1050+win_size),
-                 'MINUS-3': (1050-win_size, 1050+win_size)}
-        for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getLastExon3prime(win_size)
+            got = gene.getExonIntronWindowCoords(upstream, downstream, no_overlap=False)
             self.assertEqual(got, expect[gene.ensembl_id])
 
-    def test_anchored_introns_last(self):
-        """returns genes last intron 3' boundary"""
-        add_all_gene_exons(self.session, self.genes)
-        plus1 = self.session.query(Gene).filter_by(ensembl_id='PLUS-1').one()
-        plus3 = self.session.query(Gene).filter_by(ensembl_id='PLUS-3').one()
-        minus1 = self.session.query(Gene).filter_by(ensembl_id='MINUS-1').one()
-        minus3 = self.session.query(Gene).filter_by(ensembl_id='MINUS-3').one()
-        win_size = 100
-        expect = {'PLUS-1': None,
-                  'PLUS-3': (1800-win_size, 1800+win_size),
-                 'MINUS-1': None,
-                 'MINUS-3': (1400-win_size, 1400+win_size)}
+        # proximity check - wipes out all intron starts close to UTR
+
+        expect = {'PLUS-1': [], 'PLUS-3': [(c-upstream, c+downstream)
+                                            for c in [1400, 1700]],
+                  'MINUS-1': [], 'MINUS-3': [(c-downstream, c+upstream)
+                                            for c in [1800, 1600]]}
+
         for gene in (plus1, plus3, minus1, minus3):
-            got = gene.getLastIntron3prime(win_size)
+            got = gene.getExonIntronWindowCoords(upstream, downstream, no_overlap=True)
             self.assertEqual(got, expect[gene.ensembl_id])
-    
+
+    def test_getGene3PrimeWindowCoords(self):
+        """
+            Return correct coords up and down-stream from gene 3prime location
+        """
+        add_all_gene_exons(self.session, self.genes)
+        genes = self.session.query(Gene).all()
+
+        # symmetrical tests first
+        expect = {'PLUS-1': (1800,2200),
+                  'PLUS-3': (1800,2200),
+                  'MINUS-1': (800, 1200),
+                  'MINUS-3': (800, 1200)}
+        for gene in genes:
+            region = gene.getGene3PrimeWindowCoords(200,200)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
+        # now 200 upstream, 100 downstream
+        expect = {'PLUS-1': (1800,2100),
+                  'PLUS-3': (1800,2100),
+                  'MINUS-1': (900, 1200),
+                  'MINUS-3': (900, 1200)}
+        for gene in genes:
+            region = gene.getGene3PrimeWindowCoords(200,100)
+            self.assertEqual(region, expect[gene.ensembl_id])
+
 
 class TestExpression(TestDbBase):
     reffiles = [('file-1.txt', today),
@@ -609,11 +737,17 @@ class TestQueryFunctions(TestDbBase):
     
     def test_query_genes_release(self):
         """return correct genes for a release"""
-        #TODO: actually check gene entries, not just length of results
+
         genes = get_gene_entries(self.session) # returns all genes
-        self.assertEqual(len(genes), 4)
+        expected = ['PLUS-1', 'PLUS-3', 'MINUS-1', 'MINUS-3']
+        gene_ids = [gene.ensembl_id for gene in genes]
+        self.assertEqual(gene_ids, expected)
+
         genes = get_gene_entries(self.session, chrom='2') # returns chrom2 genes
-        self.assertEqual(len(genes), 2)
+        expected = ['PLUS-3', 'MINUS-1']
+        gene_ids = [gene.ensembl_id for gene in genes]
+        self.assertEqual(gene_ids, expected)
+
         genes = get_gene_entries(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes), 0)
 

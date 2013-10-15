@@ -6,7 +6,6 @@ warnings.filterwarnings('ignore',
 
 from chippy.core.region_of_interest import ROI
 from cogent.util.unit_test import TestCase
-from chippy.core.count_tags import ROI
 from chippy.core.read_count import read_BAM, read_BED
 from chippy.express.db_schema import Gene
 
@@ -14,13 +13,13 @@ from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
 
 class MinimalRegionCountTests(TestCase):
     """
-    tests for: add_counts_to_ROI, read_BAM, read_BED,ROI.
+        tests for: add_counts_to_ROI, read_BAM, read_BED,ROI.
     """
 
     def setUpROIsForSynthTests(self):
         """
-        Minimal regions that should be easy to test
-        EVERYTHING is in 0-based space.
+            Minimal regions that should be easy to test
+            EVERYTHING is in 0-based space.
         """
         # Actual gene end=10 but in Python 0-1 [,) space we add one so we can slice it
         g1 = Gene('g1', 'g1', 'protein_coding', 'fake_g1', 'ok', '1', 4, 11, PLUS_STRAND)
@@ -30,18 +29,18 @@ class MinimalRegionCountTests(TestCase):
         ROIs = []
 
         # window should be indices [-1,0,1,2,3, 4,5,6,7,8]
-        win_start, win_end = g1.getTssCentredCoords(window_radius)
+        win_start, win_end = g1.getTssWindowCoords(window_radius, window_radius)
         roi = ROI(g1, win_start, win_end)
         ROIs.append(roi)
 
         # window should be indices [15,14,13,12,11, 10,9,8,7,6]
-        win_start, win_end = g2.getTssCentredCoords(window_radius)
+        win_start, win_end = g2.getTssWindowCoords(window_radius, window_radius)
         roi = ROI(g2, win_start, win_end)
         ROIs.append(roi)
 
         window_radius=10
         # window should be indices [20,19,18,17,16,15,14,13,12,11, 10,9,8,7,6,5,4,3,2,1]
-        win_start, win_end = g2.getTssCentredCoords(window_radius)
+        win_start, win_end = g2.getTssWindowCoords(window_radius, window_radius)
         roi = ROI(g2, win_start, win_end)
         ROIs.append(roi)
 
@@ -128,10 +127,10 @@ class MinimalRegionCountTests(TestCase):
 
     def setUpROIsForFiles(self):
         """
-        In brca2-11.sam if we make TSS= 151341224 and window radius = 5.
-        Then we should get 119->223 at 0 and 224->229 at +2.
-        If we take TSS= 151345949 and window radius = 5, then we should get
-        945->949 at +2 and 950->954 at 0, in 1-offset space.
+            In brca2-11.sam if we make TSS= 151341224 and window radius = 5.
+            Then we should get 119->223 at 0 and 224->229 at +2.
+            If we take TSS= 151345949 and window radius = 5, then we should get
+            945->949 at +2 and 950->954 at 0, in 1-offset space.
         """
         g1 = Gene('BRCA2a', 'brca2a', 'protein_coding', 'fake_brca2',
                 'ok', 'chr_5', 151341223, 151345949, PLUS_STRAND)
@@ -144,13 +143,13 @@ class MinimalRegionCountTests(TestCase):
 
         # [0, 0, 0, 0, 0, 2, 2, 2, 2, 2]
         window_radius = 5
-        win_start, win_end = g1.getTssCentredCoords(window_radius)
+        win_start, win_end = g1.getTssWindowCoords(window_radius, window_radius)
         roi1 = ROI(g1, win_start, win_end)
         ROIs.append(roi1)
 
         window_radius = 5
         # [0, 0, 0, 0, 0, 0, 2, 2, 2, 2] due to reads finishing 1 early
-        win_start, win_end = g2.getTssCentredCoords(window_radius)
+        win_start, win_end = g2.getTssWindowCoords(window_radius, window_radius)
         roi2 = ROI(g2, win_start, win_end)
         ROIs.append(roi2)
 
@@ -159,21 +158,21 @@ class MinimalRegionCountTests(TestCase):
         # It also shows that the window shifts properly
         # [0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2]
         window_radius = 6
-        win_start, win_end = g1.getTssCentredCoords(window_radius)
+        win_start, win_end = g1.getTssWindowCoords(window_radius, window_radius)
         roi3 = ROI(g1, win_start, win_end)
         ROIs.append(roi3)
 
         # Minus strand version of above
         # [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2]
         window_radius = 6
-        win_start, win_end = g2.getTssCentredCoords(window_radius)
+        win_start, win_end = g2.getTssWindowCoords(window_radius, window_radius)
         roi4 = ROI(g2, win_start, win_end)
         ROIs.append(roi4)
 
         # Test alternative chromosomes of interest
         # [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         window_radius = 6
-        win_start, win_end = g3.getTssCentredCoords(window_radius)
+        win_start, win_end = g3.getTssWindowCoords(window_radius, window_radius)
         roi5 = ROI(g3, win_start, win_end)
         ROIs.append(roi5)
 
@@ -182,9 +181,11 @@ class MinimalRegionCountTests(TestCase):
         return ROIs
 
     def test_count_BAM(self):
-        """ make sure we get the expected counts from BAM reading.
-        Negative stand expectations are offset here because that's what's
-        in the data """
+        """
+            Make sure we get the expected counts from BAM reading.
+            Negative stand expectations are offset here because that's
+            what's in the data
+        """
         ROIs = self.setUpROIsForFiles()
         ROIs, num_tags, num_bases, mapped_tags =\
                 read_BAM('data/brca2-11_sorted.bam', ROIs)
@@ -200,11 +201,13 @@ class MinimalRegionCountTests(TestCase):
         self.assertEqual(ROIs[4].counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
     def test_count_BED(self):
-        """ make sure we get the expected counts from BED reading
-        read_BED will often mess up the order of the ROIs so we'll need
-        a clever method to index them to check them correctly.
-        Negative stand expectations are offset here because that's what's
-        in the data. """
+        """
+            Make sure we get the expected counts from BED reading
+            read_BED will often mess up the order of the ROIs so we'll need
+            a clever method to index them to check them correctly.
+            Negative stand expectations are offset here because that's what's
+            in the data.
+        """
         ROIs = self.setUpROIsForFiles()
         ROIs, num_tags, num_bases, mapped_tags = read_BED('data/brca2-11.bed', ROIs)
         self.assertEqual(num_tags, 8) # 2 reads for each of the first 4 cases

@@ -11,6 +11,7 @@ from chippy.core.collection import RegionCollection
 from chippy.express.db_query import get_genes_by_ranked_expr, \
         get_genes_by_ranked_diff, get_species
 from chippy.util.run_record import RunRecord
+from chippy.express.util import sample_types
 
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -147,19 +148,22 @@ def counts_for_genes(session, sample_name, sample_type,
         window_downstream, include_target=None, exclude_target=None,
         bedgraph=None, multitest_signif_val=None):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
-    rr = RunRecord('centred_counts_for_genes')
+    rr = RunRecord('counts_for_genes')
 
     expressed_genes = None
-    if sample_type == 'exp_absolute':
+    if sample_type == sample_types['exp_absolute']:
         print 'Getting ranked expression instances'
         expressed_genes = get_genes_by_ranked_expr(session, sample_name,
                 include_target=include_target, exclude_target=exclude_target)
 
-    elif sample_type == 'exp_diff':
+    elif sample_type == sample_types['exp_diff']:
         print 'Getting ranked expression difference instances'
         expressed_genes = get_genes_by_ranked_diff(session, sample_name,
                 multitest_signif_val=multitest_signif_val,
                 include_target=include_target, exclude_target=exclude_target)
+
+    else:
+        rr.dieOnCritical('Sample type not supported', sample_type)
 
     if expressed_genes is None:
         rr.dieOnCritical('Expressed genes', 'not present')

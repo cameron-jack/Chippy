@@ -60,7 +60,6 @@ def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute'] or \
                 sample_type == sample_types['exp_diff']:
-            print 'Collecting data for absolute expression experiment'
             data_collection = counts_for_genes(session,
                     sample_name, sample_type, feature_type, BAMorBED,
                     chr_prefix, window_upstream, window_downstream,
@@ -100,9 +99,11 @@ def main():
     exclude_name = None
     if args.include_target:
         include_name = args.include_target.split(' : ')[0]
+        rr.addInfo('include gene targets', include_name)
 
     if args.exclude_target:
         exclude_name = args.exclude_target.split(' : ')[0]
+        rr.addInfo('exclude gene targets', exclude_name)
 
     if (args.multitest_signif_val is not None) and not \
             (-1 <= args.multitest_signif_val <= 1):
@@ -118,8 +119,6 @@ def main():
     if args.chr_prefix != '':
         # If it writes nothing then we'll fail to load the table again
         rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
-    rr.addInfo('include gene targets', include_name)
-    rr.addInfo('exclude gene targets', exclude_name)
 
     window_upstream = args.window_upstream
     assert window_upstream > 0, \

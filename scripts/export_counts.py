@@ -6,14 +6,14 @@ import os, sys, glob, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
-from chippy.core.count_tags import centred_counts_for_genes
+from chippy.core.count_tags import counts_for_genes
 from chippy.express import db_query
 from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
-__author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__author__ = 'Cameron Jack, Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -22,43 +22,48 @@ __status__ = 'Pre-release'
 __version__ = '0.1'
 
 script_info = {}
-script_info['title'] = 'Saves feature centred counts'
-script_info['script_description'] = 'Saves centred counts for TSS ' +\
-        'and Exon-3prime, Intron-3prime or Exon 3&5-prime boundaries ' +\
-        'for a given window size. Reads count info from an indexed BAM ' +\
+script_info['title'] = 'Saves feature counts'
+script_info['script_description'] = 'Saves counts data for TSS, ' +\
+        'Exon-Intron, Intron-Exon or Gene-3prime boundaries ' +\
+        'for a given window. Reads count info from an indexed BAM ' +\
         'or a BED file'
 script_info['brief_description'] = 'Extracts counts from sequenced regions'
 script_info['version'] = __version__
 script_info['authors'] = __author__
 script_info['output_description']= 'Generates a Pickle file or a ' +\
         'gzipped tab-delimited file that can be used for plotting ' +\
-        'of subsets of genes.'
+        'of subsets of genes. Can also output to BEDgraph.'
 pos_args = ['db_path']
-req_args = ['sample', 'sample_type', 'expression_area',
+req_args = ['sample', 'sample_type', 'feature_type',
         'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
-        'count_max_length', 'window_start', 'window_end',
-        'multitest_signif_val', 'include_target', 'exclude_target',
-        'test_run', 'make_bedgraph']
+        'count_max_length', 'window_upstream', 'window_downstream',
+        'multitest_signif_val', 'include_target',
+        'exclude_target', 'make_bedgraph']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
 script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
-def get_collection(session, sample_name, expr_area, BAMorBED,
-        chr_prefix, window_start, window_end,
-        multitest_signif_val, filename, overwrite, sample_type,
+def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
+        chr_prefix, window_upstream, window_downstream,
+        multitest_signif_val, filename, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
         bedgraph=None):
+    """
+        builds and writes a collection of counts and expression for
+        feature_type in given sample genes.
+    """
     rr = RunRecord('get_collection')
+
     if not os.path.exists(filename) or overwrite:
         if sample_type == sample_types['exp_absolute'] or \
                 sample_type == sample_types['exp_diff']:
             print 'Collecting data for absolute expression experiment'
-            data_collection = centred_counts_for_genes(session,
-                    sample_name, sample_type, expr_area, BAMorBED,
-                    chr_prefix, window_start, window_end,
+            data_collection = counts_for_genes(session,
+                    sample_name, sample_type, feature_type, BAMorBED,
+                    chr_prefix, window_upstream, window_downstream,
                     include_target, exclude_target, bedgraph,
                     multitest_signif_val=multitest_signif_val)
         else:
@@ -78,7 +83,7 @@ def main():
         chromatin mapping averages per base, one per gene, ranked by
         expression.
     """
-    rr = RunRecord('export_centred_counts')
+    rr = RunRecord('export_counts')
     rr.addCommands(sys.argv)
 
     args = script_info['args'].parse()
@@ -116,13 +121,20 @@ def main():
     rr.addInfo('include gene targets', include_name)
     rr.addInfo('exclude gene targets', exclude_name)
 
+    window_upstream = args.window_upstream
+    assert window_upstream > 0, \
+            'upstream window must be of at least size 1 bp'
+    window_downstream = args.window_downstream
+    assert window_downstream > 0, \
+            'downstream window must be of at least size 1 bp'
+
     if sample_type in [sample_types['exp_absolute'],\
             sample_types['exp_diff']]:
-        get_collection(session, sample_name, args.expression_area,
-                args.BAMorBED, args.chr_prefix, args.window_start,
-                args.window_end, args.multitest_signif_val,
+        get_collection(session, sample_name, sample_type, args.feature_type,
+                args.BAMorBED, args.chr_prefix, window_upstream,
+                window_downstream, args.multitest_signif_val,
                 args.collection, args.overwrite,
-                sample_type, args.tab_delimited, include_name,
+                args.tab_delimited, include_name,
                 exclude_name, bedgraph=bedgraph_fn)
     else:
         print 'Other options not defined yet, choose from', \

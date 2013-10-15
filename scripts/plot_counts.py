@@ -15,9 +15,9 @@ from chippy.util.studies import RegionStudy
 
 from chippy.util.util import create_path, dirname_or_default
 
-__author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Anuj Pahwa, Cameron Jack'
-__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__author__ = 'Cameron Jack, Gavin Huttley'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__credits__ = ['Cameron Jack', 'Gavin Huttley']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
@@ -25,8 +25,13 @@ __status__ = 'Release'
 __version__ = '0.2'
 
 def load_studies(collections, counts_func):
-    """ load all collection data and apply filtering if needed """
+    """
+        Load all collection data and apply filtering if needed.
+        Return the studies plus their max common up- & down- stream
+        window size.
+    """
     rr = RunRecord('load_studies')
+
     # Parse glob file names
     collection_files = collections
     dir_name = os.path.dirname(collection_files)
@@ -35,27 +40,31 @@ def load_studies(collections, counts_func):
             for p in glob.glob1(dir_name, base_name)]
     collection_file_names.sort()
 
-    window_radii = []
+    windows_upstream = []
+    windows_downstream = []
     studies = []
     # Load data from each file
     for collection_file in collection_file_names:
-        study = CentredStudy(collection_file, counts_func)
+        study = RegionStudy(collection_file, counts_func)
         if study is None:
             rr.dieOnCritical('Could not load study', collection_file)
         else:
             studies.append(study)
-            window_radii.append(study.window_radius)
+            windows_upstream.append(study.window_upstream)
+            windows_downstream.append(study.window_downstream)
 
     # Find max common windows size
     if not len(studies):
         rr.dieOnCritical('No valid data files', 'Failure')
 
-    window_radius = int(min(window_radii))
+    window_upstream = int(min(windows_upstream))
+    window_downstream = int(min(windows_downstream))
 
-    rr.addInfo('Max common window radius', window_radius)
+    rr.addInfo('Max common upstream window size', window_upstream)
+    rr.addInfo('Max common downstream window size', window_downstream)
     rr.addInfo('Total data collections', len(studies))
 
-    return studies, window_radius
+    return studies, window_upstream, window_downstream
 
 def set_up_series_plots_dir(plot_filename):
     """ Create directory structure for series plots """
@@ -203,7 +212,7 @@ def main():
         12) Create Plot
         13) Save Plot
     """
-    rr = RunRecord('plot_centred_counts')
+    rr = RunRecord('plot_counts')
     rr.addCommands(sys.argv)
     args = script_info['args'].parse()
 
@@ -212,18 +221,23 @@ def main():
 
     # 2: Load studies
     print 'Loading counts data'
-    studies, window_radius = load_studies(args.collection, counts_func)
+    studies, window_upstream, window_downstream =\
+            load_studies(args.collection, counts_func)
 
     # 3: Load divisor study if provided
     if args.div is not None:
-        div_studies, div_window_radius = load_studies(args.div, counts_func)
-        if div_window_radius == window_radius:
+        div_studies, div_window_upstream, div_window_downstream =\
+                load_studies(args.div, counts_func)
+        if div_window_upstream == window_upstream and \
+                div_window_downstream == window_downstream:
             print 'Windows match - using div study'
             studies.append(div_studies[0])
             div_name = div_studies[0].collection_label
         else:
-            rr.dieOnCritical('Differing Data and Div window sizes',
-                    [div_window_radius, window_radius])
+            rr.dieOnCritical('Differing Data and Div up/down-stream '+\
+                    'window sizes',
+                    [div_window_upstream, div_window_downstream,
+                     window_upstream, window_downstream])
     else:
         div_name = None
 
@@ -299,14 +313,14 @@ def main():
     plot = PlottableGroups(height=args.fig_height/2.5,
             width=args.fig_width/2.5, bgcolor=args.bgcolor,
             grid_off=args.grid_off,
-            yaxis_lims=ylim, xaxis_lims=(-window_radius, window_radius),
+            yaxis_lims=ylim, xaxis_lims=(-window_upstream, window_downstream),
             xy_tick_spaces=(args.xgrid_lines, args.ygrid_lines),
             xy_tick_intervals=(args.xtick_interval, args.ytick_interval),
             xy_label_fontsizes=(args.xfont_size, args.yfont_size),
             vline=vline, ioff=True, colorbar=args.colorbar,
             clean=args.clean_plot)
     
-    x = numpy.arange(-window_radius, window_radius)
+    x = numpy.arange(-window_upstream, window_downstream)
 
     # 11: set line colors
     cmap = None

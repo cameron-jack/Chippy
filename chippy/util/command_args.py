@@ -266,19 +266,20 @@ class Args(object):
 
         # Filter out over- and under-expression outliers
         self._inc_arg('-k', '--cutoff', type=float, default = 0.05,
-                help='Probability cutoff. Exclude genes if the probability of '+\
-                'the observed tag count is less than or equal to this '+\
+                help='Probability cutoff. Exclude genes if the probability '
+                'of the observed tag count is less than or equal to this '+\
                 'value e.g. 0.05.')
 
         # Export Centred Counts args
-        self._inc_arg('--expression_area', choices=['TSS', 'Exon_3p',
-                'Intron_3p', 'Both_3p'], help='Expression area options: '+\
-                'TSS, Exon_3p, Intron-3p, Both-3p')
+        self._inc_arg('--feature_type', choices=['TSS', 'UTR_Exon',
+                'Exon_Intron', 'Intron_Exon', 'Exon_UTR', 'Gene_3p'],
+                help='Gene feature options: TSS, UTR_Exon, Exon_Intron, '+\
+                'Intron_Exon, Exon_UTR, Gene_3p')
 
-        self._inc_arg('--window_start', type=int, default=-1000,
+        self._inc_arg('--window_upstream', type=int, default=1000,
                 help='Region start distance relative to feature')
-        self._inc_arg('--window_end', type=int, default=1000,
-            help='Region finish distance relative to feature')
+        self._inc_arg('--window_downstream', type=int, default=1000,
+                help='Region finish distance relative to feature')
 
         self._inc_arg('--multitest_signif_val', type=int,
                 help='Restrict plot to genes that pass multi-test '+\

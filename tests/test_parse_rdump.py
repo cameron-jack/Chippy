@@ -95,7 +95,7 @@ class ExcludingProbesets(TestCase):
         table = _sample_dump.appended(None, sub)
         table.writeToFile(tmp_file, sep='\t')
         # validate will cause an exception to be raised when True
-        self.assertRaises(RuntimeError, simpleRdumpToTable, tmp_file,
+        self.assertRaises(SystemExit, simpleRdumpToTable, tmp_file,
                 stable_id_label='ENSEMBL', probeset_label='probeset',
                 exp_label='exp', validate=True)
         # but not when False

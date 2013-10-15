@@ -116,8 +116,8 @@ class CollectionTests(TestCase):
         """raises an exception if invalid cutoff provided"""
         data = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
         coll = RegionCollection(**data)
-        self.assertRaises(RuntimeError, coll.filteredChebyshevUpper, -0.1)
-        self.assertRaises(RuntimeError, coll.filteredChebyshevUpper, 2.0)
+        self.assertRaises(SystemExit, coll.filteredChebyshevUpper, -0.1)
+        self.assertRaises(SystemExit, coll.filteredChebyshevUpper, 2.0)
     
     def test_filtered_data(self):
         """should correctly filter records"""
@@ -207,10 +207,10 @@ class CollectionTests(TestCase):
         self.assertEqual(new.ranks, None)
     
     def test_filtered_by_label_fails(self):
-        """filtered by label fails if no labels"""
+        """filtered by label fails with system.exit if no labels"""
         input = dict(counts=[[0,1], [2,3], [4,5], [6,7], [8,9]])
         coll = RegionCollection(**input)
-        self.assertRaises(RuntimeError, coll.filteredByLabel, '1')
+        self.assertRaises(SystemExit, coll.filteredByLabel, '1')
     
     def test_asfloats(self):
         """conversion correctly returns instance with counts as floats"""

@@ -60,10 +60,9 @@ def validate_exps(probeset_ids, probeset_exps):
     new_ids = []
     new_exps = []
 
-    # takes care of uneven probe/expr info
-    # breaks current test for unevenness
+    # caught by simpleRdumpToTable
     if len(probeset_ids) != len (probeset_exps):
-        rr.dieOnCritical('Probsets not matching expression values', 'Failure')
+        raise RuntimeError('Probsets not matching expression values')
 
     for i in range (len(probeset_ids)):
         if type(probeset_exps[i]) == str:

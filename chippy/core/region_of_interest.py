@@ -38,7 +38,7 @@ class ROI(object):
             self.counts = numpy.zeros(end - start, dtype=numpy.uint32)
         except ValueError:
             print self.chrom, self.label, self.rank, self.TSS,\
-            start, end, self. strand
+                    start, end, self.strand
 
     def add_counts_to_ROI(self, entry_start, entry_end):
         """ All coordinates are in Python 0-offset space """

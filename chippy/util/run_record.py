@@ -140,9 +140,15 @@ class RunRecord(object):
         header = ['code_block', 'level', 'message', 'value']
 
         if type(last_n_lines) is int: # return only last n lines of log file
-            table = LoadTable(header=header, rows=records[-last_n_lines:], sep='\t')
+            try:
+                table = LoadTable(header=header, rows=records[-last_n_lines:], sep='\t')
+            except IndexError:
+                table = None
         else:
-            table = LoadTable(header=header, rows=records, sep='\t')
+            try:
+                table = LoadTable(header=header, rows=records, sep='\t')
+            except IndexError:
+                table = None
         return table
 
     def display(self):

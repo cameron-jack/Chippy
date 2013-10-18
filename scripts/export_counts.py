@@ -48,7 +48,7 @@ script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
 def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
-        multitest_signif_val, filename, overwrite,
+        multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
         bedgraph=None):
     """
@@ -57,24 +57,28 @@ def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
     """
     rr = RunRecord('get_collection')
 
-    if not os.path.exists(filename) or overwrite:
+    if not os.path.exists(collection_fn) or overwrite:
+        bedgraph_fn = None
+        if bedgraph is not None:
+            bedgraph_fn = collection_fn.split('.')[0] + '.bedgraph'
+
         if sample_type == sample_types['exp_absolute'] or \
                 sample_type == sample_types['exp_diff']:
             data_collection = counts_for_genes(session,
                     sample_name, sample_type, feature_type, BAMorBED,
                     chr_prefix, window_upstream, window_downstream,
-                    include_target, exclude_target, bedgraph,
+                    include_target, exclude_target, bedgraph_fn,
                     multitest_signif_val=multitest_signif_val)
         else:
             rr.dieOnCritical('Experiment type not supported', sample_type)
 
         if data_collection is not None:
-            data_collection.writeToFile(filename, as_table=tab_delimited,
+            data_collection.writeToFile(collection_fn, as_table=tab_delimited,
                     compress_file=True)
         else:
             rr.dieOnCritical('No data collection was returned', 'Failed')
     else:
-        print 'Existing output at', filename
+        print 'Existing output at', collection_fn
 
 def main():
     """
@@ -112,10 +116,6 @@ def main():
 
     session = db_query.make_session(args.db_path)
 
-    bedgraph_fn = None
-    if args.make_bedgraph:
-        bedgraph_fn = db_name.split('.')[0] + '_'+sample_name+'.bedgraph'
-
     if args.chr_prefix != '':
         # If it writes nothing then we'll fail to load the table again
         rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
@@ -134,7 +134,7 @@ def main():
                 window_downstream, args.multitest_signif_val,
                 args.collection, args.overwrite,
                 args.tab_delimited, include_name,
-                exclude_name, bedgraph=bedgraph_fn)
+                exclude_name, bedgraph=args.make_bedgraph)
     else:
         print 'Other options not defined yet, choose from', \
                 sample_types['exp_absolute'], 'or', sample_types['exp_diff']

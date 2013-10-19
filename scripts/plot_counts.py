@@ -126,10 +126,14 @@ def div_plots(plot_lines, div_study_name):
 
     return out_lines
 
-def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None):
+def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = None):
     rr = RunRecord('set_plot_colors')
     # Hack time: this is just for David's Cell-cycle plots
-    if len(studies) == 3 and len(plot_lines) == 3:
+    num_studies = len(studies)
+    if div_name: # one study doesn't count for coloring
+        num_studies -= 1
+
+    if num_studies == 3 and len(plot_lines) == 3:
         # We're going to use black/white, green and magenta, for G1, M, S
         if bgcolor == 'black':
             r = 255; g = 255; b = 255 # white
@@ -145,11 +149,12 @@ def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None):
         r = 255; g = 0; b = 255
         plot_lines[2].color = '#%02x%02x%02x' % (r, g, b)
 
-    elif len(studies) > 1:
+    elif num_studies > 1:
         # spectral, jet, hsv, gist_rainbow, rainbow - all decent options
+        # Does it use this with Div plots? If yes we need to
         cmap = 'rainbow'
 
-    elif len(studies) == 1 and grey_scale:
+    elif num_studies == 1 and grey_scale:
         # grey-scale spectrum. Since background is white or black we can't
         # have lines that are pure black or white.
         if bgcolor == 'black':
@@ -163,7 +168,7 @@ def set_plot_colors(plot_lines, studies, bgcolor, grey_scale, cmap = None):
                 r = col; g = col; b = col
                 line.color = '#%02x%02x%02x' % (r, g, b)
 
-    elif len(studies) == 1:
+    elif num_studies == 1:
         # coolwarm, RdBu, jet - all decent options
         cmap = 'RdBu'
 
@@ -181,8 +186,8 @@ script_info['output_description']= 'Generates either a single pdf figure or '\
         'a series of pdfs that can be merged into a movie.'
 
 pos_args = ['db_path']
-req_args = ['collection', 'metric', 'plot_filename']
-opt_args = ['ylim', 'fig_height', 'fig_width',
+req_args = ['collection', 'metric']
+opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
         'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
         'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
@@ -325,7 +330,7 @@ def main():
     # 11: set line colors
     cmap = None
     plot_lines, cmap = set_plot_colors(plot_lines, studies,\
-            args.bgcolor, args.grey_scale, cmap=cmap)
+            div_name, args.bgcolor, args.grey_scale, cmap=cmap)
 
     # 12: Create plot
     plot(x, y_series=None, plot_lines=plot_lines, color_series=None,
@@ -336,21 +341,25 @@ def main():
             labels=None, labels_size=args.legend_font_size,
             plot_CI=args.confidence_intervals)
 
-    # 13: save plots
+    # 13: Save plots
     # if series, create directory
     if args.plot_series and not args.test_run:
         set_up_series_plots_dir(args.plot_filename)
 
     if args.plot_filename and not args.test_run:
-        if '.pdf' in args.plot_filename.lower():
-            plot.savefig(args.plot_filename, image_format='pdf')
+        plot_fn = args.plot_filename
+        if '.pdf' in plot_fn.lower():
+            plot.savefig(plot_fn, image_format='pdf')
+        if '.png' in plot_fn.lower():
+            plot.savefig(plot_fn, image_format='png')
+        if '.jpg' in plot_fn.lower() or '.jpeg' in plot_fn.lower():
+            plot.savefig(plot_fn, image_format='jpg')
         else:
             plot.savefig(args.plot_filename+'.pdf', image_format='pdf')
     else:
-        print args.plot_filename
-    
+        plot.show()
+
     rr.display()
-    plot.show()
 
 if __name__ == '__main__':
     main()

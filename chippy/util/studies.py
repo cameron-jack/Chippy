@@ -209,8 +209,8 @@ class RegionStudy(object):
             rr.addInfo('Restricting plot by include sample', include_sample)
             include_sample = include_sample.split(':')[0].strip()
 
-        if include_sample:
-            rr.addInfo('Restricting plot by exclude sample', include_sample)
+        if exclude_sample:
+            rr.addInfo('Restricting plot by exclude sample', exclude_sample)
             exclude_sample = exclude_sample.split(':')[0].strip()
 
         if not chrom is None:
@@ -224,11 +224,11 @@ class RegionStudy(object):
         rr.addInfo('Remaining genes', self.data_collection.N)
 
         if self.data_collection is None or\
-           self.data_collection.ranks.max() == 0:
-            rr.dieOnCritical('No genes remaining after filtering', 'Failure' )
+           len(self.data_collection.ranks) == 0:
+            rr.dieOnCritical('Genes remaining after filtering', '0' )
 
         # total_features used to normalise coloring
-        total_features = self.data_collection.ranks.max()
+        total_features = self.data_collection.ranks
         self.data_collection.ranks /= total_features
 
     def filterByCutoff(self, cutoff=None):

@@ -486,13 +486,13 @@ class ExpressionDiff(Base):
     reffile_id = Column(Integer, ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
-                backref=backref('expressiondiff', order_by=expression_diff_id))
+                backref=backref('expression_diff', order_by=expression_diff_id))
     
     gene = relationship(Gene,
-            backref=backref('expression_diffs', order_by=expression_diff_id))
+            backref=backref('expression_diff', order_by=expression_diff_id))
     
     reference_file = relationship(ReferenceFile,
-            backref=backref('expression_diffs', order_by=expression_diff_id))
+            backref=backref('expression_diff', order_by=expression_diff_id))
     
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                         name='unique'), {})
@@ -522,11 +522,11 @@ class TargetGene(Base):
             ForeignKey('reference_file.reffile_id'))
     
     sample = relationship(Sample,
-                backref=backref('target_genes', order_by=target_gene_id))
+                backref=backref('target_gene', order_by=target_gene_id))
     gene = relationship(Gene,
                 backref=backref('target_gene', order_by=target_gene_id))
     reference_file = relationship(ReferenceFile,
-                backref=backref('target_genes', order_by=target_gene_id))
+                backref=backref('target_gene', order_by=target_gene_id))
     
     __table_args__ = (UniqueConstraint('gene_id', 'reffile_id',
                     name='unique'), {})

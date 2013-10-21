@@ -208,22 +208,20 @@ def get_gene_ids(session, chrom=None, include_target=None,
     """ returns a list (or counts) of ensembl_ids restricted by chrom,
         include and exclude target_gene lists.
     """
-
     # limit by chrom if provided
     genes = get_gene_entries(session, chrom=chrom)
     stable_ids = [g.ensembl_id for g in genes]
 
     if include_target is not None:
-        genes = _get_targetgene_query(session, include_target)
-        include_ids = [g.ensembl_id for g in genes]
+        genes = get_targetgene_entries(session, sample_name=include_target)
+        include_ids = [g.gene_id for g in genes]
         stable_ids = list(set(stable_ids).\
                 intersection(set(include_ids)))
 
     if exclude_target is not None:
-        genes = _get_targetgene_query(session, exclude_target)
-        exclude_ids = [g.ensembl_id for g in genes]
-        stable_ids = list(set(stable_ids).\
-                intersection(set(exclude_ids)))
+        genes = get_targetgene_entries(session, sample_name=exclude_target)
+        exclude_ids = [g.gene_id for g in genes]
+        stable_ids = list(set(stable_ids)-(set(exclude_ids)))
 
     return stable_ids
 

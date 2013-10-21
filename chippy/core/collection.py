@@ -249,7 +249,7 @@ class RegionCollection(_GenericCollection):
         if self.ranks is not None:
             r = rank_func(self.ranks)
         else:
-            r = None
+            r = 0
         return c, r, se_array
     
     def take(self, indices):

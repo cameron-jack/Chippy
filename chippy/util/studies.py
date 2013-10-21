@@ -299,6 +299,8 @@ class RegionStudy(object):
         if not len(counts):
             rr.dieOnCritical('No counts data in', 'Study._groupAllGeneCounts')
 
+        ranks = 0 # rank is irrelevant for 'all' genes
+
         # Always name single lines by their collection name
         label = self.collection_label
         plot_lines = [PlotLine(counts, ranks, label, study=label, stderr=se)]

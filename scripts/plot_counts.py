@@ -95,7 +95,7 @@ def set_counts_function(metric):
         rr.dieOnCritical('Invalid count metric', metric)
     return counts_func
 
-def div_plots(plot_lines, div_study_name):
+def div_plots(plot_lines, div_study_name, div_by=None):
     """ Divides the counts values in plot_lines by those in the divisor
             lines """
     rr = RunRecord('div_plots')
@@ -108,12 +108,44 @@ def div_plots(plot_lines, div_study_name):
             dividing_plot_lines[line.rank] = line
         else:
             if not line.rank in ranked_plot_lines.keys():
-                ranked_plot_lines[line.rank] = []
+                 ranked_plot_lines[line.rank] = []
             ranked_plot_lines[line.rank].append(line)
 
-    # sanity check
-    if len(ranked_plot_lines) == 0:
-        rr.dieOnCritical('No plot lines.', 'Same study as div plot?')
+        # sanity check
+        if len(ranked_plot_lines) == 0:
+            rr.dieOnCritical('No plot lines.', 'Same study as div plot?')
+
+    # default: divide scores line for line - maybe important if trends change
+    if div_by:
+        if div_by.lower() == 'average' or div_by.lower() == 'median':
+            # We will divide the average counts of div
+            counts_lines = []
+            for line in dividing_plot_lines.values():
+                counts_lines.append(line.counts)
+            counts_array = numpy.array(counts_lines)
+            if div_by.lower() == 'average':
+                div_counts = numpy.mean(counts_array, axis=0)
+            else:
+                div_counts = numpy.median(counts_array, axis=0)
+
+            for key in dividing_plot_lines.keys():
+                dividing_plot_lines[key].counts = div_counts
+
+        elif div_by.lower() == 'top':
+            # We will divide by the rank 0 counts of div
+            div_counts = None
+            for line in dividing_plot_lines.values():
+                if line.rank == 0:
+                    div_counts = line.counts
+                    break
+            if div_counts is None:
+                rr.dieOnCritical('No div counts of rank 0 found', 'Inconceivable')
+
+            for key in dividing_plot_lines.keys():
+                dividing_plot_lines[key].counts = div_counts
+
+        else:
+            rr.dieOnCritical('Unrecognised div_by type', div_by)
 
     out_lines = []
     for ranked_index, div_index in zip(ranked_plot_lines, dividing_plot_lines):
@@ -195,7 +227,7 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'line_alpha', 'chrom', 'include_target', 'exclude_target', 'group_size',
         'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
         'plot_series', 'text_coords', 'test_run', 'version',
-        'div', 'normalise_by_RPM', 'confidence_intervals']
+        'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -289,7 +321,7 @@ def main():
 
     # 9: Do plot division if required
     if div_name:
-        plot_lines = div_plots(plot_lines, div_name)
+        plot_lines = div_plots(plot_lines, div_name, div_by=args.div_by)
 
     rr.addInfo('Total number of lines to plot', len(plot_lines))
 

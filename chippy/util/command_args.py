@@ -380,6 +380,8 @@ class Args(object):
 
         self._inc_arg('--div', help='Path to the plottable data, to divide '+\
                 'other loaded plottable data')
+        self._inc_arg('--div_by', choices=['average', 'median', 'top'],
+                help='divide by a single line rather than line-for-line')
 
         self._inc_arg('--confidence_intervals', action='store_true',
                 help='Show confidence intervals around plot lines')

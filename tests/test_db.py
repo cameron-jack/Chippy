@@ -13,10 +13,14 @@ from sqlalchemy.exc import IntegrityError
 from chippy.express.db_schema import Gene, Exon, TargetGene, \
         Expression, ExpressionDiff, ReferenceFile, Sample
 
-from chippy.express.db_query import get_expression_counts, \
-        get_genes_by_ranked_expr, get_genes_by_ranked_diff, get_gene_entries,\
-        get_expression_entries, get_diff_entries, get_targetgene_entries, \
-        get_reffile_entries, get_chroms, get_species, make_session
+from chippy.express.db_query import get_sample_counts, get_gene_counts, \
+        get_expression_counts, get_diff_counts, get_targetgene_counts, \
+        get_reffile_counts, get_exon_counts, \
+        get_sample_entries, get_gene_entries, get_expression_entries, \
+        get_diff_entries, get_targetgene_entries, get_reffile_entries, \
+        get_exon_entries, \
+        get_genes_by_ranked_expr, get_genes_by_ranked_diff, get_chroms, \
+        get_species, make_session, drop_sample_records
 
 from chippy.express.db_populate import add_expression_diff_study, \
         add_sample, add_chroms
@@ -75,6 +79,8 @@ class TestRefFiles(TestDbBase):
         self.session.commit()
         reffiles = get_reffile_entries(self.session)
         self.assertEqual(reffiles[0].sample.name, 'A')
+        num_reffiles = get_reffile_counts(self.session)
+        self.assertEqual(num_reffiles, 1)
 
 class TestChrom(TestDbBase):
     """ correctly set & get chromosomes for a species """
@@ -163,6 +169,40 @@ class TestGene(TestDbBase):
         
         self.session.add_all(data)
         self.assertRaises(IntegrityError, self.session.commit)
+
+    def test_get_exon_entries(self):
+        """ correctly return exons """
+        add_all_gene_exons(self.session, self.genes)
+
+        exons = get_exon_entries(self.session)
+        starts = [exon.start for exon in exons]
+        expected = [1050, 1050, 1600, 1800, 1050, 1050, 1600, 1800]
+        self.assertEqual(starts, expected)
+
+        # by gene
+        exons = get_exon_entries(self.session, gene_ensembl='MINUS-3')
+        starts = [exon.start for exon in exons]
+        expected = [1800, 1600, 1050]
+        self.assertEqual(starts, expected)
+
+        # by gene that doesn't exist
+        exons = get_exon_entries(self.session, gene_ensembl='Does_not_exist')
+        self.assertEqual(exons, [])
+
+    def test_get_exon_counts(self):
+        """ correctly return exon counts """
+        add_all_gene_exons(self.session, self.genes)
+
+        num_exons = get_exon_counts(self.session)
+        self.assertEqual(num_exons, 8)
+
+        # by gene
+        num_exons = get_exon_counts(self.session, gene_ensembl='MINUS-3')
+        self.assertEqual(num_exons, 3)
+
+        # by gene that doesn't exist
+        num_exons = get_exon_counts(self.session, gene_ensembl='Does_not_exist')
+        self.assertEqual(num_exons, 0)
     
     def test_get_gene_exon_coords(self):
         """Gene instances correctly derive coords for their exons"""
@@ -498,6 +538,17 @@ class TestExpression(TestDbBase):
         self.session.add_all(data)
         self.session.commit()
         self.proccessed = True
+
+    def test_get_sample_entries(self):
+        """ make sure that samples are returned correctly """
+        samples = get_sample_entries(self.session)
+        names = [s.name for s in samples]
+        self.assertEqual(names, ['sample 1', 'sample 2'])
+
+    def test_get_sample_counts(self):
+        """ make sure that samples are counted correctly """
+        num_samples = get_sample_counts(self.session)
+        self.assertEqual(num_samples, 2)
     
     def test_unique_constraint_expression(self):
         """expression records unique by probeset and reference file"""
@@ -577,7 +628,6 @@ class TestTargetGene(TestDbBase):
         
         self.session.add_all(data)
         self.assertRaises(IntegrityError, self.session.commit)
-    
 
 class TestQueryFunctions(TestDbBase):
     """test the db querying functions"""
@@ -691,8 +741,9 @@ class TestQueryFunctions(TestDbBase):
         # Create 1 non-matching TargetGene for target 3
         t1 = self._build_target_gene('target3.txt', 'TARGET-1', 'target 3')
     
-    def test_counting_genes(self):
-        """correctly return number of genes for a sample"""
+    def test_get_expression_counts(self):
+        """ correctly return number of expressed genes for a sample """
+        self.assertEqual(get_expression_counts(self.session), 8)
         # return correct number with/without filename
         self.assertEqual(get_expression_counts(self.session, 'sample 1'), 4)
         self.assertEqual(get_expression_counts(self.session, 'sample 1',
@@ -703,7 +754,54 @@ class TestQueryFunctions(TestDbBase):
         # return correct number if no records, wrong biotype
         self.assertEqual(get_expression_counts(self.session,
                 'sample 1', biotype='miRNA'), 0)
-    
+
+    def test_get_expression_entries(self):
+        """ correctly return the expressed genes for a sample """
+        expect = ['sample 1', 'sample 2', 'sample 1', 'sample 2',
+                  'sample 1', 'sample 2', 'sample 1', 'sample 2']
+        expr = get_expression_entries(self.session)
+        names = [e.sample.name for e in expr]
+        self.assertEqual(names, expect)
+        # return correct entries with sample name
+        expect = ['sample 1', 'sample 1', 'sample 1', 'sample 1']
+        expr = get_expression_entries(self.session, 'sample 1')
+        names = [e.sample.name for e in expr]
+        self.assertEqual(names, expect)
+        # with file name
+        expr = get_expression_entries(self.session, 'sample 1',
+                data_path='file-1.txt')
+        names = [e.sample.name for e in expr]
+        self.assertEqual(names, expect)
+
+        # return correct entries if no records, no file
+        self.assertEqual(get_expression_entries(self.session,
+            'sample 1', data_path='file-no-data.txt'), [])
+        # return correct entries if no records, wrong biotype
+        self.assertEqual(get_expression_entries(self.session,
+            'sample 1', biotype='miRNA'), [])
+
+    def test_get_targetgene_counts(self):
+        """ the number of TargetGene entries should be correct """
+        self.populate_target_data()
+        self.assertEqual(get_targetgene_counts(self.session), 7)
+        self.assertEqual(get_targetgene_counts(self.session, 'target 1'), 2)
+        self.assertEqual(get_targetgene_counts(self.session, 'target 2'), 4)
+        self.assertEqual(get_targetgene_counts(self.session, 'target 3'), 1)
+
+    def test_get_targetgene_entries(self):
+        """ TargetGene entries should be correctly returned """
+        self.populate_target_data()
+        expect1 = ['PLUS-1', 'PLUS-1', 'PLUS-3', 'MINUS-1', \
+                   'MINUS-3', 'TARGET-1', 'TARGET-1']
+        tgs = get_targetgene_entries(self.session)
+        tg_list = [str(tg.gene.ensembl_id) for tg in tgs]
+        self.assertEqual(tg_list, expect1)
+
+        expect2 = ['PLUS-1', 'TARGET-1']
+        tgs = get_targetgene_entries(self.session, 'target 1')
+        tg_list = [str(tg.gene.ensembl_id) for tg in tgs]
+        self.assertEqual(tg_list, expect2)
+
     def test_get_expressed_genes_from_chrom_order(self):
         """should return the correct number of expressed genes from a chrom"""
         # Add chroms to compare against
@@ -735,8 +833,8 @@ class TestQueryFunctions(TestDbBase):
         for i in range(1, len(ranked)):
             self.assertTrue(ranked[i-1].Rank < ranked[i].Rank)
     
-    def test_query_genes_release(self):
-        """return correct genes for a release"""
+    def test_get_gene_entries(self):
+        """ return correct genes for a release """
 
         genes = get_gene_entries(self.session) # returns all genes
         expected = ['PLUS-1', 'PLUS-3', 'MINUS-1', 'MINUS-3']
@@ -750,6 +848,16 @@ class TestQueryFunctions(TestDbBase):
 
         genes = get_gene_entries(self.session, biotype='miRNA') # returns none
         self.assertEqual(len(genes), 0)
+
+    def test_get_gene_counts(self):
+        """ return correct counts for genes """
+        self.assertEqual(get_gene_counts(self.session), 4)
+
+        self.assertEqual(get_gene_counts(self.session, chrom='2'), 2)
+
+        # returns none
+        num_genes = get_gene_counts(self.session, biotype='miRNA')
+        self.assertEqual(num_genes, 0)
 
     def test_query_expressed_genes_with_inclusive_target_genes(self):
         """ return only those genes which overlap with target """
@@ -1025,6 +1133,34 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(remaining_genes[1].ensembl_id == 'PLUS-3')
         self.assertTrue(remaining_genes[2].ensembl_id == 'MINUS-1')
         self.assertTrue(remaining_genes[3].ensembl_id == 'MINUS-3')
+
+    def test_get_diff_entries(self):
+        """ make sure diff table entries match expected """
+        entries = get_diff_entries(self.session)
+        self.assertEqual(entries[0].expression_diff_id, 1)
+        self.assertEqual(entries[1].expression_diff_id, 2)
+        self.assertEqual(entries[2].expression_diff_id, 3)
+        self.assertEqual(entries[3].expression_diff_id, 4)
+
+    def test_get_diff_counts(self):
+        """ make sure diff table counts match expected """
+        self.assertEqual(get_diff_counts(self.session), 4)
+
+    def test_drop_sample_records(self):
+        """ test the removal of all DB records based on sample name """
+
+        self.populate_target_data()
+
+        expected = get_sample_counts(self.session)
+        # Try with built-in test mode, which rolls back the deletes
+        self.assertFalse(drop_sample_records(self.session, \
+                'sample1', test=True))
+        # Now actually delete
+        self.assertTrue(drop_sample_records(self.session, \
+                'sample1', test=False))
+
+        observed = get_sample_counts(self.session)
+        self.assertEqual(observed, expected-1)
 
 if __name__ == '__main__':
     main()

@@ -1,11 +1,9 @@
-from sqlalchemy import and_
-from sqlalchemy.orm import contains_eager, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from chippy.express.db_schema import Chroms, Gene, Exon, TargetGene,\
         Expression, ExpressionDiff, ReferenceFile, Sample, _make_session
 from chippy.util.run_record import RunRecord
-from chippy.express.util import single_gene, _one
+from chippy.express.util import _one, sample_types
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
@@ -21,7 +19,7 @@ import functools # for use with decorator-style wrappers
 ### NOTES ###
 # This file is structured into a number of function groupings
 # 1. Private helper functions
-# 2. Public misc. functions
+# 2. Public macro functions (complex functionality)
 # 3. Public table entry query functions
 # 4. Public table entry counting functions
 ### END NOTES ###
@@ -78,11 +76,14 @@ def _get_gene_query(session, biotype='protein_coding', chrom=None, data_path=Non
         query = query.filter(Gene.biotype==biotype)
     return query
 
-def _get_exon_query(session, gene_id=None):
-    if gene_id:
-        return session.query(Exon).filter(Exon.gene_id==gene_id)
-    else:
-        return session.query(Exon)
+def _get_exon_query(session, ensembl_id=None, gene_ensembl=None):
+    """ returns an exon query object """
+    query = session.query(Exon)
+    if ensembl_id:
+        query = query.filter(Exon.ensembl_id==ensembl_id)
+    if gene_ensembl:
+        query = query.join(Gene).filter(Gene.ensembl_id==gene_ensembl)
+    return query
 
 def _get_expression_query(session, sample_name=None,
         biotype='protein_coding', chrom=None, data_path=None):
@@ -214,13 +215,13 @@ def get_gene_ids(session, chrom=None, include_target=None,
 
     if include_target is not None:
         genes = get_targetgene_entries(session, sample_name=include_target)
-        include_ids = [g.gene_id for g in genes]
+        include_ids = [g.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids).\
                 intersection(set(include_ids)))
 
     if exclude_target is not None:
         genes = get_targetgene_entries(session, sample_name=exclude_target)
-        exclude_ids = [g.gene_id for g in genes]
+        exclude_ids = [g.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids)-(set(exclude_ids)))
 
     return stable_ids
@@ -320,7 +321,43 @@ def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
 
     return genes
 
-### Public DB query functions ###
+def drop_sample_records(session, sample_name, test=False):
+    """
+        Drop the expression/target/expr_diff records, sample name
+        and reference file attached to a given sample name.
+        Returns True if sample deleted.
+    """
+    rr = RunRecord('drop_sample_records')
+    rr.addInfo('Deleting records for ', sample_name)
+    sample = _get_sample(session, sample_name)
+    if sample is not None:
+        rr.addInfo('Deleting records for ', sample_name)
+        num_removed = session.query(ReferenceFile).filter(ReferenceFile.sample_id==sample.sample_id).delete()
+        rr.addInfo('Number of reference file records deleted', num_removed)
+        num_removed = session.query(Expression).filter(Expression.sample_id==sample.sample_id).delete()
+        rr.addInfo('Number of expression records deleted', num_removed)
+        num_removed = session.query(ExpressionDiff).filter(ExpressionDiff.sample_id==sample.sample_id).delete()
+        rr.addInfo('Number of expressionDiff records deleted', num_removed)
+        num_removed = session.query(TargetGene).filter(TargetGene.sample_id==sample.sample_id).delete()
+        rr.addInfo('Number of target gene records deleted', num_removed)
+        num_removed = session.query(Sample).filter(Sample.sample_id==sample.sample_id).delete()
+        assert num_removed == 1, 'Incorrect number of samples removed' + str(num_removed)
+        rr.addInfo('Number of sample records deleted', num_removed)
+        try:
+            if not test:
+                session.commit()
+                return True
+            else:
+                rr.addInfo('session deletes not committed', sample_name)
+        except NoResultFound:
+            rr.addError('Deletes could not take place', 'Commit failed')
+    else:
+        rr.addError('No sample found by name', sample_name)
+    session.rollback()
+    return False
+
+
+### Public DB table query functions ###
 # For querying tables: Sample, ReferenceFile, Gene, Exon, Expression,
 # ExpressionDiff, TargetGene (Chrom query functions are in the Public
 # misc. functions section)
@@ -363,13 +400,15 @@ def get_targetgene_entries(session, sample_name=None, biotype='protein_coding'):
 
 @_safe_query
 def get_reffile_entries(session, reffile_name=None, sample_name=None):
-    query = _get_reffiles_query(session, reffile_name=reffile_name, sample_name=sample_name)
+    query = _get_reffiles_query(session, reffile_name=reffile_name,
+            sample_name=sample_name)
     return query.all()
 
 @_safe_query
-def get_exon_entries(session, gene_id=None, biotype='protein_coding'):
+def get_exon_entries(session, ensembl_id=None ,gene_ensembl=None):
     """ returns all exons, or just those for a specific gene stable_id """
-    query = _get_exon_query(session, gene_id=gene_id)
+    query = _get_exon_query(session, ensembl_id=ensembl_id,
+            gene_ensembl=gene_ensembl)
     return query.all()
 
 ### Public DB count functions ###
@@ -383,9 +422,9 @@ def get_sample_counts(session):
     return session.query(Sample).count()
 
 @_safe_counts
-def get_gene_counts(session, biotype='protein_coding', data_path=None):
+def get_gene_counts(session, biotype='protein_coding', chrom=None, data_path=None):
     """ returns the number of gene entries"""
-    query = _get_gene_query(session, biotype=biotype,
+    query = _get_gene_query(session, biotype=biotype, chrom=chrom,
             data_path=data_path)
     return query.distinct().count()
 
@@ -407,21 +446,24 @@ def get_diff_counts(session, sample_name=None, biotype='protein_coding',
     return query.distinct().count()
 
 @_safe_counts
-def get_targetgene_counts(session, sample_name=None, biotype='protein_coding', data_path=None):
+def get_targetgene_counts(session, sample_name=None,
+        biotype='protein_coding', data_path=None):
     """ Returns target_gene records for a given sample """
     query = _get_targetgene_query(session, sample_name, biotype=biotype)
     return query.count()
 
 @_safe_counts
 def get_reffile_counts(session, reffile_name=None, sample_name=None):
-    query = _get_reffiles_query(session, reffile_name=reffile_name, sample_name=sample_name)
+    query = _get_reffiles_query(session, reffile_name=reffile_name,
+            sample_name=sample_name)
     return query.count()
 
 @_safe_counts
-def get_exon_counts(session, gene_id=None, biotype='protein_coding'):
+def get_exon_counts(session, ensembl_id=None, gene_ensembl=None):
     """ returns counts of all exons, or just those for a specific gene
             stable_id """
-    query = _get_exon_query(session, gene_id=gene_id)
+    query = _get_exon_query(session, ensembl_id=ensembl_id,
+            gene_ensembl=gene_ensembl)
     return query.count()
 
 ### END of db_query

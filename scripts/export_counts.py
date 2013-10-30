@@ -50,7 +50,7 @@ def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
-        bedgraph=None):
+        bedgraph=False):
     """
         builds and writes a collection of counts and expression for
         feature_type in given sample genes.
@@ -59,7 +59,7 @@ def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
 
     if not os.path.exists(collection_fn) or overwrite:
         bedgraph_fn = None
-        if bedgraph is not None:
+        if bedgraph:
             bedgraph_fn = collection_fn.split('.')[0] + '.bedgraph'
 
         if sample_type == sample_types['exp_absolute'] or \

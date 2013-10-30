@@ -6,7 +6,7 @@ warnings.filterwarnings('ignore',
 
 from chippy.core.region_of_interest import ROI
 from cogent.util.unit_test import TestCase
-from chippy.core.read_count import read_BAM, read_BED
+from chippy.core.read_count import read_BAM, read_BED, read_BEDgraph
 from chippy.express.db_schema import Gene
 
 from chippy.util.definition import PLUS_STRAND, MINUS_STRAND, NULL_STRAND
@@ -216,6 +216,30 @@ class MinimalRegionCountTests(TestCase):
 
         # read_BED will often mess up the order of the ROIs so we'll need
         # a clever method to index them to check them correctly
+
+        for roi in ROIs:
+            if len(roi.counts) == 10 and sum(roi.counts) == 10:
+                self.assertEqual(roi.counts, [0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
+            elif len(roi.counts) == 10 and sum(roi.counts) == 8:
+                self.assertEqual(roi.counts, [0, 0, 0, 0, 0, 0, 2, 2, 2, 2])
+            elif len(roi.counts) == 12 and sum(roi.counts) == 12:
+                self.assertEqual(roi.counts, [0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2])
+            elif len(roi.counts) == 12 and sum(roi.counts) == 10:
+                self.assertEqual(roi.counts, [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2])
+            elif len(roi.counts) == 12 and sum(roi.counts) == 0:
+                self.assertEqual(roi.counts, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            else:
+                self.assertEqual(roi.counts, roi.gene_id)
+
+    def test_count_BEDgraph(self):
+        """
+            Make sure we get the expected counts from BEDgraph files.
+        """
+        ROIs = self.setUpROIsForFiles()
+        ROIs, num_tags, num_bases, mapped_tags = read_BEDgraph('data/brca2-11.bedgraph', ROIs)
+        self.assertEqual(num_tags, 1) # Artificially constrained by small ROIs
+        self.assertEqual(num_bases, 40) # sum of all counts
+        self.assertEqual(mapped_tags, 63) # total experimental read tags
 
         for roi in ROIs:
             if len(roi.counts) == 10 and sum(roi.counts) == 10:

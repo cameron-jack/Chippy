@@ -9,10 +9,9 @@ import subprocess
 import re
 from cogent.util.progress_display import display_wrap
 
-#from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
-from chippy.core.region_of_interest import ROI
 from chippy.util.run_record import RunRecord
 from gzip import GzipFile
+from math import ceil
 
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -34,6 +33,113 @@ def run_command(command):
     return returncode, stdout, stderr
 
 @display_wrap
+def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
+    """
+        Map BEDgraph entries to ROIs. This is essential as data uploaded
+        to GEO will be BEDgraphs - we need to be able to read our own data!
+
+        BEDgraph positions are 0-relative. We will need to add 1 to the
+        last position to make it the same as Python's 0-1 system.
+        Since there is no way to know the actual number of tags used in
+        creating a BEDgraph we will simply assume 75-bp reads that are
+        fully mapped. This will likely be conservative for most data
+        currently available.
+    """
+    rr = RunRecord('read_BEDgraph')
+    num_tags = 0; num_bases = 0; # num_tags = num_bases/75
+
+    try:
+        if '.gz' in bedgraph_path:
+            bed_graph = GzipFile(bedgraph_path, 'rb')
+        else:
+            bed_graph = open(bedgraph_path, 'r')
+    except IOError:
+        rr.dieOnCritical('No bedgraph file found', bed_graph)
+
+    # get total lines in file for pacing the progress bar
+    command = 'wc -l ' + bedgraph_path
+    returncode, stdout, stderr = run_command(command)
+    if returncode:
+        rr.addWarning('could not run wc to count BED lines', 'error')
+        total_BEDgraph_lines = 1
+    else:
+        total_BEDgraph_lines = int(stdout.strip().split(' ')[0])
+        rr.addInfo('total lines in '+bedgraph_path, total_BEDgraph_lines)
+
+    # separate ROIs by chrom - performance optimisation
+    roi_chrom_dict = {}
+    for roi in ROIs:
+        if roi.chrom in roi_chrom_dict.keys():
+            roi_chrom_dict[roi.chrom].append(roi)
+        else:
+            roi_chrom_dict[roi.chrom] = [roi]
+    # sort by roi.start
+    for chrom_key in roi_chrom_dict.keys():
+        roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
+            key=lambda roi: roi.start)
+
+    filled_ROIs = []
+    for i, bed_entry in enumerate(bed_graph):
+        if i % 100 == 0:
+            msg = 'Reading BEDgraph entries [' + str(i) +\
+                  ' / ' + str(total_BEDgraph_lines) + ']'
+            progress = (float(i)/float(total_BEDgraph_lines))
+            ui.display(msg=msg, progress=progress)
+
+        if bed_entry.lower().startswith('track'):
+            continue
+
+        if bed_entry.startswith(chr_prefix):
+            entry_parts = bed_entry.split('\t')
+            if len(entry_parts) == 4:
+                bed_chrom = str(entry_parts[0].lstrip(chr_prefix))
+                try:
+                    bed_start = int(entry_parts[1].strip())
+                    # 'Stop' conversion to Python space, add 1.
+                    bed_stop = int(entry_parts[2].strip()) + 1
+                    bed_score = int(entry_parts[3].strip())
+                except ValueError:
+                    # Could be a browser track line
+                    continue
+        else:
+            continue
+
+        if not bed_chrom in roi_chrom_dict.keys():
+            continue
+
+        for roi in roi_chrom_dict[bed_chrom]:
+            if bed_stop >= roi.start: # potential for overlap
+                if bed_start <= roi.end:
+                    #add count to ROI
+                    try:
+                        roi.counts, counted_bases = roi.add_counts_to_ROI(
+                                bed_start, bed_stop, bed_score)
+                    except RuntimeError:
+                        # input read in wrong direction or 0 sized
+                        continue
+
+                    # num_tags -> will be 'counted_bases' / 100.
+                    num_bases += counted_bases
+                else: # no more entries for ROI
+                    filled_ROIs.append(roi)
+                    # remove ROI from further consideration
+                    del roi_chrom_dict[bed_chrom][0]
+        # get remaining ROIs not yet in filled_ROIs
+    remaining_ROIs = []
+    for chrom_key in roi_chrom_dict.keys():
+        for roi in roi_chrom_dict[chrom_key]:
+            remaining_ROIs.append(roi)
+
+    rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
+    rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
+
+    # We estimate that each read is 75 after trimming.
+    num_tags = int(ceil(num_bases / 75))
+
+    return filled_ROIs + remaining_ROIs, num_tags, num_bases, \
+            total_BEDgraph_lines
+
+@display_wrap
 def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     """ read BED entries and add into each ROI as appropriate
 
@@ -45,17 +151,21 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     rr = RunRecord('read_BED')
     num_tags = 0; num_bases = 0
 
-    if '.gz' in bedfile_path:
-        bed_data = GzipFile(bedfile_path, 'rb')
-    else:
-        bed_data = open(bedfile_path, 'r')
+    try:
+        if '.gz' in bedfile_path:
+            bed_data = GzipFile(bedfile_path, 'rb')
+        else:
+            bed_data = open(bedfile_path, 'r')
+    except IOError:
+        rr.dieOnCritical('No BED file found', bedfile_path)
 
     # get total lines in file for pacing the progress bar, but
     # this is also the total number of mapped reads for normalisation
     command = 'wc -l ' + bedfile_path
     returncode, stdout, stderr = run_command(command)
-    if returncode != 0:
+    if returncode:
         rr.addWarning('could not run wc to count BED lines', 'error')
+        total_BED_lines = 1
     else:
         total_BED_lines = int(stdout.strip().split(' ')[0])
         rr.addInfo('total lines in '+bedfile_path, total_BED_lines)
@@ -71,6 +181,7 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
     for chrom_key in roi_chrom_dict.keys():
         roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
                 key=lambda roi: roi.start)
+
     filled_ROIs = []
     for i, bed_entry in enumerate(bed_data):
         if i % 100 == 0:
@@ -80,30 +191,40 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
             ui.display(msg=msg, progress=progress)
 
         bed_parts = bed_entry.split('\t')
-        entry_chrom = str(bed_parts[0]).lstrip(chr_prefix)
-        entry_start = int(bed_parts[1])
-        entry_end = int(bed_parts[2])
+        bed_chrom = str(bed_parts[0]).lstrip(chr_prefix)
+        try:
+            bed_start = int(bed_parts[1].strip())
+            bed_end = int(bed_parts[2].strip())
+        except ValueError:
+            rr.addWarning('BED file improperly formatted line', bed_entry)
 
-        if not entry_chrom in roi_chrom_dict.keys():
+        if not bed_chrom in roi_chrom_dict.keys():
             continue
 
-        for roi in roi_chrom_dict[entry_chrom]:
-            if entry_end >= roi.start: # potential for overlap
-                if entry_start <= roi.end:
+        for roi in roi_chrom_dict[bed_chrom]:
+            if bed_end >= roi.start: # potential for overlap
+                if bed_start <= roi.end:
                     #add count to ROI
-                    roi.counts, counted_bases = roi.add_counts_to_ROI(
-                            entry_start, entry_end)
+                    try:
+                        roi.counts, counted_bases = roi.add_counts_to_ROI(
+                                bed_start, bed_end)
+                    except RuntimeError:
+                        # input read in wrong direction or 0 sized
+                        continue
+
                     num_tags += 1
                     num_bases += counted_bases
                 else: # no more entries for ROI
                     filled_ROIs.append(roi)
                     # remove ROI from further consideration
-                    del roi_chrom_dict[entry_chrom][0]
+                    del roi_chrom_dict[bed_chrom][0]
+
     # get remaining ROIs not yet in filled_ROIs
     remaining_ROIs = []
     for chrom_key in roi_chrom_dict.keys():
         for roi in roi_chrom_dict[chrom_key]:
             remaining_ROIs.append(roi)
+
     rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
     rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
 
@@ -175,8 +296,13 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
                             entry_parts[5]))
                     entry_length = sum(length_components)
                     entry_end = entry_start + entry_length
-                    roi.counts, counted_bases = roi.add_counts_to_ROI(
-                            entry_start, entry_end)
+                    try:
+                        roi.counts, counted_bases = roi.add_counts_to_ROI(
+                                entry_start, entry_end)
+                    except RuntimeError:
+                        # input read in wrong direction or 0 sized
+                        continue
+
                     num_tags += 1
                     num_bases += counted_bases
                 else:
@@ -192,17 +318,24 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
     return filled_ROIs, num_tags, num_bases, mapped_tags
 
 def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
-    """ direct ROIs to BAM or BED file reader.
-    Return ROIs, the number of read tags, the total of all counts """
+    """
+        Direct ROIs to BAM, BEDgraph or BED file reader.
+        Return ROIs, the number of read tags, total counts and mapped tags
+    """
+
     rr = RunRecord('get_region_counts')
     if 'bam' in BAMorBED.lower():
         filled_ROIs, num_tags, num_bases, mapped_tags =\
                 read_BAM(BAMorBED, ROIs, chr_prefix)
+    elif 'bedgraph' in BAMorBED.lower():
+        filled_ROIs, num_tags, num_bases, mapped_tags =\
+                read_BEDgraph(BAMorBED, ROIs, chr_prefix)
     elif 'bed' in BAMorBED.lower():
         filled_ROIs, num_tags, num_bases, mapped_tags =\
                 read_BED(BAMorBED, ROIs, chr_prefix)
     else:
-        rr.dieOnCritical('File not recognised as BAM or BED', BAMorBED)
+        rr.dieOnCritical('File not recognised as BAM, BEDgraph or BED',
+                BAMorBED)
 
     rr.addInfo('Number of read tags counted', num_tags)
     rr.addInfo('Number of total bases counted', num_bases)

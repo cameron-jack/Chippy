@@ -13,6 +13,8 @@ from chippy.express.db_query import get_genes_by_ranked_expr, \
 from chippy.util.run_record import RunRecord
 from chippy.express.util import sample_types
 
+from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
+
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
@@ -32,10 +34,23 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
 
     record_tuples = []
     for roi in ROIs:
+        current_count = 0
         for i, c in enumerate(roi.counts):
             if c != 0:
-                pos = roi.start + i # BEDgraph is 0-based like Python
-                record_tuples.append((roi.chrom, pos, pos, c))
+                if current_count != c and current_count == 0:
+                    current_count = c
+                elif current_count != c:
+                    if roi.strand == PLUS_STRAND:
+                        record_tuples.append((roi.chrom, roi.start, pos, c))
+                    else:
+                        record_tuples.append((roi.chrom, roi.end, pos, c))
+
+                if roi.strand == PLUS_STRAND:
+                    pos = roi.start + i # BEDgraph is 0-based like Python
+                else:
+                    pos = roi.end + i # but is unidirectional
+        del roi
+
     rr.addInfo('number of records to combine', len(record_tuples))
     bedgraph_data = bedgraph(record_tuples, digits=None, name=bedgraph_fn,
             description='Study of filename', color=(0,0,255))
@@ -48,7 +63,7 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
 
 def get_counts_ranks_ids(genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
-            bedgraph=None, ui=None):
+            bedgraph_fn=None, ui=None):
     """
         Build regions of interest (ROI) and return as lists of counts, ranks
         and ensembl_ids, sorted by rank.
@@ -78,7 +93,6 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
             if win_start is not None and win_end is not None:
                 roi = ROI(gene, win_start, win_end)
                 regionsOfInterest.append(roi)
-
 
     elif feature_type.lower() == 'intron_exon':
         # All intron/exon boundaries, except when overlapping UTR/Exon boundary
@@ -131,8 +145,8 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
     ROIs, num_tags, num_bases, mapped_tags = get_region_counts(BAMorBED,
             regionsOfInterest, chr_prefix=chr_prefix)
 
-    if bedgraph:
-        write_to_bedgraph(bedgraph, ROIs)
+    if bedgraph_fn:
+        write_to_bedgraph(bedgraph_fn, ROIs)
 
     ROIs = sorted(ROIs, key=lambda roi: roi.rank)
     counts = []; ranks = []; ensembl_ids = []
@@ -146,7 +160,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
 def counts_for_genes(session, sample_name, sample_type,
         feature_type, BAMorBED, chr_prefix, window_upstream,
         window_downstream, include_target=None, exclude_target=None,
-        bedgraph=None, multitest_signif_val=None):
+        bedgraph_fn=None, multitest_signif_val=None):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('counts_for_genes')
 
@@ -176,7 +190,7 @@ def counts_for_genes(session, sample_name, sample_type,
     counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
-            bedgraph=bedgraph)
+            bedgraph_fn=bedgraph_fn)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,

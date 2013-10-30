@@ -40,8 +40,15 @@ class ROI(object):
             print self.chrom, self.label, self.rank, self.TSS,\
                     start, end, self.strand
 
-    def add_counts_to_ROI(self, entry_start, entry_end):
-        """ All coordinates are in Python 0-offset space """
+    def add_counts_to_ROI(self, entry_start, entry_end, score=1):
+        """
+            All coordinates are in Python 0-offset space.
+            Score is used to support BEDgraph
+
+            Raises RuntimeError if offset_left > offset_right
+            as this is meaningless. The caller should then ignore
+            this 'read'.
+        """
 
         if self.strand == PLUS_STRAND:
             offset_left = entry_start - self.start
@@ -50,13 +57,14 @@ class ROI(object):
             offset_left = self.end - entry_end
             offset_right = self.end - entry_start
 
-        assert offset_left < offset_right, 'left slicing coord must be '+\
-                'less than right slicing coord'
+        # left slicing coord must be less than right slicing coord
+        if offset_left >= offset_right:
+            raise RuntimeError('Offsets in wrong direction')
 
         # Limit the offsets to (0, len(roi.counts))
         offset_left = max(offset_left, 0)
         offset_right = min(offset_right, len(self.counts))
 
-        self.counts[offset_left:offset_right] += 1
-        bases_counted = offset_right - offset_left
+        self.counts[offset_left:offset_right] += score
+        bases_counted = (offset_right - offset_left) * score
         return self.counts, bases_counted

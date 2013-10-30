@@ -216,7 +216,7 @@ class Args(object):
 
         # Export Centred Counts args
         self._inc_arg('-B', '--BAMorBED',
-                help='Read counts. Either an indexed BAM or a BED file')
+                help='Read counts, from indexed BAM, BED or BEDgraph file')
 
         self._inc_arg('-f', '--overwrite', action='store_true',
                 help='Ignore any saved files', default=False)

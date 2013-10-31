@@ -225,7 +225,7 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
         'line_alpha', 'chrom', 'include_target', 'exclude_target', 'group_size',
-        'group_location', 'top_features', 'smoothing', 'binning', 'cutoff',
+        'group_location', 'smoothing', 'binning', 'cutoff',
         'plot_series', 'text_coords', 'test_run', 'version',
         'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals']
 
@@ -251,7 +251,8 @@ def main():
     """
     rr = RunRecord('plot_counts')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(use_scrollbars=True,
+            use_save_load_button=True, window_title='Plot Counts')
 
     # 1: Set feature counting metric
     counts_func = set_counts_function(args.metric)

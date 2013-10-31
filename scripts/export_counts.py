@@ -89,7 +89,9 @@ def main():
     rr = RunRecord('export_counts')
     rr.addCommands(sys.argv)
 
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(use_scrollbars=True,
+            use_save_load_button=True, window_title='Export Counts')
+
     if args.sample is None:
         rr.dieOnCritical('No samples provided', 'Failed')
 

@@ -48,7 +48,8 @@ def main():
     rr = RunRecord('add_expression_db')
     rr.addCommands(sys.argv)
 
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(use_scrollbars=True,
+            use_save_load_button=True, window_title='Add Expression to DB')
     session = db_query.make_session(args.db_path)
 
     if args.new_sample.count(':') == 1:

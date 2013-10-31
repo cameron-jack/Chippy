@@ -23,7 +23,7 @@ from chippy.express import db_query
 from chippy.util.run_record import RunRecord
 from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
 from chippy.express.db_query import make_session, get_gene_ids
-from chippy.draw.plot_data import PlotLine
+from chippy.draw.plot_data import PlotLine, PlotPoint
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -45,61 +45,116 @@ class _Gene(object):
     def __repr__(self):
         return repr((self.stableId, self.study))
 
-class _ChrmGene(_Gene):
+class _CountsGene(_Gene):
     """ gene entry from a ChipPy study """
+    Rank = 0 # low rank means higher score
+    Score = 0 # whichever counts feature is chosen
     def __init__(self, counts, *args, **kwargs):
         self.counts = counts # a numpy array
         self.feature_pos = len(self.counts)/2
-        self.feature_count = self.counts[self.feature_pos]
-        self.total_count = numpy.sum(self.counts)
-        super(_ChrmGene, self).__init__(*args, **kwargs)
+        self.feature_counts = self.counts[self.feature_pos]
+        self.promoter_counts = numpy.sum(self.counts[:len(counts)/2])
+        self.coding_counts = numpy.sum(self.counts[len(counts)/2:])
+        self.total_counts = numpy.sum(self.counts)
+        super(_CountsGene, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return repr((self.counts, self.rank, self.feature_pos,
+        return repr((self.counts, self.Rank, self.feature_pos,
                      self.feature_count))
 
 class _ExprGene(_Gene):
     """ gene entry from a microarray expression study """
-    def __init__(self, expr, *args, **kwargs):
-        self.expr = expr
+    def __init__(self, score, rank, *args, **kwargs):
+        self.Score = score
+        self.Rank = rank
         super(_ExprGene, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return repr(self.expr, self.rank)
+        return repr((self.Score, self.Rank))
+
+class _MatchedGene(object):
+    """ represents a single gene with both expression and counts properties """
+    def __init__(self, counts_gene, expr_gene):
+        self.counts_gene = counts_gene
+        self.expr_gene = expr_gene
+        self.id = counts_gene.stableId
 
 class MatchedStudy(object):
     """ stores a expr_study_gene_list, collection_gene_list pair
     """
 
-    def __init__(self, expr_study_name, collection_name, db_path):
-        self.chrm_gene_list = self._load_chrm(collection_name)
-        self.expr_gene_list = self._load_expr(expr_study_name, db_path)
+    def __init__(self, expr_study_name, collection_name, db_path,
+            region_feature='total_counts', include_target=None,
+            exclude_target=None):
+        """
+            Loads counts and expr. Calculates counts rank based on 
+            region_feature. Creates a matched_gene list.
+        """
+        self._load_expr(expr_study_name, db_path,
+                include_target=include_target, exclude_target=exclude_target)
 
-    def _load_expr(self, expr_study, db_path):
-        """ loads expression records from a ChippyDB """
+        self._load_counts(collection_name)
+
+        # Calculate collection count data ranks
+        if region_feature.lower() == 'feature':
+            ranked_counts = sorted(self.counts_genes,
+                    key=lambda counts: counts.total_counts)
+        elif region_feature.lower() == 'promoter':
+            ranked_counts = sorted(self.counts_genes,
+                    key=lambda counts: counts.total_counts)
+        elif region_feature.lower() == 'coding':
+            ranked_counts = sorted(self.counts_genes,
+                    key=lambda counts: counts.total_counts)
+        else: # total_counts
+            ranked_counts = sorted(self.counts_genes,
+                    key=lambda counts: counts.total_counts)
+
+        self.counts_genes = []
+        for i, counts in enumerate(ranked_counts):
+            counts.Rank = i
+            if region_feature.lower() == 'feature':
+                counts.Score = counts.feature_counts
+            elif region_feature.lower() == 'promoter':
+                counts.Score = counts.promoter_counts
+            elif region_feature.lower() == 'coding':
+                counts.Score = counts.coding_counts
+            else: # total_counts
+                counts.Score = counts.total_counts
+            self.counts_genes.append(counts)
+
+        self.common_genes = self._keepCommonGenes()
+
+    def _load_expr(self, expr_study, db_path, include_target=None,
+            exclude_target=None):
+        """
+            loads expression records from a ChippyDB and also
+            ranks by expr
+        """
         rr = RunRecord('load_expr')
 
         sample_name = expr_study.split(' : ')[0]
         session = db_query.make_session(db_path)
 
-        expr_gene_list = []
+        self.expr_genes = []
         #sample_type == 'Expression data: absolute ranked'
-        print 'Querying sample from ChippyDB'
-        sample_genes = db_query.get_ranked_expression(session, sample_name,
-            biotype='protein_coding', data_path=None, rank_by='mean',
-            test_run=False)
+        print 'Querying sample from ChippyDB', sample_name
+
+        sample_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
+                biotype='protein_coding', data_path=None, rank_by='mean',
+                include_target=include_target, exclude_target=exclude_target)
+
         for gene in sample_genes:
-            gene_record = _ExprGene(gene.MeanScore, gene.ensembl_id, sample_name)
-            expr_gene_list.append(gene_record)
+            gene_record = _ExprGene(gene.MeanScore, gene.Rank,
+                    gene.ensembl_id, sample_name)
+            self.expr_genes.append(gene_record)
         rr.addInfo('genes found in ' + sample_name, len(sample_genes))
 
-        return expr_gene_list
-
-    def _load_chrm(self, collection):
+    def _load_counts(self, collection):
         """ loads gene entries from a ChipPy collection """
-        rr = RunRecord('load_chrm')
+        rr = RunRecord('load_counts')
 
-        chrm_gene_list = []
+        print 'Loading counts collection file', collection
+        self.counts_genes = []
         if os.path.isfile(collection):
             try:
                 # to load counts data from file
@@ -110,8 +165,8 @@ class MatchedStudy(object):
                 labels = d['labels']
 
                 for count, label in zip(counts, labels):
-                    gene_record = _ChrmGene(count, str(label), collection)
-                    chrm_gene_list.append(gene_record)
+                    gene_record = _CountsGene(count, str(label), collection)
+                    self.counts_genes.append(gene_record)
                 rr.addInfo('genes found in ' + collection, len(labels))
 
             except IOError: # some exception type
@@ -119,40 +174,70 @@ class MatchedStudy(object):
         else:
             rr.dieOnCritical('unrecognised collection file', collection)
 
-        return chrm_gene_list
-
-    def keepCommonGenes(self):
+    def _keepCommonGenes(self):
         """ keep only those genes that are common to each study pair """
-        rr = RunRecord('keep_common_genes')
 
-        # get the intersection of all available stableIds
-        kept = 0
-        removed = 0
+        print 'Keeping common genes'
 
-        for study_pair in self.matched_studies:
-            expr_id_set = set(gene.stableId for gene in study_pair[0])
-            chrm_id_set = set(gene.stableId for gene in study_pair[1])
-            common_id_set = expr_id_set.intersection(chrm_id_set)
+        expr_id_obj = {}
+        counts_id_obj = {}
 
-            for gene in study_pair[0]:
-                if gene.stableId not in common_id_set:
-                    study_pair[0].remove(gene)
-                    removed += 1
-                else:
-                    kept += 1
-            for gene in study_pair[1]:
-                if gene.stableId not in common_id_set:
-                    study_pair[1].remove(gene)
-                    removed += 1
-                else:
-                    kept += 1
+        # build common id list
+        expr_id_set = set([gene.stableId for gene in self.expr_genes])
+        counts_id_set = set([gene.stableId for gene in self.counts_genes])
+        common_id_set = expr_id_set.intersection(counts_id_set)
 
-        rr.addInfo('number of genes kept', kept)
-        rr.addInfo('number of genes discarded', removed)
+        for counts in self.counts_genes:
+            if counts.stableId in common_id_set:
+                counts_id_obj[counts.stableId] = counts
+
+        for expr in self.expr_genes:
+            if expr.stableId in common_id_set:
+                expr_id_obj[expr.stableId] = expr
+
+        self.matched_genes = []
+
+        for id in common_id_set:
+            mg = _MatchedGene(counts_id_obj[id], expr_id_obj[id])
+            self.matched_genes.append(mg)
+
+    def get_matched_genes_as_xy_plotpoints(self, x_axis_type, expr_ranks=False,
+            counts_ranks=False):
+        """ return a set of points ready for plotting """
+
+        if x_axis_type.lower() == 'expression':
+            if expr_ranks and counts_ranks:
+                return [PlotPoint(gene.expr_gene.Rank, gene.counts_gene.Rank) \
+                        for gene in self.matched_genes]
+            elif expr_ranks:
+                return [PlotPoint(gene.expr_gene.Rank, gene.counts_gene.Score)\
+                        for gene in self.matched_genes]
+            elif counts_ranks:
+                return [PlotPoint(gene.expr_gene.Score, gene.counts_gene.Rank)\
+                        for gene in self.matched_genes]
+            else:
+                return [PlotPoint(gene.expr_gene.Score, gene.counts_gene.Score)\
+                        for gene in self.matched_genes]
+
+        else: # counts is X-axis
+            if expr_ranks and counts_ranks:
+                return [PlotPoint(gene.counts_gene.Rank, gene.expr_gene.Rank)\
+                        for gene in self.matched_genes]
+            elif expr_ranks:
+                return [PlotPoint(gene.counts_gene.Score, gene.expr_gene.Rank)\
+                        for gene in self.matched_genes]
+            elif counts_ranks:
+                return [PlotPoint(gene.counts_gene.Rank, gene.expr_gene.Score)\
+                        for gene in self.matched_genes]
+            else:
+                return [PlotPoint(gene.counts_gene.Score, gene.expr_gene.Score)\
+                        for gene in self.matched_genes]
+
 
 class RegionStudy(object):
     """ Specifies the RegionCollection associated with an expression
-            data set.
+            data set. Used to collate data for plot_counts.py.
+
     Members: collection (a RegionCollection), window_start, window_end,
             collection_label
     Methods: filterByGenes, filterByCutoff, normaliseByBases,

@@ -59,7 +59,7 @@ __version__ = '638'
 # Use required=True to require an argument
 
 class Args(object):
-    def parse(self):
+    def parse(self, **kwargs):
         """
             Returns the result of calling the parser on any input.
             Supports both command line and graphic interface through
@@ -68,13 +68,17 @@ class Args(object):
         # This will either use argparse if arguments are provided or will
         # call the ArgparseUi graphic interface (PyQT)
         if GUI_CAPABLE:
-            app = QtGui.QApplication(sys.argv)
-            a = ArgparseUi(self.parser)
-            a.show()
-            app.exec_()
-            print ("Ok" if a.result() == 1 else "Cancel")
-            if a.result() == 1: # Ok pressed
-                return a.parse_args()
+            if len(sys.argv) < 3:
+                app = QtGui.QApplication(sys.argv)
+                a = ArgparseUi(self.parser, **kwargs)
+                a.show()
+                app.exec_()
+                print ("Ok" if a.result() == 1 else "Cancel")
+                if a.result() == 1: # Ok pressed
+                    return a.parse_args()
+                else:
+                    print 'Execution cancelled.'
+                    sys.exit(0)
             else:
                 return self.parser.parse_args()
         else:
@@ -124,7 +128,10 @@ class Args(object):
                 kwargs['type'] = cogent_type
             else:
                 arg_type = kwargs.get('type', None)
-                kwargs['type'] = self._ARG_TO_OPT_TYPE_CONVERTER[arg_type]
+                try:
+                    kwargs['type'] = self._ARG_TO_OPT_TYPE_CONVERTER[arg_type]
+                except KeyError:
+                    kwargs['type'] = 'string'
         if len(args) == 2:
             cogent_opt = make_option(args[0], args[1], **kwargs)
         else:
@@ -449,32 +456,36 @@ class Args(object):
                 help='Do not show expression values considered normal')
 
         # misc. options that don't fit other categories
-        self._inc_arg('--gene_file', default=None,
-                help='Annotated gene list file output path, as pickle.gz')
-        self._inc_arg('--output_prefix1',
-                default=None, help='Output path prefix for first plot')
-        self._inc_arg('--output_prefix2',
-                default=None, help='Output path prefix for second plot')
+        self._inc_arg('--plot1_name',
+                default=None, help='Output path for first plot')
+        self._inc_arg('--plot2_name',
+                default=None, help='Output path for second plot')
 
-    def _add_ChrmVsExpr_specific_args(self):
-        """ These args are specifically for the ChrmVsExpr script """
-        self._inc_arg('--dot_or_line_plot', choices=['dot', 'line'],
-                help='Select the type of plot you want '\
-                'entered from %choices')
-        self._inc_arg('--x_axis_type',
-                choices=['expression', 'chrm counts', 'expr counts'],
-                help='Select the data unit type for the x-axis')
-        self._inc_arg('--y_axis_type',
-                choices=['expression', 'chrm counts', 'expr counts'],
-                help='Select the data unit type for the y-axis')
+    def _add_counts_vs_expr_specific_args(self):
+        """ These args are specifically for the counts_vs_expr script """
+        self._inc_arg('--x_axis_type', choices=['expression', 'counts'],
+                help='Select the data unit type for the x-axis',
+                default='expression')
 
+        self._inc_arg('--region_feature', choices=['total', 'promoter',\
+                'coding', 'feature'], help='Which part of a counts region '+\
+                'should be used to calculate rank and score',
+                default='total')
+
+        self._inc_arg('--counts_is_ranks', action='store_true',
+                help='Plot chromatin counts as ranks rather than absolute values')
+        self._inc_arg('--expr_is_ranks', action='store_true',
+                help='Plot expression as ranks rather than absolute values')
+
+        self._inc_arg('--x_axis_is_log', action='store_true',
+                help='Plot x-axis with log2 values')
+        self._inc_arg('--y_axis_is_log', action='store_true',
+                help='Plot y-axis with log2 values')
 
     def __init__(self, positional_args=None, required_args=None,
             optional_args=None):
         """ calls _inc_args on every possible argument """
-        self.parser = argparse.ArgumentParser(description=\
-                'All ChipPy options', version='ChipPy r'+str(__version__))
-        # optgui_parser is the optparse_gui parser object
+        self.parser = argparse.ArgumentParser(version='ChipPy r'+str(__version__))
         self.req_cogent_opts = []
         self.opt_cogent_opts = []
         self.db_path = None
@@ -515,4 +526,4 @@ class Args(object):
         # process args specific to the diff_abs_plots script
         self._add_diff_abs_plots_specific_args()
         # process args specific to the ChrmVsExpr script
-
+        self._add_counts_vs_expr_specific_args()

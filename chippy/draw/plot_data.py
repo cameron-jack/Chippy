@@ -2,7 +2,7 @@ from __future__ import division
 
 import sys, numpy
 sys.path.extend(['..', '../src'])
-
+from math import log
 from util import smooth
 from chippy.util.run_record import RunRecord
 
@@ -14,6 +14,32 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.1'
+
+class PlotPoint(object):
+    """ A simple object representation of a point for plotting """
+    def __init__(self, x=0, y=0):
+        super(PlotPoint, self).__init__()
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return repr(self.x, self.y)
+
+    def get_logX(self):
+        """ safe log base 2 transform self.x """
+        if self.x <= 0:
+            x = 0
+        else:
+            x = log(self.x + 1, 2)
+        return x
+
+    def get_logY(self):
+        """ safe log base 2 transform self.y """
+        if self.y <= 0:
+            y = 0
+        else:
+            y = log(self.y + 1, 2)
+        return y
 
 class PlotLine(object):
     """ Represents an individual line to be plotted.

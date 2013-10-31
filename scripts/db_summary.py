@@ -39,7 +39,8 @@ script_info['optional_options'] = script_info['args'].opt_cogent_opts
 def main():
     rr = RunRecord('db_summary')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(use_scrollbars=True,
+            use_save_load_button=True, window_title='DB Summary')
     session = make_session(args.db_path)
     sample_name = args.sample.split(':')[0].strip() if args.sample else None
 

@@ -10,7 +10,7 @@ from matplotlib import pyplot, rcParams
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Anuj Pahwa, Cameron Jack'
-__credits__ = ['Gavin Huttley', 'Cameron Jack']
+__credits__ = ['Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
@@ -25,15 +25,14 @@ script_info['brief_description'] = 'dot-plots of absolute expression vs '+\
         'differential expression'
 script_info['version'] = __version__
 script_info['authors'] = __author__
-script_info['output_description']= 'PNG/PDF dotplot'
+script_info['output_description']= 'PDF/PNG/JPEG dotplot'
 
 # Process command-line arguments
 req_args = ['sample1', 'sample2', 'diff_sample', 'yaxis_units', 'xaxis_units']
 opt_args = ['num_genes', 'use_ranks', 'sample_extremes',
         'extremes_colour', 'signif_colour', 'bulk_colour', 'hide_extremes',
-        'hide_signif', 'hide_bulk', 'genefile', 'outfile1', 'outfile2',
-        'xaxis_text1', 'xaxis_text2', 'gene_file', 'plot_format',
-        'output_prefix1', 'output_prefix2']
+        'hide_signif', 'hide_bulk', 'plot1_name', 'plot2_name'
+        'xaxis_text1', 'xaxis_text2']
 pos_args = ['db_path']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -327,7 +326,7 @@ def build_plot_points(raw_plot_data, use_ranks, num_genes):
                 c_hex = '#%02x%02x%02x' % (0, 255, 255)
                 plot_dot = PlotDot(x=sample_bot_ids_scores[gene_id],
                         y=diff_minus1_ids_scores[gene_id],
-                        colour='c_hex', is_signif=True, is_extreme=True)
+                        colour=c_hex, is_signif=True, is_extreme=True)
             else:
                 rr.addWarning('data missing from plot', gene_id)
         else:
@@ -379,25 +378,39 @@ def make_plot(plot_dots, plot_dict, groups_dict):
     ax.xaxis.set_ticks_position('bottom')
     ax.yaxis.set_ticks_position('left')
 
-    pyplot.show()
 
-    if plot_dict['prefix'] is None:
-        prefix = ''
+
+    if plot_dict['out_name'] is not None:
+        if '.' in plot_dict['out_name']:
+            plot_format = plot_dict['out_name'].split('.')[-1].lower()
+        else:
+            plot_format = 'png'
+
+        plot_prefix = plot_dict['out_name'].split('.')[:-1]
+
+        plot_fn = plot_prefix + plot_dict['diff_name'] + '_' +\
+              plot_dict['sample_name'] + '_diff_abs_expr_plot' +\
+              '.' + plot_format
+
+        if plot_prefix == 'pdf':
+            pyplot.savefig(plot_fn, image_format='pdf')
+        if plot_prefix == 'png':
+            pyplot.savefig(plot_fn, image_format='png')
+        if plot_prefix == 'jpg' or plot_prefix == '.jpeg':
+            pyplot.savefig(plot_fn, image_format='jpg')
+
     else:
-        prefix = plot_dict['prefix'] + '_'
+        pyplot.show()
 
-    out_fn = prefix + plot_dict['diff_name'] + '_' + \
-              plot_dict['sample_name'] + '_diff_abs_expr_plot' + \
-              '.' + plot_dict['format'].lower()
-
-    pyplot.savefig(out_fn, image_format=plot_dict['format'])
 
 def main():
     """ plot expression scores or ranks in genes of interest for one or 
     more groups"""
-    rr = RunRecord()
+    rr = RunRecord('diff_abs_plots')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(use_scrollbars=True,
+            use_save_load_button=True,
+            window_title='Difference vs Absolute Expression Plots')
 
     groups_dict = dict([('extremes_colour', args.extremes_colour),
             ('signif_colour', args.signif_colour),
@@ -421,8 +434,7 @@ def main():
     plot_dots2 = build_plot_points(raw_plot_data2, args.ranks,
             args.num_genes)
 
-    plot_dict = dict([('prefix', args.output_prefix1),
-            ('format', args.plot_format),
+    plot_dict = dict([('out_name', args.plot1_name),
             ('title', args.title),
             ('y_text', args.yaxis_text),
             ('y_units', args.yaxis_units),
@@ -434,7 +446,7 @@ def main():
     make_plot(plot_dots1, plot_dict, groups_dict)
 
     plot_dict['sample_name'] = raw_plot_data2.sample_name
-    plot_dict['prefix'] = args.output_prefix2
+    plot_dict['out_name'] = args.plot2_name
     plot_dict['x_axis_text'] = args.xaxis2_text
     plot_dict['x_units'] = args.xaxis2_units
 

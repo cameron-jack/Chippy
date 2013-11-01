@@ -23,6 +23,21 @@ __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.2'
 
+class FigureDetails(object):
+    """
+        A 'lite' Plottable object to aid in passing useful information to
+        plotting code. Should likely be merged with _Plottable.
+    """
+
+    def __init__(self, x_size=5, y_size=3, title=None, x_text=None,
+                 y_text=None):
+        self.x_size = x_size
+        self.y_size = y_size
+        self.title = title
+        self.x_text = x_text
+        self.y_text = y_text
+
+
 class _Plottable(object):
     """ Base class for handling plotting. Defines the appearance
         of a plot.

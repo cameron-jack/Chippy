@@ -2,28 +2,26 @@ from __future__ import division
 from math import log10, floor, ceil
 
 import os, sys, glob
-sys.path.extend(['..', '../src'])
+sys.path.extend(['..'])
 
 import numpy
-import pickle
 import gzip
 
 from optparse import make_option
-from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from cogent.util.misc import parse_command_line_parameters
 from chippy.util.run_record import RunRecord
 from matplotlib import pyplot, rcParams
-from chippy.core.collection import RegionCollection, column_sum, column_mean, stdev
+from chippy.draw.plottable import FigureDetails
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011, Gavin Huttley, Anuj Pahwa, Cameron Jack'
-__credits__ = ['Gavin Huttley, Cameron Jack']
+__credits__ = ['Cameron Jack']
 __license__ = 'GPL'
-__maintainer__ = 'Gavin Huttley'
-__email__ = 'Gavin.Huttley@anu.edu.au'
-__status__ = 'alpha'
-__version__ = '0.1'
+__maintainer__ = 'Cameron Jack'
+__email__ = 'cameron.jack@anu.edu.au'
+__status__ = 'pre-release'
+__version__ = '0.2'
 
 def _make_sample_choices(session):
     """returns the available choices for target gene samples"""
@@ -230,14 +228,6 @@ def load_data(filename):
               'or %s' % (exp_absolute, exp_diff)
         raise RuntimeError ('Incorrect sample type given')
 
-class FigureDetails:
-    def __init__(self, x_size=5, y_size=3, title=None, x_text=None, y_text=None):
-        self.x_size = x.size
-        self.y_size = y.size
-        self.title = title
-        self.x_text = x_text
-        self.y_text = y_text
-
 def make_plots(data_list, plot_type, fig_details=None, plot_file=None,
         plot_file_type='png', rr=RunRecord()):
 
@@ -274,40 +264,6 @@ def make_plots(data_list, plot_type, fig_details=None, plot_file=None,
     if plot_file:
         outfile = plot_file + plot_type
         pyplot.savefig(outfile, format=plot_type)
-
-    return rr
-
-class Gene(object):
-    """ defined by a stableId in a given study """
-    def __init__(self, stableId, study, **kwargs):
-        self.stableId = stableId
-        self.study = study
-
-    def __repr__(self):
-        return repr((self.stableId, self.study))
-
-class ChrmGene(Gene):
-    """ gene entry from a ChipPy study """
-    def __init__(self, counts=None, rank=None, **kwargs):
-
-
-        self.counts = counts # a numpy array
-        self.rank = rank
-        self.feature_pos = len(self.counts)/2
-        self.feature_count = self.counts[self.feature_pos]
-
-    def __repr__(self):
-        return repr((self.counts, self.rank, self.feature_pos,
-                self.feature_count))
-
-class ExprGene(Gene):
-    """ gene entry from an expression study """
-    def __init__(self, expr=None, rank=None, **kwargs):
-        self.expr = expr
-        self.rank = rank
-
-    def __repr__(self):
-        return repr(self.expr, self.rank)
 
 
 def load_all_data(samples, db_path, rr=RunRecord()):
@@ -361,9 +317,10 @@ def load_all_data(samples, db_path, rr=RunRecord()):
     return chrm_gene_list, expr_gene_list, rr
 
 def main():
-
-    """ plot expression scores or ranks in genes of interest for one or 
-    more groups"""
+    """
+        Compare the distributions of gene expression relative to
+        gene expression rank.
+    """
     
     # Get command-line inputs
     db_path, script_info = set_environment()

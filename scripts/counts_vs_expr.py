@@ -8,6 +8,7 @@ from chippy.util.run_record import RunRecord
 from matplotlib import pyplot, rcParams
 from chippy.util.command_args import Args
 from chippy.util.studies import MatchedStudy
+from chippy.draw.plottable import FigureDetails
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -47,19 +48,6 @@ script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
 script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
-
-class FigureDetails:
-    """ This should be replaced with Plottable, which should also have a
-    set_plot_options function so that options for setting title and such
-    are standard and don't need to be reimplemented """
-
-    def __init__(self, x_size=5, y_size=3, title=None, x_text=None,
-            y_text=None):
-        self.x_size = x_size
-        self.y_size = y_size
-        self.title = title
-        self.x_text = x_text
-        self.y_text = y_text
 
 def make_plot(plot_points, plot_type='dot', plot_fn=None,
         output_type=None, fig_details=None, x_axis_is_log=False,
@@ -156,11 +144,8 @@ def main():
     plot_points = matched_studies.get_matched_genes_as_xy_plotpoints(\
             args.x_axis_type, args.expr_is_ranks, args.counts_is_ranks)
 
-    #fig = FigureDetails(x_size=args.fig_width, y_size=args.fig_height,
-    #        title=args.sample + ' vs ' + args.collection)
-
-    fig = FigureDetails(x_size=8, y_size=6,
-        title=args.sample + ' vs ' + args.collection)
+    fig = FigureDetails(x_size=args.fig_width, y_size=args.fig_height,
+            title=args.sample + ' vs ' + args.collection)
 
     if args.x_axis_type.lower() == 'expression':
         fig.x_text = 'Expression'

@@ -482,6 +482,14 @@ class Args(object):
         self._inc_arg('--y_axis_is_log', action='store_true',
                 help='Plot y-axis with log2 values')
 
+    def _add_counts_distribution_specific_args(self):
+        """ Args specific to the counts_distribution script """
+        pass
+
+    def _add_expr_distribution_specific_args(self):
+        """ Args specific to the expr_distribution script """
+        pass
+
     def __init__(self, positional_args=None, required_args=None,
             optional_args=None):
         """ calls _inc_args on every possible argument """
@@ -523,7 +531,9 @@ class Args(object):
         self._add_db_args()
         # process misc arguments
         self._add_misc_args()
-        # process args specific to the diff_abs_plots script
+
+        # args specific to the individual scripts
         self._add_diff_abs_plots_specific_args()
-        # process args specific to the ChrmVsExpr script
         self._add_counts_vs_expr_specific_args()
+        self._add_counts_distribution_specific_args()
+        self._add_expr_distribution_specific_args()

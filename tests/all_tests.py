@@ -37,7 +37,7 @@ def suite():
         'test_collection',
         'test_db',
         'test_parse_bed',
-        'test_parse_rdump',
+        'test_parse_expr_data',
         'test_parse_sam',
         'test_run_record',
         'test_syntax',

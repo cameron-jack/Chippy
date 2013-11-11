@@ -3,33 +3,35 @@ warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
 import datetime, sys
 sys.path.extend(['..'])
-from sqlalchemy import create_engine, and_
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.exc import NoResultFound, UnmappedInstanceError, \
+        UnmappedClassError
 
 from cogent.db.ensembl import HostAccount, Genome
 from cogent.util.progress_display import display_wrap
 
 from chippy.express.db_schema import Chroms, Gene, Exon, \
-            TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
+        TargetGene, Expression, ExpressionDiff, ReferenceFile, Sample
 from chippy.express.db_query import  get_stable_id_genes_mapping, \
         get_diff_counts, get_expression_counts, get_targetgene_counts
 from chippy.express.util import sample_types, _one
 from chippy.util.run_record import RunRecord
+from chippy.express.definition import EXPR_HEADER, DIFF_HEADER
 
 __author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
-__version__ = '0.3'
+__version__ = '0.4'
 
 now = datetime.datetime.now()
 today = datetime.date(now.year, now.month, now.day)
 
-def successful_commit(session, data, debug=False):
+def _successful_commit(session, data, debug=False):
     """returns True if successfully added data"""
     if not data:
         return False
@@ -45,19 +47,21 @@ def successful_commit(session, data, debug=False):
     try:
         session.add_all(data)
         session.commit()
-    except IntegrityError, msg:
+    except (IntegrityError, UnmappedInstanceError, UnmappedClassError), msg:
         session.rollback()
         if debug:
             print msg
         return False
     return True
 
+### Functions called by start_chippy_db.py ###
+
 def add_chroms(session, species, chromlist):
     """ adds a species and its list of chroms to the DB.
     This interface is for external use """
     chromsList = [str(chrom) for chrom in chromlist]
     chroms = Chroms(species, chromsList)
-    success = successful_commit(session, chroms)
+    success = _successful_commit(session, chroms)
     if not success:
         return False
     return True
@@ -126,11 +130,39 @@ def add_ensembl_gene_data(session, species, ensembl_release, account=None,
     session.commit()
     return chroms
 
+def create_dummy_expr(session):
+    """
+        Create dummy expression data. Each gene expr = 1.
+        Called by start_chippy_db.py
+    """
+    genes_dict = get_stable_id_genes_mapping(session)
+
+    # flat expression dummy
+    expr_table_rows = []
+    for i, gene_id in enumerate(genes_dict):
+        #expr_table_rows.append([gene_id, 'P'+str(i), 1])
+        expr_table_row = {}
+        expr_table_row['gene'] = gene_id
+        expr_table_row['probeset'] = 'P'+str(i)
+        expr_table_row['exp'] = 1
+        expr_table_rows.append(expr_table_row)
+
+    success = add_data(session, 'dummy',
+        'each gene has expression score of 1',
+        'dummy_expr.fake', expr_table_rows, gene_id_heading='gene',
+        probeset_heading='probeset', expr_heading='exp',
+        sample_type='exp_absolute',
+        reffile1=None, reffile2=None)
+
+    return success
+
+### Functions used by add_expression_db.py ###
+
 def add_sample(session, name, description):
     """add a basic sample"""
     rr = RunRecord('add_sample')
     sample = Sample(name, description)
-    if not successful_commit(session, sample):
+    if not _successful_commit(session, sample):
         rr.addInfo('Sample already exists in db', name)
         return False
     else:
@@ -138,19 +170,13 @@ def add_sample(session, name, description):
         return True
 
 @display_wrap
-def add_expression_study(session, sample_name, data_path, table,
-        probeset_label='probeset', ensembl_id_label='ENSEMBL',
-        expression_label='exp', ui=None):
+def add_expression_study(session, sample_name, data_path, table, ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
         - sample_name: the sample name to connect expression instances to
         - data_path: the reference file path
         - table: the actual expression data table
-        - probeset_label: label of the column containing probset id
-        - ensembl_id_label: label of the column containing Ensembl Stable IDs
-        - expression_label: label of the column containing absolute measure
-          of expression
     """
     rr = RunRecord('add_expression_study')
     data = []
@@ -180,14 +206,17 @@ def add_expression_study(session, sample_name, data_path, table,
     
     # get all gene ID data for the specified Ensembl release
     ensembl_genes = get_stable_id_genes_mapping(session)
-    if not successful_commit(session, data):
+    if not _successful_commit(session, data):
         pass
     
     data = []
     unknown_ids = 0
     total = 0
+    gene_label = EXPR_HEADER[0]
+    probeset_label =  EXPR_HEADER[1]
+    expression_label = EXPR_HEADER[2]
     for record in ui.series(table, noun='Adding expression instances'):
-        ensembl_id = record[ensembl_id_label]
+        ensembl_id = record[gene_label]
         try:
             gene = ensembl_genes[ensembl_id]
         except KeyError:
@@ -217,10 +246,7 @@ def add_expression_study(session, sample_name, data_path, table,
 
 @display_wrap
 def add_expression_diff_study(session, sample_name, data_path, table,
-            ref_a_path, ref_b_path,
-            probeset_label='probeset',
-            ensembl_id_label='ENSEMBL', expression_label='exp',
-            prob_label='rawp', sig_label='sig', ui=None):
+            ref_a_path, ref_b_path, ui=None):
     """adds Expression instances into the database from table
     
     Arguments:
@@ -231,15 +257,6 @@ def add_expression_diff_study(session, sample_name, data_path, table,
           between file path a and file path b. This order is CRITICAL as it
           affects the inferences concerning gene expression being up / down
           in a sample.
-        - probeset_label: label of the column containing probset id
-        - ensembl_id_label: label of the column containing Ensembl Stable IDs
-        - expression_label: label of the column containing absolute measure
-          of expression
-        - prob_label: label of the column containing raw probability of
-          difference in gene expression between samples A/B
-        - sig_label: label of the column classifying probabilities as
-          significant after multiple test correction. 1 means up in A relative
-          to B, -1 means down in A relative to B, 0 means no difference.
     """
     rr = RunRecord('add_expression_diff_study')
     sample = _one(session.query(Sample).filter_by(name=sample_name))
@@ -284,7 +301,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
                 (sample.name, data_path))
         return
     
-    if not successful_commit(session, data):
+    if not _successful_commit(session, data):
         session.rollback()
     
     ensembl_genes = get_stable_id_genes_mapping(session)
@@ -293,8 +310,14 @@ def add_expression_diff_study(session, sample_name, data_path, table,
     total = 0
     signif_up_total = 0
     signif_down_total = 0
+
+    gene_label = DIFF_HEADER[0]
+    probeset_label =  DIFF_HEADER[1]
+    expression_label = DIFF_HEADER[2]
+    sig_label = DIFF_HEADER[3]
+    pval_label = DIFF_HEADER[4]
     for record in ui.series(table, noun='Adding expression diffs'):
-        ensembl_id = record[ensembl_id_label]
+        ensembl_id = record[gene_label]
         try:
             gene = ensembl_genes[ensembl_id]
         except KeyError:
@@ -303,7 +326,7 @@ def add_expression_diff_study(session, sample_name, data_path, table,
         
         probeset = record[probeset_label]
         fold_change = record[expression_label]
-        prob = float(record[prob_label])
+        prob = float(record[pval_label])
         signif = int(record[sig_label])
         diff = ExpressionDiff(probeset, fold_changes=fold_change,
                 prob=prob, signif=signif)
@@ -396,6 +419,7 @@ def check_existing_data(session, sample_name):
 
     return 0, None
 
+# public entrance point
 def add_data(session, name, description, path, expr_table,
         gene_id_heading='gene', probeset_heading='probeset',
         expr_heading='exp', sample_type=sample_types['exp_absolute'],
@@ -417,21 +441,16 @@ def add_data(session, name, description, path, expr_table,
 
     # either sample was created or existed with no data, so load data now
     if sample_types[sample_type] == sample_types['exp_absolute']:
-        success = add_expression_study(session, name, path, expr_table,
-                probeset_label=probeset_heading,
-                ensembl_id_label=gene_id_heading,
-                expression_label=expr_heading)
+        success = add_expression_study(session, name, path, expr_table)
+
     elif sample_types[sample_type] == sample_types['exp_diff']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\
         'files that contain the absolute measures.'
         add_expression_diff_study(session, name, path,
-                expr_table, reffile1, reffile2,
-                probeset_label=probeset_heading,
-                ensembl_id_label=gene_id_heading,
-                expression_label=expr_heading,
-                prob_label='rawp', sig_label='sig')
+                expr_table, reffile1, reffile2)
+
     elif sample_types[sample_type] == sample_types['target_genes']:
         add_target_genes(session, name, path, expr_table,
                 ensembl_id_label=gene_id_heading)
@@ -440,49 +459,6 @@ def add_data(session, name, description, path, expr_table,
 
     return success
 
-def create_dummy_flat_expr(session):
-    """ create flat and spread dummy data """
-    genes_dict = get_stable_id_genes_mapping(session)
 
-    # flat expression dummy
-    expr_table_rows = []
-    for i, gene_id in enumerate(genes_dict):
-        #expr_table_rows.append([gene_id, 'P'+str(i), 1])
-        expr_table_row = {}
-        expr_table_row['gene'] = gene_id
-        expr_table_row['probeset'] = 'P'+str(i)
-        expr_table_row['exp'] = 1
-        expr_table_rows.append(expr_table_row)
 
-    success = add_data(session, 'dummy_flat',
-            'each gene has expression score of 1',
-            'dummy_flat_expr.fake', expr_table_rows, gene_id_heading='gene',
-            probeset_heading='probeset', expr_heading='exp',
-            sample_type='exp_absolute',
-            reffile1=None, reffile2=None)
-
-    return success
-
-def create_dummy_spread_expr(session):
-    """ create flat and spread dummy data """
-    genes_dict = get_stable_id_genes_mapping(session)
-
-    # spread expression dummy
-    expr_table_rows = []
-    for i, gene_id in enumerate(genes_dict):
-        expr_table_row = {}
-        expr_table_row['gene'] = gene_id
-        expr_table_row['probeset'] = 'P'+str(i)
-        expr_table_row['exp'] = i
-        expr_table_rows.append(expr_table_row)
-
-    success = add_data(session, 'dummy_spread',
-            'each gene has unique expression score',
-            'dummy_spread_expr.fake', expr_table_rows,
-            gene_id_heading='gene',
-            probeset_heading='probeset', expr_heading='exp',
-            sample_type='exp_absolute',
-            reffile1=None, reffile2=None)
-
-    return success
 

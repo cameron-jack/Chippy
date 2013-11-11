@@ -9,7 +9,7 @@ from chippy.util.util import create_path
 
 from chippy.express.db_query import make_session
 from chippy.express.db_populate import add_ensembl_gene_data, \
-        create_dummy_flat_expr, create_dummy_spread_expr
+        create_dummy_expr
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
@@ -66,17 +66,11 @@ def main():
                 ensembl_release=args.ensembl_release, account=account)
 
         if args.dummy_data:
-            success = create_dummy_flat_expr(session)
+            success = create_dummy_expr(session)
             if success:
-                print 'Dummy flat data added successfully'
+                print 'Dummy data added successfully. Expr=1.'
             else:
-                print 'Dummy flat data failed to upload to DB. Expect bigger problems'
-
-            success = create_dummy_spread_expr(session)
-            if success:
-                print 'Dummy spread data added successfully'
-            else:
-                print 'Dummy spread data failed to upload to DB. Expect bigger problems'
+                print 'Dummy data failed to upload to DB. Expect bigger problems'
 
         rr.addInfo('Chippy DB written', db_path)
     else:

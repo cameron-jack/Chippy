@@ -1,0 +1,3 @@
+gene
+PLUS-1
+MINUS-3

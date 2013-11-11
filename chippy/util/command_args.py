@@ -186,6 +186,11 @@ class Args(object):
         self._inc_arg('--expression_heading',
                 default='exp',
                 help='Column containing the expression scores')
+        self._inc_arg('--significance_heading', default='sig',
+                help='Column containing significance value')
+        self._inc_arg('--p_value_heading', default='p_val',
+                help='Column containing difference p values')
+        self._inc_arg('--sep', default='\t', help='data field delimiter')
 
         # Only valid if a CHIPPY_DB has been given
         if self.db_path:
@@ -414,7 +419,7 @@ class Args(object):
         self._inc_arg('--port', default=None, type=int,
                 help='Port for SQL Ensembl server')
         self._inc_arg('--dummy_data', default=False, action='store_true',
-                help='Create dummy expression data sets')
+                help='Create dummy expression data')
 
     def _add_misc_args(self):
         """ various options that don't fall into a category above """

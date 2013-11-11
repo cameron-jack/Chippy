@@ -24,7 +24,7 @@ from chippy.express.db_query import get_sample_counts, get_gene_counts, \
 
 from chippy.express.db_populate import add_expression_diff_study, \
         add_sample, add_chroms
-from chippy.parse.r_dump import simpleRdumpToTable
+from chippy.parse.expr_data import gene_expr_to_table, gene_expr_diff_to_table
 
 __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -740,6 +740,8 @@ class TestQueryFunctions(TestDbBase):
 
         # Create 1 non-matching TargetGene for target 3
         t1 = self._build_target_gene('target3.txt', 'TARGET-1', 'target 3')
+        self.session.add_all([t1])
+        self.session.commit()
     
     def test_get_expression_counts(self):
         """ correctly return number of expressed genes for a sample """
@@ -791,7 +793,7 @@ class TestQueryFunctions(TestDbBase):
     def test_get_targetgene_entries(self):
         """ TargetGene entries should be correctly returned """
         self.populate_target_data()
-        expect1 = ['PLUS-1', 'PLUS-1', 'PLUS-3', 'MINUS-1', \
+        expect1 = ['PLUS-1', 'PLUS-1', 'PLUS-3', 'MINUS-1',
                    'MINUS-3', 'TARGET-1', 'TARGET-1']
         tgs = get_targetgene_entries(self.session)
         tg_list = [str(tg.gene.ensembl_id) for tg in tgs]
@@ -922,7 +924,7 @@ class TestQueryFunctionsExpDiff(TestDbBase):
     samples = [('sample 1', 'fake sample 1'),
                ('sample 2', 'fake sample 2')]
     
-    dpath = 'data/expression-diff-sample.txt'
+    dpath = 'data/microarray_diff.txt'
     sample = ('sample1', 'blah')
     reffile_path1 = 'sample1.txt'
     reffile_path2 = 'sample2.txt'
@@ -936,11 +938,11 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         self.assertTrue(success)
         self.session.add_all([reffile1, reffile2])
         self.session.commit()
-        table = simpleRdumpToTable(self.dpath, stable_id_label='gene',
-                probeset_label='probeset', exp_label='exp')
+        table = gene_expr_diff_to_table(self.dpath, stable_id_label='gene',
+                probeset_label='probeset', exp_label='exp', sig_label='sig',
+                pval_label='p_val')
         add_expression_diff_study(self.session, 'sample1', self.dpath, table,
-                self.reffile_path1, self.reffile_path2,
-                ensembl_id_label='gene', show_progress=False)
+                self.reffile_path1, self.reffile_path2, show_progress=False)
     
     def setUp(self):
         """docstring for add_files_samples"""
@@ -1017,10 +1019,10 @@ class TestQueryFunctionsExpDiff(TestDbBase):
         # add the expression diff data
         # do we get it back?
         expr_diffs = get_diff_entries(self.session, self.sample[0])
-        expect = dict([('PLUS-1', [10600707]),
-                  ('PLUS-3', [10408081]),
-                  ('MINUS-1', [10494402]),
-                  ('MINUS-3', [10408083])])
+        expect = dict([('PLUS-1', ['10600707']),
+                  ('PLUS-3', ['10408081']),
+                  ('MINUS-1', ['10494402']),
+                  ('MINUS-3', ['10408083'])])
 
         self.assertTrue(len(expr_diffs) > 0)
         for diff in expr_diffs:
@@ -1153,10 +1155,10 @@ class TestQueryFunctionsExpDiff(TestDbBase):
 
         expected = get_sample_counts(self.session)
         # Try with built-in test mode, which rolls back the deletes
-        self.assertFalse(drop_sample_records(self.session, \
+        self.assertFalse(drop_sample_records(self.session,
                 'sample1', test=True))
         # Now actually delete
-        self.assertTrue(drop_sample_records(self.session, \
+        self.assertTrue(drop_sample_records(self.session,
                 'sample1', test=False))
 
         observed = get_sample_counts(self.session)

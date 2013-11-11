@@ -8,12 +8,12 @@ from cogent import LoadTable
 from chippy.express import db_query
 from chippy.express.db_populate import add_data
 from chippy.express.util import sample_types
-from chippy.parse.r_dump import simpleRdumpToTable
+from chippy.parse.expr_data import gene_expr_to_table, gene_expr_diff_to_table
 from chippy.util.command_args import Args
 from chippy.util.run_record import RunRecord
 
 __author__ = 'Gavin Huttley, Cameron Jack'
-__copyright__ = 'Copyright 2011-2013, Anuj Pahwa, Gavin Huttley, Cameron Jack'
+__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -36,7 +36,7 @@ script_info['output_description']= 'None.'
 req_args = ['expression_data', 'new_sample', 'sample_type']
 opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
         'gene_id_heading', 'probeset_heading', 'expression_heading',
-        'test_run']
+        'significance_heading', 'p_value_heading', 'sep']
 pos_args = ['db_path']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -62,32 +62,35 @@ def main():
     ref_file = args.expression_data
 
     # Check that ReferenceFile is unique
-    #if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
-    #    rr.addCritical('ReferenceFile already loaded', ref_file)
-    #    rr.display()
-    #    sys.exit(1)
+    if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
+        rr.addCritical('ReferenceFile already loaded', ref_file)
+        rr.display()
+        sys.exit(1)
 
     if sample_types[args.sample_type] == sample_types['exp_absolute']:
-        expr_table = simpleRdumpToTable(args.expression_data,
+        expr_table = gene_expr_to_table(args.expression_data,
                 stable_id_label=args.gene_id_heading,
                 probeset_label=args.probeset_heading,
-                exp_label=args.expression_heading, validate=True)
+                exp_label=args.expression_heading,
+                allow_probeset_many_gene=args.allow_probeset_many_gene,
+                validate=True, sep=args.sep)
 
     elif sample_types[args.sample_type] == sample_types['exp_diff']:
         # validation breaks with some of Rohan's diff files
         # he's included all probesets but only the mean score, once.
-        expr_table = simpleRdumpToTable(args.expression_data,
-            stable_id_label=args.gene_id_heading,
-            probeset_label=args.probeset_heading,
-            exp_label=args.expression_heading, validate=False)
+        expr_table = gene_expr_diff_to_table(args.expression_data,
+                stable_id_label=args.gene_id_heading,
+                probeset_label=args.probeset_heading,
+                exp_label=args.expression_heading,
+                sig_label=args.significance_heading,
+                pval_label=args.p_value_heading,
+                allow_probeset_many_gene=args.allow_probeset_many_gene,
+                validate=False, sep=args.sep)
     else:
-        expr_table = LoadTable(args.expression_data, sep='\t')
+        expr_table = LoadTable(args.expression_data, sep=args.sep)
 
     success = add_data(session, name, description,
             args.expression_data, expr_table,
-            probeset_heading=args.probeset_heading,
-            gene_id_heading=args.gene_id_heading,
-            expr_heading=args.expression_heading,
             sample_type=args.sample_type, reffile1=args.reffile1,
             reffile2=args.reffile2)
 

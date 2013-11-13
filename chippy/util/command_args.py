@@ -1,6 +1,5 @@
 import argparse
 import sys # required for finding db_path
-from chippy.express.db_query import get_chroms
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
@@ -83,29 +82,6 @@ class Args(object):
                 return self.parser.parse_args()
         else:
             return self.parser.parse_args()
-
-    def _make_sample_choices(self):
-        """returns the available choices for samples in the DB"""
-        if self.db_path is None:
-            return ['None', 'none']
-        session = db_query.make_session(str(self.db_path))
-        samples = db_query.get_sample_choices(session)
-        #samples = ['%s : %s' % (str(s.name), str(s.description))
-        #        for s in db_query.get_samples(session)]
-        # These are valid null samples
-        #samples.insert(-1, 'None')
-        #samples.insert(-1, 'none')
-        session.close()
-        return samples
-
-    def _make_chrom_choices(self):
-        if self.db_path is None:
-            return []
-        session = db_query.make_session(str(self.db_path))
-        chroms = get_chroms(session)
-        if not chroms: # must return something or opt build will fail
-            chroms = ['None', 'none']
-        return chroms
 
     # argparse base arg type converter to optparse basic types allows us to
     # avoid specifically adding 'cogent_action_or_type' to every argument.
@@ -192,35 +168,38 @@ class Args(object):
                 help='Column containing difference p values')
         self._inc_arg('--sep', default='\t', help='data field delimiter')
 
-        # Only valid if a CHIPPY_DB has been given
-        if self.db_path:
-            self._inc_arg('-s','--sample', choices=self._make_sample_choices(),
-                    help="Select an existing sample to use, form is '+\
-                    'S : S phase'")
-            # Generic multi-sample options (perhaps should be positional)
-            self._inc_arg('--sample1', choices=self._make_sample_choices(),
-                    help="Choose a first expression study, form is '+\
-                    'S : S phase'")
-            self._inc_arg('--sample2', choices=self._make_sample_choices(),
-                    help="Choose a second expression study, form is '+\
-                    'S : S phase'")
-            self._inc_arg('--sample3', choices=self._make_sample_choices(),
-                    help="Choose a third expression study, form is '+\
-                    'S : S phase'")
-            self._inc_arg('--sample4', choices=self._make_sample_choices(),
-                    help="Choose a fourth expression study, form is '+\
-                    'S : S phase'")
-            samplesStr = ', '.join(self._make_sample_choices())
-            self._inc_arg('-S','--new_sample', default=None,
-                    help="Select an existing sample to use, form is '+\
-                    'S : S phase'. Existing samples: "+samplesStr)
-            # It would be nice if this only offered diff studies as choices
-            self._inc_arg('--diff_sample', help='Choose the expression study',
-                    choices=[str(s) for s in self._make_sample_choices()])
+        self._inc_arg('--sample', choices=\
+                db_query.get_all_sample_names(self.db_path),
+                help='Select an existing sample')
+        # absolute or differential expression
+        self._inc_arg('--expr_sample', choices=\
+                db_query.get_expr_diff_sample_names(self.db_path),
+                help='Select an existing sample (absolute or differential '+\
+                'expression) to use')
+        # absolute expression only
+        self._inc_arg('--abs_expr_sample', choices=\
+                db_query.get_expr_sample_names(self.db_path),
+                help='Select an absolute expression sample to use')
+        # used for diff_abs_plots
+        self._inc_arg('--abs_expr_sample_2', choices=\
+        db_query.get_expr_sample_names(self.db_path),
+            help='Select an absolute expression sample to use')
+        # differential expression samples only
+        self._inc_arg('--diff_sample', choices=\
+                db_query.get_diff_sample_names(self.db_path),
+                help='Select a differential expression sample to use')
 
+        # args for creating new sample entries
+        samplesStr = ', '.join(db_query.get_all_sample_names(self.db_path))
+        self._inc_arg('-n','--name', default=None, help='Enter a new '+\
+                'sample name. Existing samples: ' + samplesStr)
+        self._inc_arg('-d', '--description', help='give your sample a '+\
+                'description')
         self._inc_arg('--sample_type',
                 choices=[k for k in sample_types.keys()],
-                help='Select the type of data you want entered from '+\
+                help='One of: '+', '.join([str(k) for \
+                        k in sample_types.values()])+\
+                'Select the type of data you want entered from '+\
                 ' '.join([str(k) for k in sample_types.keys()]) )
 
         self._inc_arg('--reffile1', default=None, help='Related file 1')
@@ -242,7 +221,7 @@ class Args(object):
         # chrom choice
         self._inc_arg('-C', '--chrom', default=None,
                 help='Choose a chromosome',
-                choices=(self._make_chrom_choices()) )
+                choices=(db_query.get_chroms(self.db_path)) )
 
         # group genes into sets ranked by expression
         self._inc_arg('-g', '--group_size', default='All',
@@ -263,11 +242,6 @@ class Args(object):
         self._inc_arg('--sample_extremes', type=float,
                 default=0.0, help='Proportion of least and most absolute '+\
                 'expressed genes to treat separately. Set to 0.0 to disable.')
-
-        # plot only the most expressed genes of group_size
-        # DEPRECATED
-        self._inc_arg('--top_features', action='store_true', default = False,
-                help='Plot only top features ranked by expressed chromatin')
 
         # Use moving-mean (boxcar) smoothing on lines
         self._inc_arg('--smoothing', type=int, default=0,
@@ -298,11 +272,11 @@ class Args(object):
                 'significance. Valid values: 1, 0, -1', default=None)
 
         self._inc_arg('--include_target', default=None,
-                help='A Target Gene List in ChipPyDB',
-                choices=[str(s) for s in self._make_sample_choices()])
+                help='A Target Gene List in ChipPyDB', choices=\
+                [str(s) for s in db_query.get_target_gene_names(self.db_path)])
         self._inc_arg('--exclude_target', default=None,
-                help='A Target Gene List in ChipPyDB',
-                choices=[str(s) for s in self._make_sample_choices()])
+                help='A Target Gene List in ChipPyDB', choices=\
+                [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
@@ -472,7 +446,7 @@ class Args(object):
                 help='Select the data unit type for the x-axis',
                 default='expression')
 
-        self._inc_arg('--region_feature', choices=['total', 'promoter',\
+        self._inc_arg('--region_feature', choices=['total', 'promoter',
                 'coding', 'feature'], help='Which part of a counts region '+\
                 'should be used to calculate rank and score',
                 default='total')

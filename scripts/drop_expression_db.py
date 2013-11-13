@@ -44,8 +44,7 @@ def main():
     args = script_info['args'].parse()
     session = db_query.make_session(args.db_path)
 
-    sample_name = args.sample.split(' : ')[0]
-    if db_query.drop_sample_records(session, sample_name):
+    if db_query.drop_sample_records(session, args.sample):
         print 'Success'
     else:
         print 'Failure'

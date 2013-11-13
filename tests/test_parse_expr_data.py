@@ -6,7 +6,7 @@ from cogent.util.unit_test import TestCase, main
 from cogent.util.misc import remove_files
 
 from chippy.parse.expr_data import _check_expr_headers, _check_diff_headers,\
-        _validate_probes_scores, _remove_multimapped_probesets
+        _validate_probes_scores, _remove_multimapped_probesets, _read_data_file
 
 _sample_dump = LoadTable(header=['ENSEMBL', 'probeset', 'exp'],
         rows=[['id1',"0|1|2","13.6|13.4|13.6"],
@@ -19,7 +19,7 @@ _sample_dump = LoadTable(header=['ENSEMBL', 'probeset', 'exp'],
         ['id9',"14","12.7"],
         ['id10',"15","12.7"]])
 
-class ExcludingProbesets(TestCase):
+class TestExprParsing(TestCase):
     """test that excluding probesets works correctly"""
 
     def test_check_expr_headers(self):
@@ -145,6 +145,30 @@ class ExcludingProbesets(TestCase):
         self.assertEqual(v_genes, expected_genes)
         self.assertEqual(v_probes, expected_probes)
         self.assertEqual(v_scores, expected_scores)
+
+    def test_read_data_file(self):
+        """
+            Tests the reading of an actual data file.
+        """
+        # make sure the reader skips genes with only NA's and carries on
+        header = '\t'.join(['gene', 'probeset', 'exp']) + '\n'
+        data1 = '\t'.join(['gene1', 'NA', 'NA']) + '\n'
+        data2 = '\t'.join(['gene2', 'P2', '1.3']) + '\n'
+        data_path = 'tmp_data_file1.txt'
+        with open(data_path, 'w') as f:
+            f.write(header)
+            f.write(data1)
+            f.write(data2)
+
+        genes, probes, exp, probes_present = _read_data_file(data_path,
+                sep='\t', stable_id_label='gene', probeset_label='probeset',
+                exp_label='exp', sig_label='sig', pval_label='p_val',
+                is_diff=False)
+
+        self.assertEqual(genes, ['gene2'])
+        self.assertEqual(probes, [['P2']])
+        self.assertEqual(exp, [[1.3]])
+        self.assertTrue(probes_present)
 
 if __name__ == '__main__':
     main()

@@ -2,13 +2,12 @@
 """dumps a RegionCollection compressed file"""
 from __future__ import division
 
-import os, sys, glob, warnings
+import os, sys, warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 sys.path.extend(['..', '../src'])
 
 from chippy.core.count_tags import counts_for_genes
 from chippy.express import db_query
-from chippy.express.util import sample_types
 from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
@@ -19,7 +18,7 @@ __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
-__version__ = '0.1'
+__version__ = '0.2'
 
 script_info = {}
 script_info['title'] = 'Saves feature counts'
@@ -34,8 +33,7 @@ script_info['output_description']= 'Generates a Pickle file or a ' +\
         'gzipped tab-delimited file that can be used for plotting ' +\
         'of subsets of genes. Can also output to BEDgraph.'
 pos_args = ['db_path']
-req_args = ['sample', 'sample_type', 'feature_type',
-        'BAMorBED',  'collection']
+req_args = ['expr_sample', 'feature_type', 'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
         'count_max_length', 'window_upstream', 'window_downstream',
         'multitest_signif_val', 'include_target',
@@ -46,7 +44,7 @@ script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
 script_info['required_options'] = script_info['args'].req_cogent_opts
 script_info['optional_options'] = script_info['args'].opt_cogent_opts
 
-def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
+def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
@@ -62,15 +60,10 @@ def get_collection(session, sample_name, sample_type, feature_type, BAMorBED,
         if bedgraph:
             bedgraph_fn = collection_fn.split('.')[0] + '.bedgraph'
 
-        if sample_type == sample_types['exp_absolute'] or \
-                sample_type == sample_types['exp_diff']:
-            data_collection = counts_for_genes(session,
-                    sample_name, sample_type, feature_type, BAMorBED,
-                    chr_prefix, window_upstream, window_downstream,
-                    include_target, exclude_target, bedgraph_fn,
-                    multitest_signif_val=multitest_signif_val)
-        else:
-            rr.dieOnCritical('Experiment type not supported', sample_type)
+        data_collection = counts_for_genes(session, sample_name, feature_type,
+                BAMorBED, chr_prefix, window_upstream, window_downstream,
+                include_target, exclude_target, bedgraph_fn,
+                multitest_signif_val=multitest_signif_val)
 
         if data_collection is not None:
             data_collection.writeToFile(collection_fn, as_table=tab_delimited,
@@ -95,20 +88,19 @@ def main():
     if args.sample is None:
         rr.dieOnCritical('No samples provided', 'Failed')
 
-    db_name = str(args.db_path).split('/')[-1]
+    session = db_query.make_session(args.db_path)
 
-    sample_name = args.sample.split(' : ')[0]
+    sample_name = args.expr_sample
     print 'Loading counts data for', sample_name
-    sample_type = sample_types[args.sample_type]
 
     include_name = None
     exclude_name = None
     if args.include_target:
-        include_name = args.include_target.split(' : ')[0]
+        include_name = args.include_target
         rr.addInfo('include gene targets', include_name)
 
     if args.exclude_target:
-        exclude_name = args.exclude_target.split(' : ')[0]
+        exclude_name = args.exclude_target
         rr.addInfo('exclude gene targets', exclude_name)
 
     if (args.multitest_signif_val is not None) and not \
@@ -116,10 +108,8 @@ def main():
         rr.dieOnCritical('Multitest_signif_val should be -1, 0, 1',
                 args.multitest_signif_val)
 
-    session = db_query.make_session(args.db_path)
-
     if args.chr_prefix != '':
-        # If it writes nothing then we'll fail to load the table again
+        # If it writes nothing then cogent.Table fails because it's fragile
         rr.addInfo('BAM/BED chromosome prefix given', args.chr_prefix)
 
     window_upstream = args.window_upstream
@@ -129,17 +119,11 @@ def main():
     assert window_downstream > 0, \
             'downstream window must be of at least size 1 bp'
 
-    if sample_type in [sample_types['exp_absolute'],\
-            sample_types['exp_diff']]:
-        get_collection(session, sample_name, sample_type, args.feature_type,
-                args.BAMorBED, args.chr_prefix, window_upstream,
-                window_downstream, args.multitest_signif_val,
-                args.collection, args.overwrite,
-                args.tab_delimited, include_name,
-                exclude_name, bedgraph=args.make_bedgraph)
-    else:
-        print 'Other options not defined yet, choose from', \
-                sample_types['exp_absolute'], 'or', sample_types['exp_diff']
+    get_collection(session, sample_name, args.feature_type, args.BAMorBED,
+            args.chr_prefix, window_upstream, window_downstream,
+            args.multitest_signif_val, args.collection, args.overwrite,
+            args.tab_delimited, include_name, exclude_name,
+            bedgraph=args.make_bedgraph)
 
     session.close()
     rr.display()

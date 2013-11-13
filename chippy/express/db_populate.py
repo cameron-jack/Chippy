@@ -151,7 +151,7 @@ def create_dummy_expr(session):
         'each gene has expression score of 1',
         'dummy_expr.fake', expr_table_rows, gene_id_heading='gene',
         probeset_heading='probeset', expr_heading='exp',
-        sample_type='exp_absolute',
+        sample_type='abs_expr',
         reffile1=None, reffile2=None)
 
     return success
@@ -404,12 +404,12 @@ def check_existing_data(session, sample_name):
     Return the existing sample type and data set size (or None/None) """
     existing_data = get_expression_counts(session, sample_name)
     if existing_data > 0:
-        existing_type = sample_types['exp_absolute']
+        existing_type = sample_types['abs_expr']
         return existing_data, existing_type
 
     existing_data = get_diff_counts(session, sample_name)
     if existing_data > 0:
-            existing_type = sample_types['exp_absolute']
+            existing_type = sample_types['diff_expr']
             return existing_data, existing_type
 
     existing_data = get_targetgene_counts(session, sample_name)
@@ -422,7 +422,7 @@ def check_existing_data(session, sample_name):
 # public entrance point
 def add_data(session, name, description, path, expr_table,
         gene_id_heading='gene', probeset_heading='probeset',
-        expr_heading='exp', sample_type=sample_types['exp_absolute'],
+        expr_heading='exp', sample_type=sample_types['abs_expr'],
         reffile1=None, reffile2=None):
     """ A unified interface for adding data to the DB """
     rr = RunRecord('add_data')
@@ -440,10 +440,10 @@ def add_data(session, name, description, path, expr_table,
             rr.addInfo('now loading data for existing sample', name)
 
     # either sample was created or existed with no data, so load data now
-    if sample_types[sample_type] == sample_types['exp_absolute']:
+    if sample_types[sample_type] == sample_types['abs_expr']:
         success = add_expression_study(session, name, path, expr_table)
 
-    elif sample_types[sample_type] == sample_types['exp_diff']:
+    elif sample_types[sample_type] == sample_types['diff_expr']:
         # diff between two files, check we got the related files
         assert reffile1 is not None and reffile2 is not None,\
         'To enter differences in gene expression you must specify the 2'\

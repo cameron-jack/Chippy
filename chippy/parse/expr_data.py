@@ -94,7 +94,7 @@ def _validate_probes_scores(genes, probes, exp, sig=None, pval=None):
 
     rr.addInfo('Number of genes removed in validation step',
             genes_removed)
-    if len(valid_sigs) > 0:
+    if sig is not None and pval is not None:
         return valid_genes, valid_probes, valid_exp, valid_sigs, valid_pvals
 
     return valid_genes, valid_probes, valid_exp
@@ -171,8 +171,9 @@ def _remove_multimapped_probesets(genes, probes, exp, sig=None, pval=None):
     rr.addInfo('Number of probes/scores removed',
             len(probes)-len(v_probes))
 
-    if len(v_sig) > 0:
+    if sig is not None and pval is not None:
         return v_genes, v_probes, v_exp, v_sig, v_pval
+
     return v_genes, v_probes, v_exp
 
 def _read_data_file(data_path, sep='\t', stable_id_label='ENSEMBL',
@@ -214,35 +215,34 @@ def _read_data_file(data_path, sep='\t', stable_id_label='ENSEMBL',
         if i==0:
             continue # skip header line
 
-        genes.append(str(row[gene_col]))
-
         if probes_present:
-            probes.append(list(row[probe_col].split('|')))
+            tmp_probes = list(row[probe_col].split('|'))
         else:
-            probes.append('P'+str(i)) # give RNAseq data a fake probe id
+            tmp_probes = 'P'+str(i) # give RNAseq data a fake probe id
 
         exp_strs = row[exp_col].split('|')
-        if is_diff:
-            sigs.append(str(row[sig_col]))
-            pvals.append(float(row[pval_col]))
 
         # Nuke any scores and probes marked with 'NA' by R
         while 'NA' in exp_strs:
             exp_strs.remove('NA')
-        while 'NA' in probes:
-            probes.remove('NA')
+        while 'NA' in tmp_probes:
+            tmp_probes.remove('NA')
 
-        if len(exp_strs) == 0:
-            rr.dieOnCritical('No expression scores remaining', row)
-        if len(probes) == 0:
-            rr.dieOnCritical('No probes remaining', row)
+        if not len(exp_strs) or not len(tmp_probes):
+            continue
 
         try:
-            expression = map(float, exp_strs)
-            exp.append(expression)
+            tmp_expr = map(float, exp_strs)
         except ValueError:
             rr.addCritical('Expected expression score float on line', i)
             rr.dieOnCritical('Line has incorrect format', row)
+
+        genes.append(str(row[gene_col]))
+        probes.append(tmp_probes)
+        exp.append(tmp_expr)
+        if is_diff:
+            sigs.append(str(row[sig_col]))
+            pvals.append(float(row[pval_col]))
 
     if is_diff:
         return genes, probes, exp, sigs, pvals, probes_present

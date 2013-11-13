@@ -2,11 +2,8 @@
 
 import gzip
 import numpy
-
-from cogent import LoadTable
-from cogent.maths.stats.jackknife import JackknifeStats
 from chippy.util.run_record import RunRecord
-from chippy.util.util import make_even_groups
+from cogent import LoadTable
 from math import sqrt
 
 __author__ = 'Gavin Huttley, Cameron Jack'
@@ -17,8 +14,6 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
 __version__ = '0.1'
-
-
 
 def column_sum(data):
     """returns the column sums"""

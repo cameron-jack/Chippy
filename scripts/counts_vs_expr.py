@@ -38,7 +38,7 @@ script_info['output_description']= 'PNG/PDF histogram, line or dot plot'
 script_info['help_on_no_arguments'] = True
 
 pos_args = ['db_path']
-req_args = ['sample', 'collection']
+req_args = ['abs_expr_sample', 'collection']
 opt_args = ['x_axis_type', 'group_location', 'include_target',
             'fig_height', 'fig_width', 'region_feature',
             'exclude_target', 'plot_filename', 'counts_is_ranks',
@@ -141,7 +141,7 @@ def main():
             exclude_target=args.exclude_target)
 
     print 'Creating plot points'
-    plot_points = matched_studies.get_matched_genes_as_xy_plotpoints(\
+    plot_points = matched_studies.get_matched_genes_as_xy_plotpoints(
             args.x_axis_type, args.expr_is_ranks, args.counts_is_ranks)
 
     fig = FigureDetails(x_size=args.fig_width, y_size=args.fig_height,

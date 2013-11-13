@@ -169,16 +169,66 @@ def make_session(db_path):
     session = _make_session('sqlite:///' + db_path)
     return session
 
-def get_sample_choices(session):
-    """returns the available choices for samples in the DB"""
-    samples = [str(s.name) + ' : ' + str(s.description)\
-               for s in get_sample_entries(session)]
-    # These are valid null samples
-    samples.append('None')
-    return samples
+def get_all_sample_names(session):
+    """returns a list of available choices for samples in the DB"""
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    return [str(s.name) for s in get_sample_entries(session)]
+
+def get_sample_names_descriptions(session):
+    """ Returns a dictionary of sample names with descriptions as values """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    return dict([(str(s.name), str(s.description)) for s in \
+            get_sample_entries(session)])
+
+def get_expr_diff_sample_names(session):
+    """ returns a list of absolute and differential expression samples """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    e_names = set([str(e.sample.name) for e in get_expression_entries(session)])
+    d_names = set([str(d.sample.name) for d in get_diff_entries(session)])
+    return list(e_names.union(d_names))
+
+def get_expr_sample_names(session):
+    """ returns a list of available absolute expression samples """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    expr = get_expression_entries(session)
+    return list(set(str(e.sample.name) for e in expr))
+
+def get_diff_sample_names(session):
+    """ returns a list of available differential expression samples """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    diff = get_diff_entries(session)
+    return list(set(str(d.sample.name) for d in diff))
+
+def get_target_gene_names(session):
+    """ Returns a list of the sample names that are TargetGene entries """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
+    targets = get_targetgene_entries(session)
+    return list(set(str(t.sample.name) for t in targets))
 
 def get_chroms(session):
     """ return list of chroms from ',' separated string """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
     rr = RunRecord('get_chroms')
     try:
         chroms = session.query(Chroms).one()
@@ -190,6 +240,10 @@ def get_chroms(session):
 
 def get_species(session):
     """ returns the species value from Chroms table """
+    if session is None:
+        return ['No connection to DB']
+    elif type(session) is str:
+        session = make_session(session)
     try:
         return session.query(Chroms).one().species
     except NoResultFound:
@@ -328,7 +382,6 @@ def drop_sample_records(session, sample_name, test=False):
         Returns True if sample deleted.
     """
     rr = RunRecord('drop_sample_records')
-    rr.addInfo('Deleting records for ', sample_name)
     sample = _get_sample(session, sample_name)
     if sample is not None:
         rr.addInfo('Deleting records for ', sample_name)

@@ -33,7 +33,7 @@ script_info['authors'] = __author__
 script_info['output_description']= 'None.'
 
 # Process command-line arguments
-req_args = ['expression_data', 'new_sample', 'sample_type']
+req_args = ['expression_data', 'name', 'description', 'sample_type']
 opt_args = ['reffile1', 'reffile2', 'allow_probeset_many_gene',
         'gene_id_heading', 'probeset_heading', 'expression_heading',
         'significance_heading', 'p_value_heading', 'sep']
@@ -52,22 +52,18 @@ def main():
             use_save_load_button=True, window_title='Add Expression to DB')
     session = db_query.make_session(args.db_path)
 
-    if args.new_sample.count(':') == 1:
-        name, description = args.new_sample.split(':')
-        name = name.strip()
-        description = description.strip()
-    else:
-        rr.dieOnCritical('Sample needs to be in the form', 'Name : Description')
-
+    name = args.name
+    description = args.description
     ref_file = args.expression_data
+    sample_type=args.sample_type
 
-    # Check that ReferenceFile is unique
-    if db_query.get_reffile_counts(session, reffile_name=ref_file) == 1:
-        rr.addCritical('ReferenceFile already loaded', ref_file)
-        rr.display()
-        sys.exit(1)
+    # Check that Sample and Reference File are both unique
+    if name in db_query.get_sample_entries(session):
+        rr.dieOnCritical('Sample name already exists', name)
+    if ref_file in db_query.get_reffile_entries(session, reffile_name=ref_file):
+        rr.dieOnCritical('ReferenceFile already loaded', ref_file)
 
-    if sample_types[args.sample_type] == sample_types['exp_absolute']:
+    if sample_types[sample_type] == sample_types['abs_expr']:
         expr_table = gene_expr_to_table(args.expression_data,
                 stable_id_label=args.gene_id_heading,
                 probeset_label=args.probeset_heading,
@@ -75,7 +71,7 @@ def main():
                 allow_probeset_many_gene=args.allow_probeset_many_gene,
                 validate=True, sep=args.sep)
 
-    elif sample_types[args.sample_type] == sample_types['exp_diff']:
+    elif sample_types[sample_type] == sample_types['diff_expr']:
         # validation breaks with some of Rohan's diff files
         # he's included all probesets but only the mean score, once.
         expr_table = gene_expr_diff_to_table(args.expression_data,
@@ -86,8 +82,11 @@ def main():
                 pval_label=args.p_value_heading,
                 allow_probeset_many_gene=args.allow_probeset_many_gene,
                 validate=False, sep=args.sep)
-    else:
+    elif sample_types[sample_type] == sample_types['target_genes']:
         expr_table = LoadTable(args.expression_data, sep=args.sep)
+
+    else:
+        rr.dieOnCritical('Unknown sample type', args.sample_type)
 
     success = add_data(session, name, description,
             args.expression_data, expr_table,

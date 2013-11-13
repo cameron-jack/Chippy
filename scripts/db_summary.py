@@ -42,7 +42,7 @@ def main():
     args = script_info['args'].parse(use_scrollbars=True,
             use_save_load_button=True, window_title='DB Summary')
     session = make_session(args.db_path)
-    sample_name = args.sample.split(':')[0].strip() if args.sample else None
+    sample_name = args.sample if args.sample else None
 
     chroms = get_chroms(session)
     species = get_species(session)

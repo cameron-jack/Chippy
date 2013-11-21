@@ -41,6 +41,14 @@ def chebyshev_upper(p):
     one-sided inequality."""
     return numpy.sqrt(1/p - 1)
 
+def chebyshev_two_tailed(p):
+    """
+        returns k suchs the probability that a variable will be outside
+        of k standard deviations from its mean is <= p. This is Chebyshev's
+        two-sided inequality.
+    """
+    return 1/(numpy.sqrt(2*p))
+
 def normalised_data(data, axis=None):
     """returns a new normalised array
     
@@ -285,8 +293,7 @@ class RegionCollection(_GenericCollection):
 
         k = chebyshev_upper(p)
         if axis is None:
-            # only bother computing normalised score for max of each
-            # row
+            # only bother computing normalised score for max of each row
             data = self.counts.max(axis=1)
             mean = self.counts.mean()
             stdev_ = self.counts.std(ddof=1)
@@ -322,11 +329,13 @@ class RegionCollection(_GenericCollection):
             new.info.update(info)
         else:
             new.info = info
-        
+
         return new
     
     def getGrouped(self, group_size):
-        """returns counts, ranks, labels in group_size"""
+        """
+            Returns counts, ranks, labels in group_size.
+        """
         counts = self.counts
         ranks = self.ranks
         labels = self.labels
@@ -347,6 +356,7 @@ class RegionCollection(_GenericCollection):
                 labels = labels.reshape(num_groups, group_size)
         
         counts = numpy.array(counts)
+
         if ranks is not None:
             ranks = numpy.array(ranks)
         
@@ -355,7 +365,12 @@ class RegionCollection(_GenericCollection):
         
         return counts, ranks, labels
     
-    def itergroups(self, group_size):
+    def itergroups(self, group_size, p=None):
+        """
+            Yield counts, ranks, labels collected into groups of group_size
+            using getGrouped. 'p' is the probability cut-off for Chebyshev
+            filtering to apply to each group.
+        """
         counts, ranks, labels = self.getGrouped(group_size)
         for i in range(len(counts)):
             if ranks is None:
@@ -369,16 +384,36 @@ class RegionCollection(_GenericCollection):
                 label_data = numpy.array(labels[i])
             
             count_data = numpy.array(counts[i])
+
+            # two-sided per-line Chebyshev filtering of whole gene counts
+            if p is not None:
+                k = chebyshev_two_tailed(p)
+                max_ = count_data.max(axis=1)
+                mean_ = count_data.mean()
+                stdev_ = count_data.std(ddof=1)
+                max_ -= mean_
+                max_ /= stdev_
+                indices = max_ < k
+                count_data = count_data[indices]
+
             yield count_data, rank_data, label_data
 
-    def iterDescriptiveStats(self, group_size):
-        """return column means & stdevs for each group"""
-        for counts, ranks, labels in self.itergroups(group_size):
+    def iterDescriptiveStats(self, group_size, p=None):
+        """
+            Return column means & stdevs for each group. 'p' is the probability
+            cut-off for Chebyshev filtering to apply to each group.
+        """
+        for counts, ranks, labels in self.itergroups(group_size, p=p):
             yield column_mean(counts), column_stdev(counts), rank_mean(ranks)
     
     def iterTransformedGroups(self, group_size, rank_func=rank_mean,
-                    counts_func=column_mean):
-        for counts, ranks, labels in self.itergroups(group_size):
+                    counts_func=column_mean, p=None):
+        """
+            Group counts, ranks, labels, standard error, and apply a transform
+            to normalised standard deviation if required. 'p' is the probability
+            cut-off for Chebyshev filtering to apply to each group.
+        """
+        for counts, ranks, labels in self.itergroups(group_size, p=p):
             c = counts_func(counts)
             se_array = counts.std(axis=0)/sqrt(group_size)
             if counts_func == stdev:

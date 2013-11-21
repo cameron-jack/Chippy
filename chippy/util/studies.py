@@ -373,14 +373,14 @@ class RegionStudy(object):
             normalised_counts.append(c)
         self.data_collection.counts = numpy.array(normalised_counts)
 
-    def _groupAllGeneCounts(self):
+    def _groupAllGeneCounts(self, p=None):
         """ Group counts for all genes and return as a single PlotLine.
             Called by asPlotLines or _groupNGeneCounts().
             Returns a list.
         """
         rr = RunRecord('_groupAllGeneCounts')
         counts, ranks, se = self.data_collection.transformed(\
-            counts_func=self.counts_func)
+            counts_func=self.counts_func, p=p)
         if not len(counts):
             rr.dieOnCritical('No counts data in', 'Study._groupAllGeneCounts')
 
@@ -422,7 +422,7 @@ class RegionStudy(object):
 
         return plot_lines
 
-    def _groupNGeneCounts(self, group_size):
+    def _groupNGeneCounts(self, group_size, p=None):
         """ Group counts for N genes and return as PlotLines. Defaults to
             _groupAllGeneCounts() if group size is too large.
             Called by asPlotLines()
@@ -431,7 +431,7 @@ class RegionStudy(object):
         plot_lines = []
         for index, (c,r,l,se) in enumerate(self.data_collection.\
         iterTransformedGroups(group_size=group_size,
-            counts_func=self.counts_func)):
+            counts_func=self.counts_func, p=p)):
             plot_lines.append(PlotLine(c, rank=index, label=l,
                 study=self.collection_label, stderr=se))
 
@@ -448,17 +448,22 @@ class RegionStudy(object):
 
         return plot_lines
 
-    def asPlotLines(self, studies, group_size, group_location):
-        """ returns a list of PlotLine objects from this study """
+    def asPlotLines(self, studies, group_size, group_location, p=None):
+        """
+            Returns a list of PlotLine objects from this study.
+            'p' is the Chebyshev cut-off if not None
+        """
         rr = RunRecord('asPlotLines')
+        if p is not None:
+            rr.addInfo('Applying per-line Chebyshev filtering', p)
 
         if type(group_size) is str and group_size.lower() == 'all':
-            plot_lines= self._groupAllGeneCounts()
+            plot_lines= self._groupAllGeneCounts(p=p)
         elif type(group_size) is int:
             if group_size == 1:
                 plot_lines = self._groupNoGeneCounts()
             else:
-                plot_lines = self._groupNGeneCounts(group_size)
+                plot_lines = self._groupNGeneCounts(group_size,p=p)
         else:
             rr.dieOnCritical('group_size, wrong type or value',
                 [type(group_size), group_size])

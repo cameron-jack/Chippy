@@ -269,13 +269,13 @@ def get_gene_ids(session, chrom=None, include_target=None,
 
     if include_target is not None:
         genes = get_targetgene_entries(session, sample_name=include_target)
-        include_ids = [g.ensembl_id for g in genes]
+        include_ids = [g.gene.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids).\
                 intersection(set(include_ids)))
 
     if exclude_target is not None:
         genes = get_targetgene_entries(session, sample_name=exclude_target)
-        exclude_ids = [g.ensembl_id for g in genes]
+        exclude_ids = [g.gene.ensembl_id for g in genes]
         stable_ids = list(set(stable_ids)-(set(exclude_ids)))
 
     return stable_ids

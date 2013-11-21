@@ -23,7 +23,7 @@ class PlotPoint(object):
         self.y = y
 
     def __repr__(self):
-        return repr(self.x, self.y)
+        return repr((self.x, self.y))
 
     def get_logX(self):
         """ safe log base 2 transform self.x """
@@ -48,8 +48,7 @@ class PlotLine(object):
         and the name of the originating study.
         Optional data members are color and stderr
     """
-    def __init__(self, counts, rank=None, label=None, study=None,
-            *args, **kwargs):
+    def __init__(self, counts, rank=None, label=None, study=None, **kwargs):
         super(PlotLine, self).__init__()
         self.counts = counts
         self.rank = rank
@@ -80,7 +79,8 @@ class PlotLine(object):
         rr = RunRecord('apply_binning')
         if bin_width and bin_width > 0:
             if len(self.counts)%bin_width:
-                rr.dieOnCritical('Bin width is not an integer factor of window size', bin_width)
+                rr.dieOnCritical('Bin width is not an integer '+\
+                        'factor of window size', bin_width)
             tmp_array = numpy.array(self.counts)
             for k in self.counts[:-bin_width:bin_width]:
                 bin_sum = 0
@@ -88,7 +88,7 @@ class PlotLine(object):
                     bin_sum += self.counts[k+i]
                 for i in xrange(bin_width):
                     tmp_array[k+i] = bin_sum
-        self.counts = tmp_array
+            self.counts = tmp_array
 
     def countsAsArray(self):
         """ Return self as numpy array of Y coords """

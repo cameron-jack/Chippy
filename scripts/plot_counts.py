@@ -225,7 +225,7 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
         'line_alpha', 'chrom', 'include_target', 'exclude_target', 'group_size',
-        'group_location', 'smoothing', 'binning', 'cutoff',
+        'group_location', 'smoothing', 'binning', 'cutoff', 'line_filter',
         'plot_series', 'text_coords', 'test_run', 'version',
         'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals']
 
@@ -302,8 +302,12 @@ def main():
 
     plot_lines = []
     for study in studies:
+        p = None
+        if args.line_filter:
+            p = args.cutoff
         lines = study.asPlotLines(studies, group_size,
-                args.group_location)
+                args.group_location, p=p)
+
         for line in lines:
             plot_lines.append(line)
 
@@ -383,12 +387,12 @@ def main():
         plot_fn = args.plot_filename
         if '.pdf' in plot_fn.lower():
             plot.savefig(plot_fn, image_format='pdf')
-        if '.png' in plot_fn.lower():
+        elif '.png' in plot_fn.lower():
             plot.savefig(plot_fn, image_format='png')
-        if '.jpg' in plot_fn.lower() or '.jpeg' in plot_fn.lower():
+        elif '.jpg' in plot_fn.lower() or '.jpeg' in plot_fn.lower():
             plot.savefig(plot_fn, image_format='jpg')
         else:
-            plot.savefig(args.plot_filename+'.pdf', image_format='pdf')
+            plot.savefig(plot_fn+'.pdf', image_format='pdf')
     else:
         plot.show()
 

@@ -8,7 +8,7 @@ from cogent.util.misc import remove_files
 from cogent import LoadTable
 
 from chippy.core.collection import RegionCollection, column_sum, \
-        chebyshev_upper
+        chebyshev_upper, chebyshev_two_tailed
 
 class UtilityFuncTests(TestCase):
     def test_sum_column(self):
@@ -23,6 +23,12 @@ class UtilityFuncTests(TestCase):
         p = 0.05
         k = chebyshev_upper(p)
         self.assertFloatEqual(1.0/(1+k**2), p)
+
+    def test_chebyshev_two_tailed(self):
+        """correctly compute one-sided Tchebysehff inequality"""
+        p = 0.05
+        k = chebyshev_two_tailed(p)
+        self.assertFloatEqual(1.0/(2*(k**2)), p)
 
 class CollectionTests(TestCase):
     

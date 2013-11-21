@@ -163,11 +163,11 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
     rr = RunRecord('counts_for_genes')
 
     expressed_genes = None
-    if sample_name in db_query.get_expression_entries(session):
+    if sample_name in db_query.get_expr_sample_names(session):
         print 'Getting ranked expression instances'
         expressed_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
             include_target=include_target, exclude_target=exclude_target)
-    elif sample_name in db_query.get_diff_entries(session):
+    elif sample_name in db_query.get_diff_sample_names(session):
         print 'Getting ranked expression difference instances'
         expressed_genes = db_query.get_genes_by_ranked_diff(session, sample_name,
             multitest_signif_val=multitest_signif_val,
@@ -196,7 +196,7 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
                     'window_downstream': window_downstream,
                     'feature_type': feature_type,
                     'sample_name': sample_name,
-                    'species': get_species(session),
+                    'species': db_query.get_species(session),
                     'tag count': num_tags,
                     'base count': num_bases,
                     'mapped tags': mapped_tags

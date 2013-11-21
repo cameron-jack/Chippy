@@ -251,10 +251,16 @@ class Args(object):
                 help='Sum counts within integer-sized bins across plot')
 
         # Filter out over- and under-expression outliers
-        self._inc_arg('-k', '--cutoff', type=float, default = 0.05,
-                help='Probability cutoff. Exclude genes if the probability '
+        self._inc_arg('--cutoff', type=float, default = 0.05,
+                help='Probability cutoff for one-sided Chebyshev filtering '+\
+                'of extreme gene counts. Exclude genes if the probability '
                 'of the observed tag count is less than or equal to this '+\
                 'value e.g. 0.05.')
+        # Filter gene counts in each line
+        self._inc_arg('--line_filter', action='store_true', help='Use '+\
+                'Use two-sided Chebyshev filtering within each plottable '+\
+                'line to remove outliers. Suggested cut-off p value < 0.01 '+\
+                'as this is quite aggressive')
 
         # Export Centred Counts args
         self._inc_arg('--feature_type', choices=['TSS', 'UTR_Exon',

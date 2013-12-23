@@ -369,8 +369,8 @@ class RegionStudy(object):
         rr.addInfo('normalising by RPMs', norm_factor)
         normalised_counts = []
         for c in self.data_collection.counts:
-            c *= norm_factor
-            normalised_counts.append(c)
+            c2 =  c * norm_factor
+            normalised_counts.append(c2)
         self.data_collection.counts = numpy.array(normalised_counts)
 
     def _groupAllGeneCounts(self):

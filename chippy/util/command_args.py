@@ -6,7 +6,7 @@ from chippy.express.util import sample_types
 from cogent.util.option_parsing import make_option
 try:
     from PyQt4 import QtGui
-    from argparseui.argparseui import ArgparseUi
+    from argparseui import ArgparseUi
     GUI_CAPABLE = True
 except ImportError:
     print 'Install PyQt4 and ArgparseUi modules to enable GUI'

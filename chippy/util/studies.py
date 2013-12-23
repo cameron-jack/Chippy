@@ -369,18 +369,18 @@ class RegionStudy(object):
         rr.addInfo('normalising by RPMs', norm_factor)
         normalised_counts = []
         for c in self.data_collection.counts:
-            c = c * norm_factor
+            c *= norm_factor
             normalised_counts.append(c)
         self.data_collection.counts = numpy.array(normalised_counts)
 
-    def _groupAllGeneCounts(self, p=None):
+    def _groupAllGeneCounts(self):
         """ Group counts for all genes and return as a single PlotLine.
             Called by asPlotLines or _groupNGeneCounts().
             Returns a list.
         """
         rr = RunRecord('_groupAllGeneCounts')
         counts, ranks, se = self.data_collection.transformed(\
-            counts_func=self.counts_func, p=p)
+            counts_func=self.counts_func)
         if not len(counts):
             rr.dieOnCritical('No counts data in', 'Study._groupAllGeneCounts')
 
@@ -458,7 +458,7 @@ class RegionStudy(object):
             rr.addInfo('Applying per-line Chebyshev filtering', p)
 
         if type(group_size) is str and group_size.lower() == 'all':
-            plot_lines= self._groupAllGeneCounts(p=p)
+            plot_lines= self._groupAllGeneCounts()
         elif type(group_size) is int:
             if group_size == 1:
                 plot_lines = self._groupNoGeneCounts()

@@ -3,6 +3,8 @@ import sys # required for finding db_path
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
+from argobs import FilePath, DirPath, ArgOb
+
 from cogent.util.option_parsing import make_option
 try:
     from PyQt4 import QtGui
@@ -27,30 +29,6 @@ __version__ = '638'
     object and a script_info{} entry with PyCogent CogentOption objects
     so that the Qiime xml_generator can be used to automagically create
     Galaxy interfaces for each script.
-
-    The following types need to available for full type conversion to
-    Galaxy type to take place. Types 'string' through 'choice' are implied
-    by their argparse type entry and do NOT need to be specified explicitly.
-    The types from 'multiple_choice' through 'new_path' DO need to be
-    explicitly provided as 'cogent_type' entries.
-
-    CogentOption.TYPE on left, Galaxy_type on right:
-
-        type_converter['string'] = "text"
-        type_converter['int'] = "integer"
-        type_converter['long'] = "float"
-        type_converter['float'] = "float"
-        type_converter['choice'] = "select"
-
-        type_converter['multiple_choice'] = "multiple_select"
-        type_converter['existing_filepath'] = "data"
-        type_converter['existing_filepaths'] = "repeat"
-        type_converter['existing_dirpath'] = "input_dir"
-        type_converter['existing_path'] = "input_dir"
-        type_converter['new_filepath'] = "output"
-        type_converter['new_dirpath'] = "output_dir"
-        type_converter['new_path'] = "output_dir"
-
 """
 
 # Example of mutually exclusive options
@@ -66,6 +44,9 @@ class Args(object):
         """
         # This will either use argparse if arguments are provided or will
         # call the ArgparseUi graphic interface (PyQT)
+        for argob in self.argobs:
+            argob.addToArgparse(self.parser)
+
         if GUI_CAPABLE:
             if len(sys.argv) < 3:
                 app = QtGui.QApplication(sys.argv)
@@ -83,334 +64,292 @@ class Args(object):
         else:
             return self.parser.parse_args()
 
-    # argparse base arg type converter to optparse basic types allows us to
-    # avoid specifically adding 'cogent_action_or_type' to every argument.
-    _ARG_TO_OPT_TYPE_CONVERTER = {None: "string", int: "int",
-            long: "long", float: "float", 'choices': 'choice'}
-
-    def _make_cogent_opt(self, cogent_type, *args, **kwargs):
+    def _create_argob(self, *args, **kwargs):
         """
-            Creates and returns a PyCogent CogentOption object from
-            an argparse entry. Called by _inc_arg().
-            Also creates entries for the optparse_gui graphical interface
+            Checks if each potential argument matches the user provided list.
+            Then creates an ArgOb
         """
-        if 'choices' in kwargs:
-            kwargs['type'] = 'choice'
-        elif 'action' in kwargs:
-            # Required, because without this, type=None implies type='string'
-            pass
-        else:
-            if cogent_type:
-                kwargs['type'] = cogent_type
-            else:
-                arg_type = kwargs.get('type', None)
-                try:
-                    kwargs['type'] = self._ARG_TO_OPT_TYPE_CONVERTER[arg_type]
-                except KeyError:
-                    kwargs['type'] = 'string'
-        if len(args) == 2:
-            cogent_opt = make_option(args[0], args[1], **kwargs)
-        else:
-            cogent_opt = make_option(args[0], **kwargs)
-        return cogent_opt
-
-    def _inc_arg(self, *args, **kwargs):
-        """ Checks if each potential argument matches the user provided list.
-            Then creates an argparse parser entry and a PyCogent
-            CogentOption object. """
-
-        # pull out cogent_type now so that add_argument still works
-        cogent_type = kwargs.pop('cogent_type', None)
         for arg in args:
             tmp_arg = arg.lstrip('-')
             # Required args
             if self.required_args and tmp_arg in self.required_args:
-                # add argparse entry
-                self.parser.add_argument(*args, required=True, **kwargs)
-                # add CogentOption entry
-                cogent_opt = self._make_cogent_opt(cogent_type, *args, **kwargs)
-                self.req_cogent_opts.append(cogent_opt)
-
-            # Optional args
+                self.argobs.append(ArgOb(*args, required=True, **kwargs))
             elif self.optional_args and tmp_arg in self.optional_args:
-                # add argparse entry
-                self.parser.add_argument(*args, **kwargs)
-                # add CogentOption entry
-                cogent_opt = self._make_cogent_opt(cogent_type, *args, **kwargs)
-                self.opt_cogent_opts.append(cogent_opt)
-
+                self.argobs.append(ArgOb(*args, **kwargs))
 
     def _add_load_save_args(self):
         """ All loading and saving related arguments should go here """
 
-        self._inc_arg('--make_bedgraph', action='store_true', help='Enable '+\
+        self._create_argob('--make_bedgraph', action='store_true', help='Enable '+\
                 'Output to BEDgraph during export. Save name is same as ChipPy DB'+\
                 "but with a '_expression-name.bedgraph' extension")
-        self._inc_arg('-c', '--collection', help='Path to the plottable data')
-        self._inc_arg('--plot_filename',
+        self._create_argob('-c', '--collection', type=FilePath, help='Path to the plottable data')
+        self._create_argob('--plot_filename', type=FilePath,
                 help='Name of final plot file')
-        self._inc_arg('-e', '--expression_data',
+        self._create_argob('-e', '--expression_data', type=FilePath,
                 help="Path to the expression/gene data file. Must be tab delimited.")
-        self._inc_arg('--allow_probeset_many_gene', action='store_true',
+        self._create_argob('--allow_probeset_many_gene', action='store_true',
                 default=False, help='Allow probesets that map to multiple genes')
-        self._inc_arg('--gene_id_heading',
+        self._create_argob('--gene_id_heading',
                 default='gene',
                 help='Column containing the Ensembl gene stable ID')
-        self._inc_arg('--probeset_heading',
+        self._create_argob('--probeset_heading',
                 default='probeset',
                 help='Column containing the probeset IDs')
-        self._inc_arg('--expression_heading',
+        self._create_argob('--expression_heading',
                 default='exp',
                 help='Column containing the expression scores')
-        self._inc_arg('--significance_heading', default='sig',
+        self._create_argob('--significance_heading', default='sig',
                 help='Column containing significance value')
-        self._inc_arg('--p_value_heading', default='p_val',
+        self._create_argob('--p_value_heading', default='p_val',
                 help='Column containing difference p values')
-        self._inc_arg('--sep', default='\t', help='data field delimiter')
+        self._create_argob('--sep', default='\t', help='data field delimiter')
 
-        self._inc_arg('--sample', choices=\
+        self._create_argob('--sample', choices=\
                 db_query.get_all_sample_names(self.db_path),
                 help='Select an existing sample')
         # absolute or differential expression
-        self._inc_arg('--expr_sample', choices=\
+        self._create_argob('--expr_sample', choices=\
                 db_query.get_expr_diff_sample_names(self.db_path),
                 help='Select an existing sample (absolute or differential '+\
                 'expression) to use')
         # absolute expression only
-        self._inc_arg('--abs_expr_sample', choices=\
+        self._create_argob('--abs_expr_sample', choices=\
                 db_query.get_expr_sample_names(self.db_path),
                 help='Select an absolute expression sample to use')
         # used for diff_abs_plots
-        self._inc_arg('--abs_expr_sample_2', choices=\
+        self._create_argob('--abs_expr_sample_2', choices=\
         db_query.get_expr_sample_names(self.db_path),
             help='Select an absolute expression sample to use')
         # differential expression samples only
-        self._inc_arg('--diff_sample', choices=\
+        self._create_argob('--diff_sample', choices=\
                 db_query.get_diff_sample_names(self.db_path),
                 help='Select a differential expression sample to use')
 
         # args for creating new sample entries
         samplesStr = ', '.join(db_query.get_all_sample_names(self.db_path))
-        self._inc_arg('-n','--name', default=None, help='Enter a new '+\
+        self._create_argob('-n','--name', default=None, help='Enter a new '+\
                 'sample name. Existing samples: ' + samplesStr)
-        self._inc_arg('-d', '--description', help='give your sample a '+\
+        self._create_argob('-d', '--description', help='give your sample a '+\
                 'description')
-        self._inc_arg('--sample_type',
+        self._create_argob('--sample_type',
                 choices=[k for k in sample_types.keys()],
                 help='One of: '+', '.join([str(k) for \
                         k in sample_types.values()])+\
                 'Select the type of data you want entered from '+\
                 ' '.join([str(k) for k in sample_types.keys()]) )
 
-        self._inc_arg('--reffile1', default=None, help='Related file 1')
-        self._inc_arg('--reffile2', default=None, help='Related file 2')
+        self._create_argob('--reffile1', type=FilePath, help='Related file 1')
+        self._create_argob('--reffile2', type=FilePath, help='Related file 2')
 
         # Export Centred Counts args
-        self._inc_arg('-B', '--BAMorBED',
+        self._create_argob('-B', '--BAMorBED', type=FilePath,
                 help='Read counts, from indexed BAM, BED or BEDgraph file')
 
-        self._inc_arg('-f', '--overwrite', action='store_true',
+        self._create_argob('-f', '--overwrite', action='store_true',
                 help='Ignore any saved files', default=False)
-        self._inc_arg('--tab_delimited', action='store_true',
+        self._create_argob('--tab_delimited', action='store_true',
                 help='output to tab delimited format', default=False)
-        self._inc_arg('--chr_prefix', default='', help='String added by '+\
+        self._create_argob('--chr_prefix', default='', help='String added by '+\
                 'aligner to prefix chromosome numbers/names.')
 
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
         # chrom choice
-        self._inc_arg('-C', '--chrom', default=None,
+        self._create_argob('-C', '--chrom', default=None,
                 help='Choose a chromosome',
                 choices=(db_query.get_chroms(self.db_path)) )
 
         # group genes into sets ranked by expression
-        self._inc_arg('-g', '--group_size', default='All',
+        self._create_argob('-g', '--group_size', default='All',
                 help='Number of genes to group to estimate'+\
                  ' statistic - All or a specific number')
 
-        self._inc_arg('--num_genes', type=int,
+        self._create_argob('--num_genes', type=int,
                 help='Number of ranked genes to use in study')
 
-        self._inc_arg('--group_location', default='all',
+        self._create_argob('--group_location', default='all',
                 choices=['all', 'top', 'middle', 'bottom'],
                 help='The representative group in a study to form a plot line')
 
-        self._inc_arg('--ranks', action='store_true',
+        self._create_argob('--ranks', action='store_true',
                 help='Use rank-based data values instead of counts or '+\
                 'expression')
 
-        self._inc_arg('--sample_extremes', type=float,
+        self._create_argob('--sample_extremes', type=float,
                 default=0.0, help='Proportion of least and most absolute '+\
                 'expressed genes to treat separately. Set to 0.0 to disable.')
 
         # Use moving-mean (boxcar) smoothing on lines
-        self._inc_arg('--smoothing', type=int, default=0,
+        self._create_argob('--smoothing', type=int, default=0,
                 help='Window size for smoothing of plot data')
 
-        self._inc_arg('--binning', type=int, default=0,
+        self._create_argob('--binning', type=int, default=0,
                 help='Sum counts within integer-sized bins across plot')
 
         # Filter out over- and under-expression outliers
-        self._inc_arg('--cutoff', type=float, default = 0.05,
+        self._create_argob('--cutoff', type=float, default = 0.05,
                 help='Probability cutoff for one-sided Chebyshev filtering '+\
                 'of extreme gene counts. Exclude genes if the probability '
                 'of the observed tag count is less than or equal to this '+\
                 'value e.g. 0.05.')
         # Filter gene counts in each line
-        self._inc_arg('--line_filter', action='store_true', help='Use '+\
+        self._create_argob('--line_filter', action='store_true', help='Use '+\
                 'Use two-sided Chebyshev filtering within each plottable '+\
                 'line to remove outliers. Suggested cut-off p value < 0.01 '+\
                 'as this is quite aggressive')
 
         # Export Centred Counts args
-        self._inc_arg('--feature_type', choices=['TSS', 'UTR_Exon',
+        self._create_argob('--feature_type', choices=['TSS', 'UTR_Exon',
                 'Exon_Intron', 'Intron_Exon', 'Exon_UTR', 'Gene_3p'],
                 help='Gene feature options: TSS, UTR_Exon, Exon_Intron, '+\
                 'Intron_Exon, Exon_UTR, Gene_3p')
 
-        self._inc_arg('--window_upstream', type=int, default=1000,
+        self._create_argob('--window_upstream', type=int, default=1000,
                 help='Region start distance relative to feature')
-        self._inc_arg('--window_downstream', type=int, default=1000,
+        self._create_argob('--window_downstream', type=int, default=1000,
                 help='Region finish distance relative to feature')
 
-        self._inc_arg('--multitest_signif_val', type=int,
+        self._create_argob('--multitest_signif_val', type=int,
                 help='Restrict plot to genes that pass multi-test '+\
                 'significance. Valid values: 1, 0, -1', default=None)
 
-        self._inc_arg('--include_target', default=None,
+        self._create_argob('--include_target', default=None,
                 help='A Target Gene List in ChipPyDB', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
-        self._inc_arg('--exclude_target', default=None,
+        self._create_argob('--exclude_target', default=None,
                 help='A Target Gene List in ChipPyDB', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
-        self._inc_arg('--plot_format', default='png', choices=['png', 'pdf'],
+        self._create_argob('--plot_format', default='png', choices=['png', 'pdf'],
                 help="Select the plot format to output: 'png' or 'pdf'"+\
                 "[default: %default]")
 
-        self._inc_arg('-y', '--ylim', default=None,
+        self._create_argob('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-        self._inc_arg('-H', '--fig_height', type=float, default=6*2.5,
+        self._create_argob('-H', '--fig_height', type=float, default=6*2.5,
                 help='Figure height (cm)')
-        self._inc_arg('-W', '--fig_width', type=float, default=10*2.5,
+        self._create_argob('-W', '--fig_width', type=float, default=10*2.5,
                 help='Figure width (cm)')
 
         # Important note, grid_lines are an absolute scale!
-        self._inc_arg('--xgrid_lines', type=float, default = 100,
+        self._create_argob('--xgrid_lines', type=float, default = 100,
                 help='major grid-line spacing on x-axis')
-        self._inc_arg('--ygrid_lines', type=float, default = None,
+        self._create_argob('--ygrid_lines', type=float, default = None,
                 help='major grid-line spacing on y-axis')
-        self._inc_arg('--grid_off', action='store_true',
+        self._create_argob('--grid_off', action='store_true',
                 help='Turn grid lines off')
         # tick spacing along axes
-        self._inc_arg('--xtick_interval', type=int, default=2,
+        self._create_argob('--xtick_interval', type=int, default=2,
                 help='number of blank ticks between labels')
-        self._inc_arg('--ytick_interval', type=int, default=2,
+        self._create_argob('--ytick_interval', type=int, default=2,
                 help='number of blank ticks between labels')
         # Smooth top and right borders for cleaner looking plot
-        self._inc_arg('--clean_plot', action='store_true', default=False,
+        self._create_argob('--clean_plot', action='store_true', default=False,
                 help='Remove tick marks and top and right borders ')
         # background colour - black or white
-        self._inc_arg('-b', '--bgcolor', default='black',
+        self._create_argob('-b', '--bgcolor', default='black',
                 help='Plot background color',
                 choices=['black', 'white'])
         # side colour bar for 3rd-dimension range
-        self._inc_arg('--colorbar', action='store_true',
+        self._create_argob('--colorbar', action='store_true',
                 help="Add colorbar to figure", default=False)
 
         # Create options for font sizes, colours and labels
         # Headline of the plot
-        self._inc_arg('--title', help='Plot title')
+        self._create_argob('--title', help='Plot title')
         # Need options for size and style
         # Axis labels and font sizes
-        self._inc_arg('--ylabel', default = 'Normalized counts',
+        self._create_argob('--ylabel', default = 'Normalized counts',
              help='Label for the y-axis')
-        self._inc_arg('--xlabel', default = 'Position relative to TSS',
+        self._create_argob('--xlabel', default = 'Position relative to TSS',
                 help='Label for the x-axis')
-        self._inc_arg('--xfont_size', type=int, default=12,
+        self._create_argob('--xfont_size', type=int, default=12,
                 help='font size for x label')
-        self._inc_arg('--yfont_size', type=int, default=12,
+        self._create_argob('--yfont_size', type=int, default=12,
                 help='font size for y label')
         # Optional axis units text
-        self._inc_arg('--yaxis_units',
+        self._create_argob('--yaxis_units',
                 help='Text showing units of y-axis of plot')
-        self._inc_arg('--xaxis_units',
+        self._create_argob('--xaxis_units',
                 help='Text showing units of x-axis of plot')
 
         # Turn on line legend and set font size
-        self._inc_arg('-l', '--legend', action='store_true', default=False,
+        self._create_argob('-l', '--legend', action='store_true', default=False,
                 help='Automatically generate a figure legend.')
-        self._inc_arg('--legend_font_size', type=int, default=12,
+        self._create_argob('--legend_font_size', type=int, default=12,
                 help='Point size for legend characters')
 
         # Vertical line showing the centred feature
-        self._inc_arg('--vline_style',
+        self._create_argob('--vline_style',
                 default = '-.', choices=['-.', '-', '.'],
                 help='line style for centred vertical line')
-        self._inc_arg('--vline_width', type=int,
+        self._create_argob('--vline_width', type=int,
                 default = 2,
                 help='line width for centred vertical line')
 
         # Plotted line opacity
-        self._inc_arg('--line_alpha', type=float, default=1.0,
+        self._create_argob('--line_alpha', type=float, default=1.0,
                 help='Opacity of lines')
 
         # Plot as grey-scale
-        self._inc_arg('--grey_scale', action='store_true',
+        self._create_argob('--grey_scale', action='store_true',
                 help='Plot colour range as grey-scale')
 
         # Plot as series of images
-        self._inc_arg('--plot_series', action='store_true',
+        self._create_argob('--plot_series', action='store_true',
                 help='Plot series of figures. A directory called '+\
                 'plot_filename-series will be created.')
 
         # Position of legend?
-        self._inc_arg('--text_coords', default=None,
+        self._create_argob('--text_coords', default=None,
                 help='x, y coordinates of series text (e.g. 600,3.0)')
 
-        self._inc_arg('--div', help='Path to the plottable data, to divide '+\
+        self._create_argob('--div', help='Path to the plottable data, to divide '+\
                 'other loaded plottable data')
-        self._inc_arg('--div_by', choices=['average', 'median', 'top'],
+        self._create_argob('--div_by', choices=['average', 'median', 'top'],
                 help='divide by a single line rather than line-for-line')
 
-        self._inc_arg('--confidence_intervals', action='store_true',
+        self._create_argob('--confidence_intervals', action='store_true',
                 help='Show confidence intervals around plot lines')
 
         # Uses the 'tag count' arg value in the export file
-        self._inc_arg('--normalise_by_RPM', action='store_true',
+        self._create_argob('--normalise_by_RPM', action='store_true',
                 help='Normalise by Reads Per mapped-Million')
 
     def _add_db_args(self):
         """ options for starting a ChipPy DB """
-        self._inc_arg('--save_db_path',
+        self._create_argob('--save_db_dir', type=DirPath,
                 help='path to directory where chippy.db will be saved')
-        self._inc_arg('--ensembl_release', type=int,
+        self._create_argob('--save_db_prefix', default = '',
+                help='Prefix string to DB file name')
+        self._create_argob('--ensembl_release', type=int,
                 help='Ensembl release to use.')
-        self._inc_arg('--species', default='mouse',
+        self._create_argob('--species', default='mouse',
                 help="Create for species e.g. 'mouse','human'")
-        self._inc_arg('--hostname', default=None,
+        self._create_argob('--hostname', default=None,
                 help='hostname for SQL Ensembl server')
-        self._inc_arg('--username', default=None,
+        self._create_argob('--username', default=None,
                 help='username SQL Ensembl server')
-        self._inc_arg('--password', default=None,
+        self._create_argob('--password', default=None,
                 help='password for SQL Ensembl server')
-        self._inc_arg('--port', default=None, type=int,
+        self._create_argob('--port', default=None, type=int,
                 help='Port for SQL Ensembl server')
-        self._inc_arg('--dummy_data', default=False, action='store_true',
+        self._create_argob('--dummy_data', default=False, action='store_true',
                 help='Create dummy expression data')
 
     def _add_misc_args(self):
         """ various options that don't fall into a category above """
 
-        self._inc_arg('-m', '--metric',
+        self._create_argob('-m', '--metric',
                 choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
                 default='Frequency counts',
                 help='Select the metric (note you will need to change your ylim '\
                 'accordingly if providing via --ylim)')
 
-        self._inc_arg('-t', '--test_run', action='store_true',
+        self._create_argob('-t', '--test_run', action='store_true',
                 help="Test run, don't write output",
                 default=False)
 
@@ -418,53 +357,53 @@ class Args(object):
         """ These args are specifically for the diff_abs_plots script """
 
         # dot colouring
-        self._inc_arg('--extremes_colour', default='blue', choices=['blue',
+        self._create_argob('--extremes_colour', default='blue', choices=['blue',
                 'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
                 help='Colour of dots for absolute expression marked '\
                 'as extreme.')
-        self._inc_arg('--signif_colour', default='blue', choices=['blue',
+        self._create_argob('--signif_colour', default='blue', choices=['blue',
                 'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
                 help='Colour of dots for difference of expression marked '\
                 'as significant.')
-        self._inc_arg('--bulk_colour', default='blue', choices=['blue',
+        self._create_argob('--bulk_colour', default='blue', choices=['blue',
                 'red', 'yellow', 'green', 'magenta', 'orange', 'cyan'],
                 help='Colour of dots for all relatively unexceptional '\
                 'expression values.')
 
         # hide unwanted plot areas
-        self._inc_arg('--hide_extremes', default=False, action='store_true',
+        self._create_argob('--hide_extremes', default=False, action='store_true',
                 help='Do not show absolute expression considered extreme')
-        self._inc_arg('--hide_signif', default=False, action='store_true',
+        self._create_argob('--hide_signif', default=False, action='store_true',
                 help='Do not show difference expression considered '+\
                 'significant')
-        self._inc_arg('--hide_bulk', default=False, action='store_true',
+        self._create_argob('--hide_bulk', default=False, action='store_true',
                 help='Do not show expression values considered normal')
 
         # misc. options that don't fit other categories
-        self._inc_arg('--plot1_name',
+        self._create_argob('--plot1_name',
                 default=None, help='Output path for first plot')
-        self._inc_arg('--plot2_name',
+        self._create_argob('--plot2_name',
                 default=None, help='Output path for second plot')
 
     def _add_counts_vs_expr_specific_args(self):
         """ These args are specifically for the counts_vs_expr script """
-        self._inc_arg('--x_axis_type', choices=['expression', 'counts'],
+        self._create_argob('--x_axis_type', choices=['expression', 'counts'],
                 help='Select the data unit type for the x-axis',
                 default='expression')
 
-        self._inc_arg('--region_feature', choices=['total', 'promoter',
+        self._create_argob('--region_feature', choices=['total', 'promoter',
                 'coding', 'feature'], help='Which part of a counts region '+\
                 'should be used to calculate rank and score',
                 default='total')
 
-        self._inc_arg('--counts_is_ranks', action='store_true',
+        self._create_argob('--counts_is_ranks', action='store_true',
                 help='Plot chromatin counts as ranks rather than absolute values')
-        self._inc_arg('--expr_is_ranks', action='store_true',
+        self._create_argob('--expr_is_ranks', action='store_true',
                 help='Plot expression as ranks rather than absolute values')
 
-        self._inc_arg('--x_axis_is_log', action='store_true',
+        self._create_argob('--x_axis_is_log', action='store_true',
                 help='Plot x-axis with log2 values')
-        self._inc_arg('--y_axis_is_log', action='store_true',
+        self._create_argob('--y_axis_is_log', action='store_true',
                 help='Plot y-axis with log2 values')
 
     def _add_counts_distribution_specific_args(self):
@@ -475,24 +414,32 @@ class Args(object):
         """ Args specific to the expr_distribution script """
         pass
 
+    def getReqCogentOpts(self):
+        return [argob.asCogentOpt() for argob in self.argobs\
+                if argob.required]
+
+    def getOptCogentOpts(self):
+        return [argob.asCogentOpt() for argob in self.argobs\
+                if not argob.required]
+
     def __init__(self, positional_args=None, required_args=None,
             optional_args=None):
-        """ calls _inc_args on every possible argument """
+        """ calls _create_argobs on every possible argument """
         self.parser = argparse.ArgumentParser(version='ChipPy r'+str(__version__))
-        self.req_cogent_opts = []
-        self.opt_cogent_opts = []
+        self.required_args = required_args
+        self.optional_args = optional_args
+
+        self.argobs = []
         self.db_path = None
 
         # We need to handle the 'db_path' positional argument ourselves
         # as several arguments require it already loaded
         if positional_args:
             if 'db_path' in positional_args:
-            # Need to add an actual positional arg now!
-                self.parser.add_argument('db_path',
-                        help='Path to ChippyDB')
-                cogent_opt = make_option('--db_path',
-                        type='existing_filepath', help='Path to ChippyDB')
-                self.req_cogent_opts.append(cogent_opt)
+                # create a positional, non-displayed ArgOb
+                arg = ArgOb('db_path', type=FilePath, help='Path to ChippyDB',
+                    display=False)
+                self.argobs.append(arg)
                 for arg in sys.argv:
                     if not arg.startswith('-'):
                         # it's positional so take this to be db_path
@@ -503,8 +450,7 @@ class Args(object):
                             print self.db_path, 'selected as ChipPy database'
                             break
 
-        self.required_args = required_args
-        self.optional_args = optional_args
+
 
         # process arguments for loading or saving
         self._add_load_save_args()

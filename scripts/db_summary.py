@@ -32,9 +32,8 @@ script_info['brief_info'] = 'Reports DB contents'
 script_info['version'] = __version__
 script_info['authors'] = __author__
 script_info['args'] = Args(positional_args=pos_args, optional_args=opt_args)
-script_info['required_options'] = script_info['args'].req_cogent_opts
-script_info['optional_options'] = script_info['args'].opt_cogent_opts
-
+script_info['required_options'] = script_info['args'].getReqCogentOpts()
+script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
 def main():
     rr = RunRecord('db_summary')

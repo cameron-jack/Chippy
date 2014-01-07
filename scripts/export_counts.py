@@ -41,8 +41,8 @@ opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
-script_info['required_options'] = script_info['args'].req_cogent_opts
-script_info['optional_options'] = script_info['args'].opt_cogent_opts
+script_info['required_options'] = script_info['args'].getReqCogentOpts()
+script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
 def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,

@@ -46,8 +46,8 @@ opt_args = ['x_axis_type', 'group_location', 'include_target',
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
-script_info['required_options'] = script_info['args'].req_cogent_opts
-script_info['optional_options'] = script_info['args'].opt_cogent_opts
+script_info['required_options'] = script_info['args'].getReqCogentOpts()
+script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
 def make_plot(plot_points, plot_type='dot', plot_fn=None,
         output_type=None, fig_details=None, x_axis_is_log=False,

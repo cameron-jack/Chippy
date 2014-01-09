@@ -1,5 +1,7 @@
 import argparse
-import sys # required for finding db_path
+import sys
+sys.path.extend(['..','../..'])
+
 from chippy.express import db_query
 from chippy.express.util import sample_types
 

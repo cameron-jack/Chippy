@@ -18,18 +18,8 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
 
-import sys
 import argparse
-
 from cogent.util.option_parsing import make_option
-
-try:
-    from PyQt4 import QtGui
-    from gui import Parse2GUI
-    GUI_CAPABLE = True
-except ImportError:
-    print 'Install PyQt4 and ArgparseUi modules to enable GUI'
-    GUI_CAPABLE = False
 
 class FilePath(str):
     """
@@ -50,6 +40,12 @@ class DirPath(str):
     def __init__(self, path=''):
         super(DirPath, self).__init__()
         self.path = path
+
+class ImportantStr(str):
+    """ These strings should be given priority by any GUI builder """
+    def __init__(self, value=''):
+        super(ImportantStr, self).__init__()
+        self.value = value
 
 class ArgOb(object):
     """
@@ -92,17 +88,20 @@ class ArgOb(object):
             self.positional = False
 
         self.arg_type = None
+        self.choices = None
+        self.action = None
         if 'type' in kwargs.keys():
             self.arg_type = kwargs['type']
+        elif 'action' in kwargs.keys():
+            self.action = kwargs['action']
+        elif 'choices' in kwargs.keys():
+            self.choices = kwargs['choices']
+        else: # no type, action or choices? default to string
+            self.arg_type = str
+
         self.nargs = None
         if 'nargs' in kwargs.keys():
             self.nargs = kwargs['nargs']
-        self.action = None
-        if 'action' in kwargs.keys():
-            self.action = kwargs['action']
-        self.choices = None
-        if 'choices' in kwargs.keys():
-            self.choices = kwargs['choices']
 
         self.required = False
         if 'required' in kwargs.keys():
@@ -129,7 +128,8 @@ class ArgOb(object):
 
     _ARG_TO_OPT_TYPE_CONVERTER = {None: 'string', int: 'int',
             long: 'long', float: 'float', 'choices': 'choice',
-            FilePath: 'existing_filepath', DirPath: 'existing_dirpath'}
+            FilePath: 'existing_filepath', DirPath: 'existing_dirpath',
+            str : 'string', ImportantStr: 'string'}
 
     def asCogentOpt(self):
         """
@@ -200,7 +200,8 @@ class ArgOb(object):
 
         # type, choices and action are mutually exclusive
         if self.arg_type is not None:
-            argparse_params['type'] = self.arg_type
+            if self.arg_type is not str: # args default to str
+                argparse_params['type'] = self.arg_type
         elif self.choices is not None:
             argparse_params['choices'] = self.choices
         elif self.action is not None:
@@ -231,13 +232,18 @@ def test_argobs():
             help='Proportion of least and most absolute '+\
             'expressed genes to treat separately. Set to 0.0 to disable.')
 
+    arg5 = ArgOb('--name', help='some name', required=True)
+
     arg1.addToArgparse(parser)
     arg2.addToArgparse(parser)
     arg3.addToArgparse(parser)
     arg4.addToArgparse(parser)
+    arg5.addToArgparse(parser)
 
-    cmd_line = '--num_genes 4 --group_location all --ranks --sample_extremes 0.4'.split(' ')
-    args = parser.parse_args(cmd_line)
+    cmd_line = '--name blah --num_genes 4 --group_location all --ranks '+\
+               '--sample_extremes 0.4'
+    line_parts = cmd_line.split(' ')
+    args = parser.parse_args(line_parts)
     print args.__dict__
 
 if __name__ == '__main__':

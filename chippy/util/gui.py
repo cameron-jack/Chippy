@@ -1,13 +1,11 @@
-import textwrap
-import argparse
 import sys
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtGui
 
-from command_args import FilePath
-from argobs import ArgOb
+from argobs import ArgOb, DirPath, OpenFilePath, SaveFilePath,\
+        ImportantStr, ImportantChoice, ImportantInt, ImportantFloat
 
 __author__ = 'Cameron Jack'
-__copyright__ = 'Copyright 2014-2014, Cameron Jack'
+__copyright__ = 'Copyright 2014, Cameron Jack'
 __credits__ = ['Cameron Jack']
 __license__ = 'GPL'
 __version__ = '0.9.dev'
@@ -15,9 +13,19 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
 
+# TODO: have onLoad() populate the options
+# TODO: create the command string from the options
+# TODO: create mouse-over help strings and attach to widgets
+# TODO: make the options window scrollable
+# TODO: add in dividing lines for required and non-required options
+# TODO: make sure more options support nargs!
+# TODO: needs to validate user editable fields
+# Note: There is no support for nested parsers or mutually exclusive options
+
 class HelpText(object):
     """ Construction of argument information to text help for display """
-    def __init__(self, long_form, num_args, short_form = '', type_or_action='', is_required='Not required'):
+    def __init__(self, long_form, num_args, short_form = '',
+            type_or_action='', is_required='Not required'):
         self.num_args = num_args
         self.type_or_action = type_or_action
         self.is_required = is_required
@@ -26,11 +34,12 @@ class HelpText(object):
 
     def constructHelpText(self):
         """ based on available info, join fields to form sentences """
-        parts = [self.short_form,
-                 self.long_form,
-                 self.num_args,
-                 self.type_or_action,
-                 self.is_required
+        parts = [
+            self.short_form,
+            self.long_form,
+            self.num_args,
+            self.type_or_action,
+            self.is_required
         ]
         return ' '.join(parts)
 
@@ -64,14 +73,12 @@ class AutoGUI(QtGui.QDialog):
 
         self.config_fn = None
 
-        self.createGUI()
-
-    def createGUI(self):
-        """ Super-skeleton for buiding the GUI """
-
         self.mainLayout = QtGui.QVBoxLayout(self)
         self.setLayout(self.mainLayout)
+        self.createContents()
 
+    def createContents(self):
+        """ Fill the main layout with joy and stuff """
         self.addHeaderToGUI()
         self.createOptions()
         self.addFooterToGUI()
@@ -94,14 +101,132 @@ class AutoGUI(QtGui.QDialog):
         # Now add to mainLayout
         self.mainLayout.addWidget(self.header)
 
-    def _buildOrderedWidgets(self, argobs):
+    def makeSelectDirEvent(self, line_edit):
+        def selectDirEvent():
+            line_edit.setText(QtGui.QFileDialog.getExistingDirectory())
+        return selectDirEvent
+
+    def makeSelectOpenFileEvent(self, line_edit, nargs=None, filter_=''):
+        def selectOpenFileEvent():
+            if nargs is None:
+                line_edit.setText(QtGui.QFileDialog.\
+                        getOpenFileName(filter=filter_))
+            else:
+                line_edit.addItems(QtGui.QFileDialog.\
+                        getOpenFileNames(filter=filter_))
+        return selectOpenFileEvent
+
+    def makeSelectSaveFileEvent(self, line_edit, filter_=''):
+        def selectSaveFileEvent():
+            line_edit.setText(QtGui.QFileDialog.\
+                    getSaveFileName(filter=filter_))
+        return selectSaveFileEvent
+
+    def _buildFileButtonLineEdit(self, arg):
+        """
+            Add a button widget (which invokes a file browser dialog)
+            and a lineEdit widget to gridlayout.
+            Used for all derivatives of ArgOb.FilePath
+        """
+        button = QtGui.QPushButton(arg.long_form.lstrip('-'))
+        if arg.nargs is None:
+            line_edit = QtGui.QLineEdit()
+        else:
+            line_edit = QtGui.QListWidget()
+        if arg.arg_type is OpenFilePath:
+            button.clicked.connect(self.makeSelectOpenFileEvent(line_edit,
+                    nargs=arg.nargs, filter_=arg.filter_))
+        elif arg.arg_type is SaveFilePath:
+            button.clicked.connect(self.makeSelectSaveFileEvent(line_edit))
+        elif arg.arg_type is DirPath:
+            button.clicked.connect(self.makeSelectDirEvent(line_edit))
+        else:
+            QtGui.QMessageBox.critical(self, 'Critical',
+                'Invalid arg_type {0}'.format(str(arg.arg_type)))
+
+        self.optionsLayout.addWidget(button, self.current_row, 0)
+        self.optionsLayout.addWidget(line_edit, self.current_row, 1)
+        self.current_row += 1
+
+    def _buildLabelCheckbox(self, arg):
+        """
+            Add a label widget and a checkbox widget to gridlayout.
+            Used for action.
+        """
+        checkbox = QtGui.QCheckBox()
+        if arg.default or arg.action == 'store_false':
+            checkbox.setChecked(True)
+        label = QtGui.QLabel(arg.long_form.lstrip('-'))
+        #label.setBuddy(checkbox)
+
+        self.optionsLayout.addWidget(label, self.current_row, 0)
+        self.optionsLayout.addWidget(checkbox, self.current_row, 1)
+        self.current_row += 1
+
+    def _buildLabelCombobox(self, arg):
+        """
+            Add a label widget and a combobox widget to gridlayout.
+            Used for choice, ImportantChoice
+        """
+        combobox = QtGui.QComboBox()
+        label = QtGui.QLabel(arg.long_form.lstrip('-'))
+        #label.setBuddy(combobox)
+        for c in arg.choices:
+            combobox.addItem('{0}'.format(c))
+        if arg.default is not None:
+            combobox.setCurrentIndex(combobox.findText('{0}'.\
+                    format(arg.default)))
+
+        self.optionsLayout.addWidget(label, self.current_row, 0)
+        self.optionsLayout.addWidget(combobox, self.current_row, 1)
+        self.current_row += 1
+
+    def _buildLabelLineEdit(self, arg):
+        """
+            Add a label widget and a lineEdit widget to gridlayout.
+            Used for str, numbers, ImportantStr, ImportantNumbers
+        """
+        line_edit = QtGui.QLineEdit()
+        label = QtGui.QLabel(arg.long_form.lstrip('-'))
+        #label.setBuddy(line_edit)
+
+        self.optionsLayout.addWidget(label, self.current_row, 0)
+        self.optionsLayout.addWidget(line_edit, self.current_row, 1)
+        self.current_row += 1
+
+    def _createOrderedWidgets(self, argobs):
         """
             Build widgets appropriate to the arg type, and then add them to
             the interface. Widgets should be displayed in order by the
             arg_type: DirPath should come first, then FilePath,
             ImportantStr, actions, choices, numbers and finally strings.
         """
-        pass
+        row = 0 # gridlayout row
+        # group argobs by type so they are placed together
+        for arg in [a for a in argobs if a.arg_type is DirPath]:
+            self._buildFileButtonLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is OpenFilePath]:
+            self._buildFileButtonLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is SaveFilePath]:
+            self._buildFileButtonLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is ImportantChoice]:
+            self._buildLabelCombobox(arg)
+        for arg in [a for a in argobs if a.arg_type is ImportantInt]:
+            self._buildLabelLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is ImportantFloat]:
+            self._buildLabelLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is ImportantStr]:
+            self._buildLabelLineEdit(arg)
+        for arg in [a for a in argobs if a.action is not None]:
+            self._buildLabelCheckbox(arg)
+        for arg in [a for a in argobs if a.choices is not None]:
+            self._buildLabelCombobox(arg)
+        for arg in [a for a in argobs if a.arg_type is int]:
+            self._buildLabelLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is float]:
+            self._buildLabelLineEdit(arg)
+        for arg in [a for a in argobs if a.arg_type is str]:
+            self._buildLabelLineEdit(arg)
 
     def createOptions(self):
         """
@@ -110,9 +235,11 @@ class AutoGUI(QtGui.QDialog):
             a browser dialog so that the user can easily select the
             locations. Full argument information should be available as
             mouse-over help.
-
-
         """
+        self.options = QtGui.QWidget(self)
+        self.optionsLayout = QtGui.QGridLayout(self.options)
+        self.options.setLayout(self.optionsLayout)
+
         # Split args into required and non-required options
         required_args = []
         nonreq_args = []
@@ -122,34 +249,11 @@ class AutoGUI(QtGui.QDialog):
                     required_args.append(arg)
                 else:
                     nonreq_args.append(arg)
-
-        self._buildOrderedWidgets(required_args)
-        self._buildOrderedWidgets(nonreq_args)
-
-        # below are some placeholders and the basic code required
-
-        self.options = QtGui.QWidget(self)
-        self.optionsLayout = QtGui.QGridLayout(self.options)
-        self.options.setLayout(self.optionsLayout)
-
-        name_line_edit = QtGui.QLineEdit()
-        name_label = QtGui.QLabel('File1:')
-        name_label.setBuddy(name_line_edit)
-
-        email_line_edit = QtGui.QLineEdit()
-        email_label = QtGui.QLabel('Name:')
-        email_label.setBuddy(email_line_edit)
-
-        age_spin_box = QtGui.QSpinBox()
-        age_label = QtGui.QLabel('Name:')
-        age_label.setBuddy(age_spin_box)
-
-        self.optionsLayout.addWidget(name_label, 0, 0)
-        self.optionsLayout.addWidget(name_line_edit, 0, 1)
-        self.optionsLayout.addWidget(email_label, 1, 0)
-        self.optionsLayout.addWidget(email_line_edit, 1, 1)
-        self.optionsLayout.addWidget(age_label, 2, 0)
-        self.optionsLayout.addWidget(age_spin_box, 2, 1)
+        self.current_row = 0
+        # need to add a "Required inputs:" line
+        self._createOrderedWidgets(required_args)
+        # need to add a "Optional inputs:" line
+        self._createOrderedWidgets(nonreq_args)
 
         self.mainLayout.addWidget(self.options)
 
@@ -175,7 +279,7 @@ class AutoGUI(QtGui.QDialog):
         self.save_button = self.addButton('Save', self.onSave)
         self.save_as_button = self.addButton('Save as', self.onSaveAs)
         self.reset_button = self.addButton('Reset', self.onReset)
-        self.cancel_button= self.addButton('Cancel', self.onCancel)
+        self.cancel_button = self.addButton('Cancel', self.onCancel)
 
         self.mainLayout.addWidget(self.buttons)
 
@@ -235,7 +339,20 @@ class AutoGUI(QtGui.QDialog):
 
     def onReset(self):
         """ Clear all current option fields """
-        pass
+        response = QtGui.QMessageBox.question(self, 'Alert',
+                'Are you sure you want to clear all inputs?',
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
+                QtGui.QMessageBox.No )
+        if response == QtGui.QMessageBox.Yes:
+            if self.mainLayout is not None:
+                while self.mainLayout.count():
+                    item = self.mainLayout.takeAt(0)
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.deleteLater()
+                    else:
+                        self.clearLayout(item.layout())
+            self.createContents()
 
     def onCancel(self):
         """ Close the application and return NoneType """
@@ -254,8 +371,12 @@ def main():
                 'expression'),
         ArgOb('--sample_extremes', type=float,
                 default=0.0, help='Proportion of least and most absolute '+\
-                'expressed genes to treat separately. Set to 0.0 to disable.')
-        ]
+                'expressed genes to treat separately. Set to 0.0 to disable.'),
+        ArgOb('--name', help='some name', required=True),
+        ArgOb('--in_file', type=OpenFilePath, nargs='+', help='path to infile'),
+        ArgOb('--some_dir', type=DirPath, help='path to directory'),
+        ArgOb('--save_file', type=SaveFilePath, help='path save file')
+    ]
 
     a = AutoGUI(args)
     a.show()

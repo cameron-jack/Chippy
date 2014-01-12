@@ -21,14 +21,26 @@ __status__ = 'Pre-release'
 import argparse
 from cogent.util.option_parsing import make_option
 
-class FilePath(str):
+class OpenFilePath(str):
     """
-        Holds a string containing the path to a file. Is identifiable as a
-        separate type to 'string'. This information is used by the GUI
-        builder to create File Browser dialogs and such.
+        Holds a string containing the path to a file - for the purpose of
+        opening it. Is identifiable as a separate type to 'string'.
+        This information is used by the GUI builder to create File Browser
+        dialogs - possibly together with file extension filter.
     """
     def __init__(self, path=''):
-        super(FilePath, self).__init__()
+        super(OpenFilePath, self).__init__()
+        self.path = path
+
+class SaveFilePath(str):
+    """
+        Holds a string containing the path to a file - for the purpose
+        of saving it. Is identifiable as a separate type to 'string'.
+        This information is used by the GUI builder to create File Browser
+        dialogs and such.
+    """
+    def __init__(self, path=''):
+        super(SaveFilePath, self).__init__()
         self.path = path
 
 class DirPath(str):
@@ -47,6 +59,24 @@ class ImportantStr(str):
         super(ImportantStr, self).__init__()
         self.value = value
 
+class ImportantInt(int):
+    """ These ints should be given priority by any GUI builder """
+    def __init__(self, value=0):
+        super(ImportantInt, self).__init__()
+        self.value = value
+
+class ImportantFloat(float):
+    """ These ints should be given priority by any GUI builder """
+    def __init__(self, value=0):
+        super(ImportantFloat, self).__init__()
+        self.value = value
+
+class ImportantChoice(str):
+    """ These choices should be given priority by any GUI builder """
+    def __init__(self, value=''):
+        super(ImportantInt, self).__init__()
+        self.value = value
+
 class ArgOb(object):
     """
         An ArgOb is a precursor container for holding command-line
@@ -57,7 +87,7 @@ class ArgOb(object):
         GUI builders that in-turn create the command-line that gets
         parsed.
 
-        An example of 2. is the custom type FilePath provided here,
+        An example of 2. is the custom type OpenFilePath provided here,
         another is the 'display' field, which allows GUI building to
         be turned off for an arg, though it will still be created.
         This allows a 'pass-thru' capability for predefined options
@@ -122,14 +152,21 @@ class ArgOb(object):
         if 'help' in kwargs.keys():
             self.help = kwargs['help']
 
+        # filter_ is used by FilePath to restrict the browser to particular
+        # extensions
+        self.filter_ = ''
+        if 'filter_' in kwargs.keys():
+            self.nargs = kwargs['filter_']
+
         self.cogent_type = None
         if 'cogent_type' in kwargs.keys():
             self.cogent_type = kwargs['cogent_type']
 
     _ARG_TO_OPT_TYPE_CONVERTER = {None: 'string', int: 'int',
             long: 'long', float: 'float', 'choices': 'choice',
-            FilePath: 'existing_filepath', DirPath: 'existing_dirpath',
-            str : 'string', ImportantStr: 'string'}
+            OpenFilePath: 'existing_filepath', DirPath: 'existing_dirpath',
+            SaveFilePath: 'new_filepath', str : 'string',
+            ImportantStr: 'string'}
 
     def asCogentOpt(self):
         """

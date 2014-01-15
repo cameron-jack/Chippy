@@ -53,30 +53,6 @@ class DirPath(str):
         super(DirPath, self).__init__()
         self.path = path
 
-class ImportantStr(str):
-    """ These strings should be given priority by any GUI builder """
-    def __init__(self, value=''):
-        super(ImportantStr, self).__init__()
-        self.value = value
-
-class ImportantInt(int):
-    """ These ints should be given priority by any GUI builder """
-    def __init__(self, value=0):
-        super(ImportantInt, self).__init__()
-        self.value = value
-
-class ImportantFloat(float):
-    """ These ints should be given priority by any GUI builder """
-    def __init__(self, value=0):
-        super(ImportantFloat, self).__init__()
-        self.value = value
-
-class ImportantChoice(str):
-    """ These choices should be given priority by any GUI builder """
-    def __init__(self, value=''):
-        super(ImportantInt, self).__init__()
-        self.value = value
-
 class ArgOb(object):
     """
         An ArgOb is a precursor container for holding command-line
@@ -144,6 +120,7 @@ class ArgOb(object):
         if 'metavar' in kwargs.keys():
             self.metavar = kwargs['metavar']
 
+        # Display == False means not seen in GUI
         self.display = True
         if 'display' in kwargs.keys():
             self.display = kwargs['display']
@@ -158,6 +135,11 @@ class ArgOb(object):
         if 'filter_' in kwargs.keys():
             self.nargs = kwargs['filter_']
 
+        # important prioritises this in the display order
+        self.important = False
+        if 'important' in kwargs.keys():
+            self.important = kwargs['important']
+
         self.cogent_type = None
         if 'cogent_type' in kwargs.keys():
             self.cogent_type = kwargs['cogent_type']
@@ -165,8 +147,7 @@ class ArgOb(object):
     _ARG_TO_OPT_TYPE_CONVERTER = {None: 'string', int: 'int',
             long: 'long', float: 'float', 'choices': 'choice',
             OpenFilePath: 'existing_filepath', DirPath: 'existing_dirpath',
-            SaveFilePath: 'new_filepath', str : 'string',
-            ImportantStr: 'string'}
+            SaveFilePath: 'new_filepath', str : 'string'}
 
     def asCogentOpt(self):
         """
@@ -217,9 +198,14 @@ class ArgOb(object):
 
         if self.short_form is not None:
             return make_option(self.short_form, self.long_form,
-                    cogent_parameters)
+                    **cogent_parameters)
         else:
-            return make_option(self.long_form, **cogent_parameters)
+            # Optparse doesn't do positional arguments
+            if not self.long_form.startswith('--'):
+                long_form = ''.join(['--', self.long_form])
+            else:
+                long_form = self.long_form
+            return make_option(long_form, **cogent_parameters)
 
     def addToArgparse(self, parser):
         """ create an argparse arg and add it to the parser """
@@ -232,7 +218,7 @@ class ArgOb(object):
             argparse_params['metavar'] = self.metavar
         if self.help is not None:
             argparse_params['help'] = self.help
-        if self.required is not None:
+        if self.required is not None and not self.positional:
             argparse_params['required'] = self.required
 
         # type, choices and action are mutually exclusive
@@ -244,9 +230,12 @@ class ArgOb(object):
         elif self.action is not None:
             argparse_params['action'] = self.action
 
+        if self.default is not None:
+            argparse_params['default'] = self.default
+
         if self.short_form is not None:
-            parser.add_argument(self.short_form, self.short_form,
-                    argparse_params)
+            parser.add_argument(self.short_form, self.long_form,
+                    **argparse_params)
         else:
             parser.add_argument(self.long_form, **argparse_params)
 

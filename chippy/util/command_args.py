@@ -5,12 +5,13 @@ sys.path.extend(['..','../..'])
 from chippy.express import db_query
 from chippy.express.util import sample_types
 
-from argobs import FilePath, DirPath, ArgOb
+from argobs import OpenFilePath, SaveFilePath, DirPath, ArgOb
 
 from cogent.util.option_parsing import make_option
 try:
     from PyQt4 import QtGui
     from argparseui import ArgparseUi
+    from gui import AutoGUI
     GUI_CAPABLE = True
 except ImportError:
     print 'Install PyQt4 and ArgparseUi modules to enable GUI'
@@ -52,12 +53,13 @@ class Args(object):
         if GUI_CAPABLE:
             if len(sys.argv) < 3:
                 app = QtGui.QApplication(sys.argv)
-                a = ArgparseUi(self.parser, **kwargs)
+                # Use ArgparseUi or AutoGUI
+                #a = ArgparseUi(self.parser, **kwargs)
+                a = AutoGUI(self.argobs)
                 a.show()
                 app.exec_()
-                print ("Ok" if a.result() == 1 else "Cancel")
                 if a.result() == 1: # Ok pressed
-                    return a.parse_args()
+                    return self.parser.parse_args(a.makeCommandLine().split(' '))
                 else:
                     print 'Execution cancelled.'
                     sys.exit(0)
@@ -82,13 +84,14 @@ class Args(object):
     def _add_load_save_args(self):
         """ All loading and saving related arguments should go here """
 
-        self._create_argob('--make_bedgraph', action='store_true', help='Enable '+\
-                'Output to BEDgraph during export. Save name is same as ChipPy DB'+\
-                "but with a '_expression-name.bedgraph' extension")
-        self._create_argob('-c', '--collection', type=FilePath, help='Path to the plottable data')
-        self._create_argob('--plot_filename', type=FilePath,
+        self._create_argob('--make_bedgraph', action='store_true',
+                help='Save export to BEDgraph, where name is same as '+\
+                "ChipPy DB but with a _expression-name.bedgraph' extension")
+        self._create_argob('-c', '--collection', type=OpenFilePath,
+                help='Path to the plottable data')
+        self._create_argob('--plot_filename', type=OpenFilePath,
                 help='Name of final plot file')
-        self._create_argob('-e', '--expression_data', type=FilePath,
+        self._create_argob('-e', '--expression_data', type=OpenFilePath,
                 help="Path to the expression/gene data file. Must be tab delimited.")
         self._create_argob('--allow_probeset_many_gene', action='store_true',
                 default=False, help='Allow probesets that map to multiple genes')
@@ -141,11 +144,11 @@ class Args(object):
                 'Select the type of data you want entered from '+\
                 ' '.join([str(k) for k in sample_types.keys()]) )
 
-        self._create_argob('--reffile1', type=FilePath, help='Related file 1')
-        self._create_argob('--reffile2', type=FilePath, help='Related file 2')
+        self._create_argob('--reffile1', type=OpenFilePath, help='Related file 1')
+        self._create_argob('--reffile2', type=OpenFilePath, help='Related file 2')
 
         # Export Centred Counts args
-        self._create_argob('-B', '--BAMorBED', type=FilePath,
+        self._create_argob('-B', '--BAMorBED', type=OpenFilePath,
                 help='Read counts, from indexed BAM, BED or BEDgraph file')
 
         self._create_argob('-f', '--overwrite', action='store_true',
@@ -439,9 +442,6 @@ class Args(object):
         if positional_args:
             if 'db_path' in positional_args:
                 # create a positional, non-displayed ArgOb
-                arg = ArgOb('db_path', type=FilePath, help='Path to ChippyDB',
-                    display=False)
-                self.argobs.append(arg)
                 for arg in sys.argv:
                     if not arg.startswith('-'):
                         # it's positional so take this to be db_path
@@ -449,10 +449,11 @@ class Args(object):
                         if 'chippy' in possible_db_path.lower() and\
                                 '.db' in possible_db_path.lower():
                             self.db_path = possible_db_path
+                            db = ArgOb('db_path', type=OpenFilePath, help='Path to ChippyDB',
+                                display=False, default=possible_db_path)
+                            self.argobs.append(db)
                             print self.db_path, 'selected as ChipPy database'
                             break
-
-
 
         # process arguments for loading or saving
         self._add_load_save_args()

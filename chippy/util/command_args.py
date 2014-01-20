@@ -10,7 +10,7 @@ from argobs import OpenFilePath, SaveFilePath, DirPath, ArgOb
 from cogent.util.option_parsing import make_option
 try:
     from PyQt4 import QtGui
-    from argparseui import ArgparseUi
+    #from argparseui import ArgparseUi
     from gui import AutoGUI
     GUI_CAPABLE = True
 except ImportError:
@@ -449,9 +449,11 @@ class Args(object):
                         if 'chippy' in possible_db_path.lower() and\
                                 '.db' in possible_db_path.lower():
                             self.db_path = possible_db_path
-                            db = ArgOb('db_path', type=OpenFilePath, help='Path to ChippyDB',
-                                display=False, default=possible_db_path)
+                            db = ArgOb('db_path', type=OpenFilePath,
+                                    help='Path to ChippyDB', display=False,
+                                    default=possible_db_path)
                             self.argobs.append(db)
+                            self.optional_args.append(db)
                             print self.db_path, 'selected as ChipPy database'
                             break
 

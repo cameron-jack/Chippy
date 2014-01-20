@@ -402,16 +402,17 @@ class AutoGUI(QtGui.QDialog):
 
         if self.requiredLayout.rowCount() > 0:
             for row in range(self.requiredLayout.rowCount()):
-                name, input = self._checkNameValue(\
-                        self.requiredLayout.itemAtPosition(row, 1),
-                        self.requiredLayout.itemAtPosition(row, 2))
-                if name.startswith('-'):
-                    optional_parts.append(name)
-                    if input is not None:
-                        optional_parts.append(input)
-                else: # positional args have no name
-                    if input is not None:
-                        positional_parts.append(input)
+                if self.requiredLayout.itemAtPosition(row,2) is not None:
+                    name, input = self._checkNameValue(\
+                            self.requiredLayout.itemAtPosition(row, 1),
+                            self.requiredLayout.itemAtPosition(row, 2))
+                    if name.startswith('-'):
+                        optional_parts.append(name)
+                        if input is not None:
+                            optional_parts.append(input)
+                    else: # positional args have no name
+                        if input is not None:
+                            positional_parts.append(input)
 
         if self.optionalLayout.rowCount() > 0:
             for row in range(self.optionalLayout.rowCount()):
@@ -437,8 +438,10 @@ class AutoGUI(QtGui.QDialog):
                     else: # postional args have no name
                         positional_parts.append(str(arg.default))
 
-        print ' '.join(optional_parts) + ' ' + ' '.join(positional_parts)
-        return ' '.join(optional_parts) + ' ' + ' '.join(positional_parts)
+        cmd = ' '.join(optional_parts) + ' ' + ' '.join(positional_parts)
+        cmd = cmd.strip()
+        print cmd
+        return cmd
 
     def createMouseOverHelp(self, arg):
         """ glue together the arg fields as string """

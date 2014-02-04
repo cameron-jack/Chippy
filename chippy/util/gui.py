@@ -385,12 +385,7 @@ class AutoGUI(QtGui.QDialog):
                     input = ', '.join(value)
                 else:
                     if arg.arg_type is not None:
-                        if arg.arg_type is int:
-                            input = str(value)
-                        elif arg.arg_type is float:
-                            input = str(value)
-                        else:
-                            input = "'" + str(value) + "'"
+                        input = str(value)
                     elif arg.choices is not None:
                         input = str(value)
         return name, input
@@ -437,6 +432,11 @@ class AutoGUI(QtGui.QDialog):
                         optional_parts.append(str(arg.default))
                     else: # postional args have no name
                         positional_parts.append(str(arg.default))
+
+        # join space separated components of strings with quotes
+        for i, part in enumerate(optional_parts):
+            if type(part) == str  and ' ' in part:
+                optional_parts[i] = "'" + part + "'"
 
         cmd = ' '.join(optional_parts) + ' ' + ' '.join(positional_parts)
         cmd = cmd.strip()

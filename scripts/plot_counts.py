@@ -79,20 +79,20 @@ def set_up_series_plots_dir(plot_filename):
     rr.addInfo('Plotting as a series to', plot_series_dir)
     return plot_series_dir
 
-def set_counts_function(metric):
+def set_counts_function(counts_metric):
     """ Sets the feature counting metric function"""
     rr = RunRecord('set_counts_function')
-    if metric.lower() == 'mean counts':
+    if counts_metric.lower() == 'mean':
         counts_func = column_mean
         rr.addInfo('Counts metric set to', 'column_mean')
-    elif metric.lower() == 'frequency counts':
+    elif counts_metric.lower() == 'frequency':
         counts_func = column_sum
         rr.addInfo('Counts metric set to', 'column_sum')
-    elif metric.lower() == 'standard deviation':
+    elif counts_metric.lower() == 'stdev':
         counts_func = stdev
         rr.addInfo('Counts metric set to', 'stdev')
     else:
-        rr.dieOnCritical('Invalid count metric', metric)
+        rr.dieOnCritical('Invalid count metric', counts_metric)
     return counts_func
 
 def div_plots(plot_lines, div_study_name, div_by=None):
@@ -218,7 +218,7 @@ script_info['output_description']= 'Generates either a single pdf figure or '\
         'a series of pdfs that can be merged into a movie.'
 
 pos_args = ['db_path']
-req_args = ['collection', 'metric']
+req_args = ['collection', 'counts_metric']
 opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
         'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
@@ -255,7 +255,7 @@ def main():
             use_save_load_button=True, window_title='Plot Counts')
 
     # 1: Set feature counting metric
-    counts_func = set_counts_function(args.metric)
+    counts_func = set_counts_function(args.counts_metric)
 
     # 2: Load studies
     print 'Loading counts data'

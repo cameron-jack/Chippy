@@ -168,7 +168,8 @@ class Args(object):
         # group genes into sets ranked by expression
         self._create_argob('-g', '--group_size', default='All',
                 help='Number of genes to group to estimate'+\
-                 ' statistic - All or a specific number')
+                 ' statistic - All or a specific number',
+                important=True)
 
         self._create_argob('--num_genes', type=int,
                 help='Number of ranked genes to use in study')
@@ -348,11 +349,9 @@ class Args(object):
     def _add_misc_args(self):
         """ various options that don't fall into a category above """
 
-        self._create_argob('-m', '--metric',
-                choices=['Mean counts', 'Frequency counts', 'Standard deviation'],
-                default='Frequency counts',
-                help='Select the metric (note you will need to change your ylim '\
-                'accordingly if providing via --ylim)')
+        self._create_argob('-m', '--counts_metric',
+                choices=['mean', 'frequency', 'stdev'], default='mean',
+                help='Select the metric for combining counts')
 
         self._create_argob('-t', '--test_run', action='store_true',
                 help="Test run, don't write output",

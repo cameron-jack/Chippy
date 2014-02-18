@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-'''creates the gene feature database - must be run first'''
-import sys
-sys.path.extend(['..', '../src'])
+"""creates the gene feature database - must be run first"""
 
-import os
+import os, sys
+
+sys.path.extend(['..'])
+
 from cogent.db.ensembl import HostAccount
 from chippy.util.util import create_path
 
@@ -33,7 +34,7 @@ script_info['version'] = __version__
 # Process command-line arguments
 req_args = ['save_db_dir', 'save_db_prefix', 'ensembl_release', 'species',
             'hostname', 'username', 'password', 'port']
-opt_args = ['dummy_data']
+opt_args = ['dummy_data', 'show_log']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args)
 script_info['required_options'] = script_info['args'].getReqCogentOpts()
@@ -69,14 +70,17 @@ def main():
         if args.dummy_data:
             success = create_dummy_expr(session)
             if success:
-                print 'Dummy data added successfully. Expr=1.'
+                rr.addInfo('Dummy data added successfully', 'Expr=1.')
             else:
-                print 'Dummy data failed to upload to DB. Expect bigger problems'
+                rr.addError('Dummy data failed to upload to DB', 'Expect bigger problems')
 
         rr.addInfo('Chippy DB written', db_path)
+        print os.path.realpath(db_path)
     else:
         rr.addError('Chippy DB with this name already exists', db_path)
-    rr.display()
+
+    if args.show_log:
+        rr.display()
 
 if __name__ == '__main__':
     main()

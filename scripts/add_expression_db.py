@@ -41,15 +41,14 @@ pos_args = ['db_path']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
-script_info['required_options'] = script_info['args'].req_cogent_opts
-script_info['optional_options'] = script_info['args'].opt_cogent_opts
+script_info['required_options'] = script_info['args'].getReqCogentOpts()
+script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
 def main():
     rr = RunRecord('add_expression_db')
     rr.addCommands(sys.argv)
 
-    args = script_info['args'].parse(use_scrollbars=True,
-            use_save_load_button=True, window_title='Add Expression to DB')
+    args = script_info['args'].parse(window_title='Add Expression to DB')
     session = db_query.make_session(args.db_path)
 
     name = args.name

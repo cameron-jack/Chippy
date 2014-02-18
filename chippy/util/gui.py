@@ -2,6 +2,7 @@ import sys
 from PyQt4 import QtGui
 
 from argobs import ArgOb, DirPath, OpenFilePath, SaveFilePath
+from chippy.util.run_record import RunRecord
 
 __author__ = 'Cameron Jack'
 __copyright__ = 'Copyright 2014, Cameron Jack'
@@ -390,9 +391,9 @@ class AutoGUI(QtGui.QDialog):
                         input = str(value)
         return name, input
 
-    def makeCommandLine(self):
-        """ glue together the arg.long_names and the user inputs """
-        optional_parts = []
+    def makeCommands(self):
+        """ return the arg.long_names and the user inputs """
+        non_positional_parts = []
         positional_parts = []
 
         if self.requiredLayout.rowCount() > 0:
@@ -402,24 +403,26 @@ class AutoGUI(QtGui.QDialog):
                             self.requiredLayout.itemAtPosition(row, 1),
                             self.requiredLayout.itemAtPosition(row, 2))
                     if name.startswith('-'):
-                        optional_parts.append(name)
+                        non_positional_parts.append(name)
                         if input is not None:
-                            optional_parts.append(input)
+                            non_positional_parts.append(input)
                     else: # positional args have no name
                         if input is not None:
                             positional_parts.append(input)
 
         if self.optionalLayout.rowCount() > 0:
             for row in range(self.optionalLayout.rowCount()):
+                if self.optionalLayout.itemAtPosition(row, 0) is None:
+                    continue
                 include = self.optionalLayout.itemAtPosition(row, 0).widget()
                 if include.checkState():
                     name, input = self._checkNameValue(\
                         self.optionalLayout.itemAtPosition(row, 1),
                         self.optionalLayout.itemAtPosition(row, 2))
                     if name.startswith('-'):
-                        optional_parts.append(name)
+                        non_positional_parts.append(name)
                         if input is not None:
-                            optional_parts.append(input)
+                            non_positional_parts.append(input)
                     else: # positional args have no name
                         if input is not None:
                             positional_parts.append(input)
@@ -428,20 +431,21 @@ class AutoGUI(QtGui.QDialog):
             if not arg.display:
                 if arg.default is not None:
                     if arg.long_form.startswith('-'):
-                        optional_parts.append(arg.long_form)
-                        optional_parts.append(str(arg.default))
+                        non_positional_parts.append(arg.long_form)
+                        non_positional_parts.append(str(arg.default))
                     else: # postional args have no name
                         positional_parts.append(str(arg.default))
 
         # join space separated components of strings with quotes
-        for i, part in enumerate(optional_parts):
+        for i, part in enumerate(non_positional_parts):
             if type(part) == str  and ' ' in part:
-                optional_parts[i] = "'" + part + "'"
+                non_positional_parts[i] = "'" + part + "'"
 
-        cmd = ' '.join(optional_parts) + ' ' + ' '.join(positional_parts)
-        cmd = cmd.strip()
-        print cmd
-        return cmd
+        rr = RunRecord()
+        rr.addCommands(non_positional_parts)
+        rr.addCommands(positional_parts)
+
+        return non_positional_parts + positional_parts
 
     def createMouseOverHelp(self, arg):
         """ glue together the arg fields as string """

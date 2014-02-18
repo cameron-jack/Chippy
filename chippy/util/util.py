@@ -2,6 +2,7 @@ from __future__ import division
 
 import os, random
 from fnmatch import fnmatch, filter as fn_filter
+import subprocess
 
 __author__ = "Gavin Huttley"
 __copyright__ = "Copyright 2011, Anuj Pahwa, Gavin Huttley"
@@ -23,6 +24,16 @@ DEFAULT_USER_DIR = os.path.expanduser('~/Desktop')
 
 import sys
 sys.path.append(src_dir)
+
+def run_command(command):
+    """executes a command - moved here by Cameron"""
+    PIPE = subprocess.PIPE
+    r = subprocess.Popen(command, shell=True, universal_newlines=True,
+        stdout=PIPE, stderr=PIPE, bufsize=-1)
+
+    stdout, stderr = r.communicate()
+    returncode = r.returncode
+    return returncode, stdout, stderr
 
 class DummyFile(object):
     """matches basic API of a file object, when you don't actually want one"""

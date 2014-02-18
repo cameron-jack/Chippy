@@ -7,7 +7,7 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'Pre-release'
 __version__ = '0.2'
-import logging, sys, os
+import logging, sys, os, ConfigParser
 
 LOG_FN = 'ChipPy.log'
 
@@ -26,10 +26,23 @@ class RunRecord(object):
         else:
             self.logger = logging.getLogger(base_name)
 
+        # check for a log directory config file entry
+        cfg = ConfigParser.ConfigParser()
+        cfg.read('chippy.ini')
+        try:
+            home_dir = cfg.get('Log', 'Directory')
+        except ConfigParser.NoSectionError, ConfigParser.NoOptionError:
+            home_dir = None
+
+        if home_dir is not None:
+            self.log_path = os.path.join(home_dir, LOG_FN)
+        else:
+            self.log_path = LOG_FN
+
         if not len(self.logger.handlers):
             self.logger.setLevel(logging.DEBUG)
             # create file handler which logs even debug messages
-            fh = logging.FileHandler(LOG_FN)
+            fh = logging.FileHandler(self.log_path)
             fh.setLevel(logging.DEBUG)
             # create console handler with a higher log level
             ch = logging.StreamHandler(sys.stderr)
@@ -119,25 +132,30 @@ class RunRecord(object):
         else:
             self.addInfo('command-line', command_args)
 
-    def getMessageTable(self, last_n_lines=None):
+    def getMessageTable(self, last_n_lines=None, include_date=False):
         """
             Read the ChipPy.log file return as table, returning
             only the last n lines if passed an int.
         """
 
-        log_file = open(LOG_FN)
+        log_file = open(self.log_path)
         records = []
         for line in log_file:
             line = line.strip()
             if len(line) > 0:
-                records.append(line.split('\t')[1:]) # don't display date
+                if include_date:
+                    records.append(line.split('\t')[0:])
+                else:
+                    records.append(line.split('\t')[1:]) # don't display date
         log_file.close()
 
         if records == []:
             return None
 
-        #header = ['Date/time', 'code_block', 'level', 'message', 'value']
-        header = ['code_block', 'level', 'message', 'value']
+        if include_date:
+            header = ['Date/time', 'code_block', 'level', 'message', 'value']
+        else:
+            header = ['code_block', 'level', 'message', 'value']
 
         if type(last_n_lines) is int: # return only last n lines of log file
             try:
@@ -164,6 +182,18 @@ class RunRecord(object):
         self.display()
         sys.exit(1)
 
+    def empty_log(self):
+        """ delete the contents of the log file """
+        try:
+            os.remove(self.log_path)
+        except IOError:
+            pass
+
+        # recreate empty log file
+        with open(self.log_path, 'w') as f:
+            f.write('')
+            f.close()
+
 def remove_RR_log():
-    """ delete the current ChipPy.log file, such as when running tests """
+    """ delete the current ChipPy.log file, required when running tests """
     os.remove(LOG_FN)

@@ -4,12 +4,12 @@ sys.path.extend(['..'])
 
 import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
-import subprocess
 
 import re
 from cogent.util.progress_display import display_wrap
 
 from chippy.util.run_record import RunRecord
+from chippy.util.util import run_command
 from gzip import GzipFile
 from math import ceil
 
@@ -21,16 +21,6 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.2'
-
-def run_command(command):
-    """executes a command"""
-    PIPE = subprocess.PIPE
-    r = subprocess.Popen(command, shell=True, universal_newlines=True,
-        stdout=PIPE, stderr=PIPE, bufsize=-1)
-
-    stdout, stderr = r.communicate()
-    returncode = r.returncode
-    return returncode, stdout, stderr
 
 @display_wrap
 def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):

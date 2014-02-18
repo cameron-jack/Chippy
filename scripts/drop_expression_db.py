@@ -39,13 +39,13 @@ def main():
     rr = RunRecord('drop_expression_db')
     rr.addCommands(sys.argv)
 
-    args = script_info['args'].parse()
+    args = script_info['args'].parse(window_title='Drop Expression Data')
     session = db_query.make_session(args.db_path)
 
     if db_query.drop_sample_records(session, args.sample):
-        print 'Success'
+        rr.addInfo('Removing ' + args.sample, 'Success')
     else:
-        print 'Failure'
+        rr.addWarning('Removing ' + args.sample, 'Failure')
 
     rr.display()
 

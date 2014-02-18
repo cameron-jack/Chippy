@@ -59,7 +59,7 @@ class Args(object):
                 a.show()
                 app.exec_()
                 if a.result() == 1: # Ok pressed
-                    return self.parser.parse_args(a.makeCommandLine().split(' '))
+                    return self.parser.parse_args(a.makeCommands())
                 else:
                     print 'Execution cancelled.'
                     sys.exit(0)
@@ -110,7 +110,7 @@ class Args(object):
                 help='Column containing difference p values')
         self._create_argob('--sep', default='\t', help='data field delimiter')
 
-        self._create_argob('--sample', choices=\
+        self._create_argob('-s', '--sample', choices=\
                 db_query.get_all_sample_names(self.db_path),
                 help='Select an existing sample')
         # absolute or differential expression
@@ -356,6 +356,11 @@ class Args(object):
         self._create_argob('-t', '--test_run', action='store_true',
                 help="Test run, don't write output",
                 default=False)
+
+        # should never be displayed with the app
+        self._create_argob('--show_log', action='store_true',
+                help='Print recent log entries following execution',
+                display=False)
 
     def _add_diff_abs_plots_specific_args(self):
         """ These args are specifically for the diff_abs_plots script """

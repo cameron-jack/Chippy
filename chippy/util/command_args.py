@@ -87,8 +87,10 @@ class Args(object):
         self._create_argob('--make_bedgraph', action='store_true',
                 help='Save export to BEDgraph, where name is same as '+\
                 "ChipPy DB but with a _expression-name.bedgraph' extension")
-        self._create_argob('-c', '--collection', type=OpenFilePath,
-                help='Path to the plottable data')
+        self._create_argob('-c', '--collection', type=SaveFilePath,
+                help='Path to save plottable data')
+        self._create_argob('--collections', type=OpenFilePath, nargs='+',
+                help='One or more, plottable data files')
         self._create_argob('--plot_filename', type=OpenFilePath,
                 help='Name of final plot file')
         self._create_argob('-e', '--expression_data', type=OpenFilePath,
@@ -138,7 +140,7 @@ class Args(object):
         self._create_argob('-d', '--description', help='give your sample a '+\
                 'description')
         self._create_argob('--sample_type',
-                choices=[k for k in sample_types.keys()],
+                choices=[k for k in sample_types.keys()], default='abs_expr',
                 help='One of: '+', '.join([str(k) for \
                         k in sample_types.values()])+\
                 'Select the type of data you want entered from '+\

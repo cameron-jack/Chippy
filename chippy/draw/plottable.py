@@ -273,31 +273,29 @@ class _Plottable(object):
     def _set_background(self, bgcolor, grid_off, vline):
         """ Called during initialisation.
 
-        Sets the background to either black or white. White plots are
-        designed for a minimal, 'clean' look.
+        Sets the background to either black or white.
         bgcolor = 'black'|'white'
-        vline = (width, style, color)
+        vline = (x, width, style, color)
         """
         x, vline_width, vline_style, vline_color = vline
         if bgcolor.lower() == 'black':
             if grid_off is True:
                 self.grid = False
-                vline_color = 'k'
             else:
                 self.grid = {'color': 'w'}
                 vline_color = 'w'
-            self.bgcolor='0.1'
+            self.bgcolor='0.0'
         else:
             if grid_off is True:
                 self.grid = False
-                vline_color = 'w'
             else:
                 self.grid = {'color': 'k'}
                 vline_color = 'k'
             self.bgcolor = '1.0'
 
-        self.vline = dict(x=x, linewidth=vline_width,
-                linestyle=vline_style, color=vline_color)
+        if not grid_off:
+            self.vline = dict(x=x, linewidth=vline_width,
+                    linestyle=vline_style, color=vline_color)
 
     def _set_axes(self, y_vals=None, plot_lines=None, test_run=False):
         """ Gets called by the __call__ method but is also available for
@@ -412,20 +410,18 @@ class PlottableGroups(_Plottable):
             alpha=None, series_labels=None, label_coords=None, cmap=None,
             colorbar=False, clean=False, xlabel=None, ylabel=None,
             title=None, filename_series=None, labels=None, labels_size=None,
-            stderr=None, show_legend=False, plot_CI=False, ui=None):
+            show_legend=False, plot_CI=False, ui=None):
         rr = RunRecord('PlottableGroups__call__')
 
         if not y_series and not plot_lines:
             rr.dieOnCritical('No data supplied', 'Failed')
-
-        bbox = dict(facecolor='b', alpha=0.5)
 
         if plot_lines:
             # Get all data from plot_lines
             plot_lines = sorted(plot_lines, key=lambda line: line.rank, reverse=True)
             y_series = [line.counts for line in plot_lines]
             color_series = [line.color for line in plot_lines]
-            labels = [line.label for line in plot_lines]
+            #labels = [line.label for line in plot_lines]
 
             # Reverse ranks so that rank 0 is colored red, must be in range 0..1
             ranks = sorted([line.rank/len(plot_lines) for line in plot_lines], reverse=True)
@@ -449,7 +445,7 @@ class PlottableGroups(_Plottable):
 
         self.clean=clean
 
-        if self._colorbar and colorbar:
+        if cmap and self._colorbar and colorbar:
             # probably need to set a limit on how big this will be
             ax2 = self.fig.add_axes([0.925, 0.1, 0.025, 0.8])
             cb = ColorbarBase(ax2, ticks=[0.0, 1.0], cmap=cmap_r,
@@ -464,24 +460,24 @@ class PlottableGroups(_Plottable):
                 color = 'b'
             elif cmap and plot_lines:
                 color = cmap(ranks[i])
-            elif type(color_series[i]) != str:
-                color = cmap(color_series[i])
+            elif color_series and type(color_series[i]) != str:
+                color = color_series[i]
+                if len(color) == 4:
+                    alpha = color[3]
             elif type(color_series[i]) == str:
                 color = color_series[i]
-            
-            if series_labels is not None:
-                txt = ax.text(label_x, label_y, series_labels[i],
-                        bbox=bbox, color='w', fontsize=self.legend_font_size)
 
             if color_series is not None:
                 y = y_series[i]
             else:
                 y = y_series
 
-            if labels is not None and show_legend:
-                self._legend_labels.append(labels[i])
+            if labels is not None and show_legend and i >= num - len(labels):
+                self._legend_labels.append(labels[i - num + len(labels)])
+
                 patches, = pyplot.plot(x, y, color=color,
-                        linewidth=self.linewidth, label=labels[i])
+                        linewidth=self.linewidth, alpha=1)
+
                 self._legend_patches.append(patches)
                 self.legend(labels_size)
             else:
@@ -489,15 +485,14 @@ class PlottableGroups(_Plottable):
 
             if filename_series is not None:
                 pyplot.savefig(filename_series[i])
-            
-            if series_labels is not None:
-                ax.texts.remove(txt)
 
             # Show confidence interval around each line
+            if alpha is None:
+                alpha = 0.9
             if plot_CI and plot_lines is not None:
                 upper = 1.96 * plot_lines[i].stderr + y_series[i]
                 lower = -1.96 * plot_lines[i].stderr + y_series[i]
-                pyplot.fill_between(x, upper, lower, alpha=0.3, color='green')
+                pyplot.fill_between(x, upper, lower, alpha=alpha/3, color=plot_lines[i].color)
 
         self.check_y_axis_scale(maxY=max(y), plot_lines=plot_lines)
 

@@ -6,6 +6,8 @@ import os, sys, glob
 
 sys.path.extend(['..'])
 
+from matplotlib import cm, colors
+
 import numpy
 from chippy.util.command_args import Args
 from chippy.core.collection import column_sum, column_mean, stdev
@@ -33,21 +35,30 @@ def load_studies(collections, counts_func):
     rr = RunRecord('load_studies')
 
     # Parse glob file names
-    collection_files = collections
-    dir_name = os.path.dirname(collection_files)
-    base_name = os.path.basename(collection_files)
-    collection_file_names = [os.path.join(dir_name, p)\
-            for p in glob.glob1(dir_name, base_name)]
-    collection_file_names.sort()
+    if len(collections) == 0:
+        rr.dieOnCritical('Number of provided collection files', 0)
+
+    collection_fns = []
+    for collection_file in collections:
+        if '*' in collections[0]:
+            dir_name = os.path.dirname(collection_file)
+            base_name = os.path.basename(collection_file)
+            glob_file_names = [os.path.join(dir_name, p)\
+                                     for p in glob.glob1(dir_name, base_name)]
+            glob_file_names.sort()
+            for f in glob_file_names:
+                collection_fns.append(os.path.abspath(f))
+        else:
+            collection_fns.append(os.path.abspath(collection_file))
 
     windows_upstream = []
     windows_downstream = []
     studies = []
     # Load data from each file
-    for collection_file in collection_file_names:
-        study = RegionStudy(collection_file, counts_func)
+    for collection_fn in collection_fns:
+        study = RegionStudy(collection_fn, counts_func)
         if study is None:
-            rr.dieOnCritical('Could not load study', collection_file)
+            rr.dieOnCritical('Could not load study', collection_fn)
         else:
             studies.append(study)
             windows_upstream.append(study.window_upstream)
@@ -182,9 +193,29 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = N
         plot_lines[2].color = '#%02x%02x%02x' % (r, g, b)
 
     elif num_studies > 1:
-        # spectral, jet, hsv, gist_rainbow, rainbow - all decent options
-        # Does it use this with Div plots? If yes we need to
-        cmap = 'rainbow'
+        # give each study a new colour and increase decrease alpha with rank
+
+        # separate out plotlines per study
+        per_study_lines = {}
+        for line in plot_lines:
+            study = line.study
+            if study in per_study_lines.keys():
+                per_study_lines[study].append(line)
+            else:
+                per_study_lines[study] = [line]
+
+        plot_lines = []
+        for i,s in zip(numpy.linspace(0, 1, num_studies), per_study_lines.keys()):
+            study_color = cm.rainbow(i)
+            rgba = colors.colorConverter.to_rgba(study_color)
+            for study in studies:
+                if s == study.collection_label:
+                    for l,alpha in zip(per_study_lines[s], numpy.linspace(0, 0.9, len(per_study_lines[s]))):
+                        r, g, b, a = rgba
+                        #l.color = (min(1, r + gamma), min(1, g + gamma), min(1, b + gamma), a)
+                        l.color = (r,g,b,a-alpha)
+                        plot_lines.append(l)
+        cmap = None
 
     elif num_studies == 1 and grey_scale:
         # grey-scale spectrum. Since background is white or black we can't
@@ -203,6 +234,8 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = N
     elif num_studies == 1:
         # coolwarm, RdBu, jet - all decent options
         cmap = 'RdBu'
+        for l,i in zip(plot_lines, numpy.linspace(0, 1, len(plot_lines))):
+            l.color = cm.RdBu(i)
 
     return plot_lines, cmap
 
@@ -218,7 +251,7 @@ script_info['output_description']= 'Generates either a single pdf figure or '\
         'a series of pdfs that can be merged into a movie.'
 
 pos_args = ['db_path']
-req_args = ['collection', 'counts_metric']
+req_args = ['collections', 'counts_metric']
 opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
         'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
@@ -260,7 +293,7 @@ def main():
     # 2: Load studies
     print 'Loading counts data'
     studies, window_upstream, window_downstream =\
-            load_studies(args.collection, counts_func)
+            load_studies(args.collections, counts_func)
 
     # 3: Load divisor study if provided
     if args.div is not None:
@@ -370,12 +403,14 @@ def main():
             div_name, args.bgcolor, args.grey_scale, cmap=cmap)
 
     # 12: Create plot
-    plot(x, y_series=None, plot_lines=plot_lines, color_series=None,
+    plot(x, y_series=None, plot_lines=plot_lines,
+            color_series=[line.color for line in plot_lines],
             series_labels=series_labels, filename_series=filename_series,
             label_coords=label_coords, cmap=cmap,
             alpha=args.line_alpha, xlabel=args.xlabel,
             ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-            labels=None, labels_size=args.legend_font_size,
+            labels=[study.collection_label for study in studies],
+            labels_size=args.legend_font_size, show_legend=args.legend,
             plot_CI=args.confidence_intervals)
 
     # 13: Save plots

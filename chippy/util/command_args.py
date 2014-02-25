@@ -8,13 +8,12 @@ from chippy.express.util import sample_types
 from argobs import OpenFilePath, SaveFilePath, DirPath, ArgOb
 
 from cogent.util.option_parsing import make_option
+from gui import AutoGUI
 try:
     from PyQt4 import QtGui
-    #from argparseui import ArgparseUi
-    from gui import AutoGUI
     GUI_CAPABLE = True
 except ImportError:
-    print 'Install PyQt4 and ArgparseUi modules to enable GUI'
+    print 'Install PyQt4 to enable GUI'
     GUI_CAPABLE = False
 
 __author__ = 'Cameron Jack'
@@ -24,7 +23,7 @@ __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
-__version__ = '638'
+__version__ = '711'
 
 """
     command_args offers the entire arguments/options set to define the

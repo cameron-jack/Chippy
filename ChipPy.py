@@ -508,14 +508,19 @@ class Ui_MainWindow(object):
 
     def open_chippy_db(self):
         """ Use dialog to select DB file and populate view with DB info """
+        rr = RunRecord('open_chippy_db')
         db_path = str(QFileDialog.getOpenFileName())
         if not self.check_valid_db(db_path):
+            rr.addWarning('DB has invalid format', db_path)
+            self.populateLogTable()
             return
         self.current_db = os.path.realpath(db_path)
 
         session = db_query.make_session(self.current_db)
         self.populateDBInfo(session)
         self.populateDBTable(session)
+        rr.addInfo('DB opened successfully', db_path)
+        self.populateLogTable()
         session.close()
         self.switch_menu_actions(True)
 
@@ -605,6 +610,7 @@ class Ui_MainWindow(object):
     def tutorial(self):
         """ Display a usage tutorial to the user """
         #TODO: write a tutorial and display it!
+        #TODO: convert to HTML
         tut_dialog = QDialog(self.centralwidget)
         layout = QVBoxLayout(tut_dialog)
         text_edit = QTextBrowser()
@@ -623,10 +629,12 @@ class Ui_MainWindow(object):
     def about(self):
         """ Display authors and version info """
         title_txt = QString('ChipPy: Functional Genomics Investigator')
-        authors_txt = QString('Cameron A. Jack, Anuj Pahwa, Gavin A. Huttley, 2010-2014.')
-        info_txt = QString('ChipPy shows the relationship between mapped genomic '+\
-             'locations and gene expression at various gene feature '+\
-             'locations')
+        authors_txt = QString('Cameron A. Jack, Anuj Pahwa, Gavin A. '+\
+            'Huttley, 2010-2014. The John Curtin School of Medical '+\
+            'Research, The Australian National University.')
+        info_txt = QString('ChipPy shows the relationship between '+\
+            'mapped targets and gene expression at annotated gene feature '+\
+            'locations.')
         dialog = QMessageBox()
         QMessageBox.information(dialog, title_txt, authors_txt+'<br>'+info_txt)
 

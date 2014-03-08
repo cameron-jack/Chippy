@@ -23,6 +23,7 @@ class RunRecord(object):
         base_name = 'ChipPy'
         if name is not None:
             self.logger = logging.getLogger(base_name+'.'+name)
+            self.logger.propagate = False
         else:
             self.logger = logging.getLogger(base_name)
 

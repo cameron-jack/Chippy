@@ -73,8 +73,9 @@ class PlotLine(object):
 
     def applyBinning(self, bin_width):
         """ For every bin_width, sum the counts. Output array size is
-            same, just filled with sum values. Bin_width must be an integer
-            factor of the window size
+            same, just filled with mean values of each bin - giving a
+            normalised score per base. Bin_width must be an integer
+            factor of the window size.
         """
         rr = RunRecord('apply_binning')
         if bin_width and bin_width > 0:
@@ -82,12 +83,12 @@ class PlotLine(object):
                 rr.dieOnCritical('Bin width is not an integer '+\
                         'factor of window size', bin_width)
             tmp_array = numpy.array(self.counts)
-            for k in self.counts[:-bin_width:bin_width]:
+            for k in range(0, len(self.counts), bin_width):
                 bin_sum = 0
                 for i in xrange(bin_width):
                     bin_sum += self.counts[k+i]
                 for i in xrange(bin_width):
-                    tmp_array[k+i] = bin_sum
+                    tmp_array[k+i] = bin_sum/bin_width
             self.counts = tmp_array
 
     def countsAsArray(self):

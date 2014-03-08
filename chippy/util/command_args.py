@@ -192,7 +192,8 @@ class Args(object):
                 help='Window size for smoothing of plot data')
 
         self._create_argob('--binning', type=int, default=0,
-                help='Sum counts within integer-sized bins across plot')
+                help='Display counts-per-base within integer-sized bins '+\
+                     'across the plot')
 
         # Filter out over- and under-expression outliers
         self._create_argob('--cutoff', type=float, default = 0.05,

@@ -28,12 +28,12 @@ script_info['authors'] = __author__
 script_info['output_description']= 'PDF/PNG/JPEG dotplot'
 
 # Process command-line arguments
-req_args = ['abs_expr_sample', 'abs_expr_sample_2', 'diff_sample',
-        'yaxis_units', 'xaxis_units']
-opt_args = ['num_genes', 'use_ranks', 'sample_extremes',
+req_args = ['abs_expr_sample1', 'abs_expr_sample2', 'diff_sample']
+opt_args = ['num_genes', 'ranks', 'sample_extremes',
         'extremes_colour', 'signif_colour', 'bulk_colour', 'hide_extremes',
-        'hide_signif', 'hide_bulk', 'plot1_name', 'plot2_name'
-        'xaxis_text1', 'xaxis_text2']
+        'hide_signif', 'hide_bulk', 'plot1_name', 'plot2_name',
+        'xaxis_text1', 'xaxis_text2', 'yaxis_units', 'xaxis_units',
+        'title', 'ylabel']
 pos_args = ['db_path']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -117,7 +117,7 @@ def load_sample_genes(db_path, diff_sample, sample, sample_extremes):
     rr = RunRecord('load_sample_genes')
     # convert full identifier to stored name
     diff_sample_name = diff_sample
-    sample_name =  sample.split
+    sample_name = sample
 
     if sample_extremes > 0.5:
         rr.addWarning('sample_extremes option '+\
@@ -149,14 +149,12 @@ def load_sample_genes(db_path, diff_sample, sample, sample_extremes):
     session = make_session(db_path)
     multitest_signif_val = 0
     raw_plot_data.diff_sig_zero = get_genes_by_ranked_diff(session,
-            diff_sample_name, multitest_signif_val, biotype='protein_coding',
-            data_path=None, rank_by='mean')
+            diff_sample_name, multitest_signif_val)
     session.close()
 
     # get absolute expression samples
     session = make_session(db_path)
-    sample_genes = get_genes_by_ranked_expr(session, sample_name,
-        biotype='protein_coding', data_path=None, rank_by='mean')
+    sample_genes = get_genes_by_ranked_expr(session, sample_name)
     session.close()
     sample_genes.sort(key=lambda x: x.MeanScore, reverse=True)
     sample_cutoff = int(len(sample_genes) * sample_extremes)
@@ -172,15 +170,15 @@ def load_sample_genes(db_path, diff_sample, sample, sample_extremes):
 
     # Report diff counts
     rr.addInfo('Difference sample name', raw_plot_data.diff_name)
-    rr.addInfo('diff genes for signif 1', raw_plot_data.diff_sig_plus1)
-    rr.addInfo('diff genes for signif 0', raw_plot_data.diff_sig_zero)
-    rr.addInfo('diff genes for signif -1', raw_plot_data.diff_sig_minus1)
+    rr.addInfo('diff genes for signif 1', len(raw_plot_data.diff_sig_plus1))
+    rr.addInfo('diff genes for signif 0', len(raw_plot_data.diff_sig_zero))
+    rr.addInfo('diff genes for signif -1', len(raw_plot_data.diff_sig_minus1))
 
     # Report sample counts
     rr.addInfo('Absolute sample name', raw_plot_data.sample_name)
-    rr.addInfo('top extreme genes for sample', raw_plot_data.sample_top)
-    rr.addInfo('bulk, non-extreme genes for sample', raw_plot_data.sample_mid)
-    rr.addInfo('bottom extreme genes for sample', raw_plot_data.sample_bot)
+    rr.addInfo('top extreme genes for sample', len(raw_plot_data.sample_top))
+    rr.addInfo('bulk, non-extreme genes for sample', len(raw_plot_data.sample_mid))
+    rr.addInfo('bottom extreme genes for sample', len(raw_plot_data.sample_bot))
 
     return raw_plot_data
 
@@ -395,8 +393,7 @@ def main():
     """
     rr = RunRecord('diff_abs_plots')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse(use_scrollbars=True,
-            use_save_load_button=True,
+    args = script_info['args'].parse(\
             window_title='Difference vs Absolute Expression Plots')
 
     groups_dict = dict([('extremes_colour', args.extremes_colour),
@@ -408,12 +405,15 @@ def main():
 
     # Should do number restrictions in load step
     # Load all genes into RawPlotData object
+    print 'Loading data for first plot'
     raw_plot_data1 = load_sample_genes(args.db_path, args.diff_sample,
-            args.abs_expr_sample_1, args.sample_extremes)
+            args.abs_expr_sample1, args.sample_extremes)
 
+    print 'Loading data for second plot'
     raw_plot_data2 = load_sample_genes(args.db_path, args.diff_sample,
-            args.abs_expr_sample_2, args.sample_extremes)
+            args.abs_expr_sample2, args.sample_extremes)
 
+    print 'Building plot points'
     # get back a list of plot_dot objects with 'x', 'y', 'colour', 'area'
     plot_dots1 = build_plot_points(raw_plot_data1, args.ranks,
             args.num_genes)
@@ -423,20 +423,21 @@ def main():
 
     plot_dict = dict([('out_name', args.plot1_name),
             ('title', args.title),
-            ('y_text', args.yaxis_text),
+            ('y_text', args.ylabel),
             ('y_units', args.yaxis_units),
-            ('x_text', args.xaxis_text),
+            ('x_text', args.xaxis_text1),
             ('x_units', args.xaxis_units),
             ('diff_name', raw_plot_data1.diff_name),
-            ('sample_name', raw_plot_data1.sample_name)])
-
+            ('sample_name', raw_plot_data1.sample_name)
+    ])
+    print 'Generating plot 1'
     make_plot(plot_dots1, plot_dict, groups_dict)
 
     plot_dict['sample_name'] = raw_plot_data2.sample_name
     plot_dict['out_name'] = args.plot2_name
-    plot_dict['x_axis_text'] = args.xaxis2_text
-    plot_dict['x_units'] = args.xaxis2_units
+    plot_dict['x_text'] = args.xaxis_text2
 
+    print 'Generating plot 2'
     make_plot(plot_dots2, plot_dict, groups_dict)
 
     rr.display()

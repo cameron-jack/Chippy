@@ -120,11 +120,11 @@ class Args(object):
                 help='Select an existing sample (absolute or differential '+\
                 'expression) to use')
         # absolute expression only
-        self._create_argob('--abs_expr_sample', choices=\
+        self._create_argob('--abs_expr_sample1', choices=\
                 db_query.get_expr_sample_names(self.db_path),
                 help='Select an absolute expression sample to use')
         # used for diff_abs_plots
-        self._create_argob('--abs_expr_sample_2', choices=\
+        self._create_argob('--abs_expr_sample2', choices=\
         db_query.get_expr_sample_names(self.db_path),
             help='Select an absolute expression sample to use')
         # differential expression samples only
@@ -279,10 +279,14 @@ class Args(object):
         self._create_argob('--yfont_size', type=int, default=12,
                 help='font size for y label')
         # Optional axis units text
-        self._create_argob('--yaxis_units',
+        self._create_argob('--yaxis_units', default='',
                 help='Text showing units of y-axis of plot')
-        self._create_argob('--xaxis_units',
+        self._create_argob('--xaxis_units', default='',
                 help='Text showing units of x-axis of plot')
+        self._create_argob('--xaxis_text1', default='',
+                help='X-axis label for plot 1')
+        self._create_argob('--xaxis_text2', default='',
+                help='X-axis label for plot 2')
 
         # Turn on line legend and set font size
         self._create_argob('-l', '--legend', action='store_true', default=False,

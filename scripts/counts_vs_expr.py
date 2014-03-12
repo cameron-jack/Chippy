@@ -1,5 +1,4 @@
 from __future__ import division
-from math import log10, floor, ceil
 
 import sys
 sys.path.extend(['..', '../src'])
@@ -11,7 +10,7 @@ from chippy.util.studies import MatchedStudy
 from chippy.draw.plottable import FigureDetails
 
 __author__ = 'Cameron Jack'
-__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__copyright__ = 'Copyright 2011-2014, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -27,18 +26,14 @@ script_info['script_description'] = 'Comparative dot or line plots of ' \
         'expression or mapped reads against the same or different data, ' \
         'ranked or unranked, for any number of studies. The number of '\
         'samples must be the same for each axis. '
-script_info['usage'] = 'You can exclude genes '\
-        'or force their inclusion by first using gene_overlap.py to ' \
-        'generate a gene list and upload it to the DB with ' \
-        'add_expression.py, then use --iX or --eX to Include or Exclude '\
-        'from the corresponding --sX Sample.'
+script_info['usage'] = ''
 script_info['version'] = __version__
 script_info['authors'] = __author__
 script_info['output_description']= 'PNG/PDF histogram, line or dot plot'
 script_info['help_on_no_arguments'] = True
 
 pos_args = ['db_path']
-req_args = ['abs_expr_sample', 'collection']
+req_args = ['abs_expr_sample', 'collections']
 opt_args = ['x_axis_type', 'group_location', 'include_target',
             'fig_height', 'fig_width', 'region_feature',
             'exclude_target', 'plot_filename', 'counts_is_ranks',
@@ -50,7 +45,7 @@ script_info['required_options'] = script_info['args'].getReqCogentOpts()
 script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
 def make_plot(plot_points, plot_type='dot', plot_fn=None,
-        output_type=None, fig_details=None, x_axis_is_log=False,
+        fig_details=None, x_axis_is_log=False,
         y_axis_is_log=False, x_axis_type='expression', expr_is_ranks=False,
         counts_is_ranks=False):
     """
@@ -133,9 +128,15 @@ def main():
         use_save_load_button=True,
         window_title='Counts vs Expression Plots')
 
+    if len(args.collections) > 1:
+        rr.dieOnCritical('Only 1 collection allowed. You chose',
+                len(args.collections))
+
     # Load all required data
     print 'Loading expression and counts data'
-    matched_studies = MatchedStudy(args.sample, args.collection,
+    sample = args.abs_expr_sample
+    collection = args.collections[0]
+    matched_studies = MatchedStudy(sample, collection,
             args.db_path, args.region_feature,
             include_target=args.include_target,
             exclude_target=args.exclude_target)
@@ -145,7 +146,7 @@ def main():
             args.x_axis_type, args.expr_is_ranks, args.counts_is_ranks)
 
     fig = FigureDetails(x_size=args.fig_width, y_size=args.fig_height,
-            title=args.sample + ' vs ' + args.collection)
+            title=sample + ' vs ' + collection)
 
     if args.x_axis_type.lower() == 'expression':
         fig.x_text = 'Expression'

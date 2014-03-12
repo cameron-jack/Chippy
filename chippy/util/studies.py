@@ -13,8 +13,8 @@ from __future__ import division
  sequence data respectively.
 """
 
-import os, sys, math
-sys.path.extend(['..', '../src'])
+import os, sys
+sys.path.extend(['..'])
 
 import numpy
 import gzip
@@ -26,7 +26,7 @@ from chippy.express.db_query import make_session, get_gene_ids
 from chippy.draw.plot_data import PlotLine, PlotPoint
 
 __author__ = 'Cameron Jack'
-__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__copyright__ = 'Copyright 2011-2014, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -34,19 +34,22 @@ __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.1'
 
-class _Gene(object):
+
+
+class Gene(object):
     """ defined by a stableId in a given study """
 
     def __init__(self, stableId, study, *args, **kwargs):
-        super(_Gene, self).__init__()
+        super(Gene, self).__init__()
         self.stableId = stableId
         self.study = study
 
     def __repr__(self):
         return repr((self.stableId, self.study))
 
-class _CountsGene(_Gene):
+class CountsGene(Gene):
     """ gene entry from a ChipPy study """
+    # TODO: needs updating for asymmetric windows
     Rank = 0 # low rank means higher score
     Score = 0 # whichever counts feature is chosen
     def __init__(self, counts, *args, **kwargs):
@@ -56,21 +59,91 @@ class _CountsGene(_Gene):
         self.promoter_counts = numpy.sum(self.counts[:len(counts)/2])
         self.coding_counts = numpy.sum(self.counts[len(counts)/2:])
         self.total_counts = numpy.sum(self.counts)
-        super(_CountsGene, self).__init__(*args, **kwargs)
+        super(CountsGene, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return repr((self.counts, self.Rank, self.feature_pos,
                      self.feature_count))
 
-class _ExprGene(_Gene):
+class CountsStudy(object):
+    """ A collection of CountsGene objects """
+    def __init__(self):
+        self.counts_genes = []
+
+    def load_counts(self, collection):
+        """ loads gene entries from a ChipPy collection """
+        rr = RunRecord('load_counts')
+
+        print 'Loading counts collection file', collection
+        self.counts_genes = []
+        if os.path.isfile(collection):
+            try:
+                # to load counts data from file
+                file1 = gzip.GzipFile(collection, 'rb')
+                data = numpy.load(file1)
+                d = data.tolist()
+                # get collection file metadata
+                window_upstream = d['window_upstream']
+                window_downstream = d['window_downstream']
+                feature_type = d['feature_type']
+                sample_name = d['sample_name']
+                species = d['species']
+                tag_count = d['tag count']
+                base_count = d['base count']
+                mapped_tags = d['mapped tags']
+
+                counts = d['counts']
+                labels = d['labels']
+
+                for count, label in zip(counts, labels):
+                    gene_record = CountsGene(count, str(label), collection)
+                    self.counts_genes.append(gene_record)
+                rr.addInfo('genes found in ' + collection, len(labels))
+
+            except IOError: # some exception type
+                rr.dieOnCritical('file found but could not be read', collection)
+        else:
+            rr.dieOnCritical('unrecognised collection file', collection)
+
+class ExprGene(Gene):
     """ gene entry from a microarray expression study """
     def __init__(self, score, rank, *args, **kwargs):
         self.Score = score
         self.Rank = rank
-        super(_ExprGene, self).__init__(*args, **kwargs)
+        super(ExprGene, self).__init__(*args, **kwargs)
 
     def __repr__(self):
         return repr((self.Score, self.Rank))
+
+class ExprStudy(object):
+    """ A collection of ExprGene objects """
+    def __init__(self):
+        self.expr_genes = []
+
+    def load_expr(self, expr_study, db_path, include_target=None,
+                  exclude_target=None):
+        """
+            loads expression records from a ChippyDB and also
+            ranks by expr
+        """
+        rr = RunRecord('load_expr')
+
+        sample_name = expr_study.split(' : ')[0]
+        session = db_query.make_session(db_path)
+
+        self.expr_genes = []
+        #sample_type == 'Expression data: absolute ranked'
+        print 'Querying sample from ChippyDB', sample_name
+
+        sample_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
+            biotype='protein_coding', data_path=None, rank_by='mean',
+            include_target=include_target, exclude_target=exclude_target)
+
+        for gene in sample_genes:
+            gene_record = ExprGene(gene.MeanScore, gene.Rank,
+                gene.ensembl_id, sample_name)
+            self.expr_genes.append(gene_record)
+        rr.addInfo('genes found in ' + sample_name, len(sample_genes))
 
 class _MatchedGene(object):
     """ represents a single gene with both expression and counts properties """
@@ -90,24 +163,24 @@ class MatchedStudy(object):
             Loads counts and expr. Calculates counts rank based on 
             region_feature. Creates a matched_gene list.
         """
-        self._load_expr(expr_study_name, db_path,
+        self.load_expr(expr_study_name, db_path,
                 include_target=include_target, exclude_target=exclude_target)
 
-        self._load_counts(collection_name)
+        self.load_counts(collection_name)
 
         # Calculate collection count data ranks
         if region_feature.lower() == 'feature':
             ranked_counts = sorted(self.counts_genes,
-                    key=lambda counts: counts.total_counts)
+                    key=lambda counts: counts.total_counts, reverse=True)
         elif region_feature.lower() == 'promoter':
             ranked_counts = sorted(self.counts_genes,
-                    key=lambda counts: counts.total_counts)
+                    key=lambda counts: counts.total_counts, reverse=True)
         elif region_feature.lower() == 'coding':
             ranked_counts = sorted(self.counts_genes,
-                    key=lambda counts: counts.total_counts)
+                    key=lambda counts: counts.total_counts, reverse=True)
         else: # total_counts
             ranked_counts = sorted(self.counts_genes,
-                    key=lambda counts: counts.total_counts)
+                    key=lambda counts: counts.total_counts, reverse=True)
 
         self.counts_genes = []
         for i, counts in enumerate(ranked_counts):
@@ -122,9 +195,9 @@ class MatchedStudy(object):
                 counts.Score = counts.total_counts
             self.counts_genes.append(counts)
 
-        self.common_genes = self._keepCommonGenes()
+        self.common_genes = self.keepCommonGenes()
 
-    def _load_expr(self, expr_study, db_path, include_target=None,
+    def load_expr(self, expr_study, db_path, include_target=None,
             exclude_target=None):
         """
             loads expression records from a ChippyDB and also
@@ -144,12 +217,12 @@ class MatchedStudy(object):
                 include_target=include_target, exclude_target=exclude_target)
 
         for gene in sample_genes:
-            gene_record = _ExprGene(gene.MeanScore, gene.Rank,
+            gene_record = ExprGene(gene.MeanScore, gene.Rank,
                     gene.ensembl_id, sample_name)
             self.expr_genes.append(gene_record)
         rr.addInfo('genes found in ' + sample_name, len(sample_genes))
 
-    def _load_counts(self, collection):
+    def load_counts(self, collection):
         """ loads gene entries from a ChipPy collection """
         rr = RunRecord('load_counts')
 
@@ -165,7 +238,7 @@ class MatchedStudy(object):
                 labels = d['labels']
 
                 for count, label in zip(counts, labels):
-                    gene_record = _CountsGene(count, str(label), collection)
+                    gene_record = CountsGene(count, str(label), collection)
                     self.counts_genes.append(gene_record)
                 rr.addInfo('genes found in ' + collection, len(labels))
 
@@ -174,7 +247,7 @@ class MatchedStudy(object):
         else:
             rr.dieOnCritical('unrecognised collection file', collection)
 
-    def _keepCommonGenes(self):
+    def keepCommonGenes(self):
         """ keep only those genes that are common to each study pair """
 
         print 'Keeping common genes'

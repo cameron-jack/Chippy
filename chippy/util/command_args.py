@@ -120,13 +120,9 @@ class Args(object):
                 help='Select an existing sample (absolute or differential '+\
                 'expression) to use')
         # absolute expression only
-        self._create_argob('--abs_expr_sample1', choices=\
+        self._create_argob('--abs_expr_sample', choices=\
                 db_query.get_expr_sample_names(self.db_path),
                 help='Select an absolute expression sample to use')
-        # used for diff_abs_plots
-        self._create_argob('--abs_expr_sample2', choices=\
-        db_query.get_expr_sample_names(self.db_path),
-            help='Select an absolute expression sample to use')
         # differential expression samples only
         self._create_argob('--diff_sample', choices=\
                 db_query.get_diff_sample_names(self.db_path),
@@ -237,9 +233,9 @@ class Args(object):
 
         self._create_argob('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-        self._create_argob('-H', '--fig_height', type=float, default=6*2.5,
+        self._create_argob('-H', '--fig_height', type=float, default=4*2.5,
                 help='Figure height (cm)')
-        self._create_argob('-W', '--fig_width', type=float, default=10*2.5,
+        self._create_argob('-W', '--fig_width', type=float, default=6*2.5,
                 help='Figure width (cm)')
 
         # Important note, grid_lines are an absolute scale!
@@ -370,6 +366,13 @@ class Args(object):
 
     def _add_diff_abs_plots_specific_args(self):
         """ These args are specifically for the diff_abs_plots script """
+        # absolute expression only
+        self._create_argob('--abs_expr_sample1', choices=\
+        db_query.get_expr_sample_names(self.db_path),
+            help='Select an absolute expression sample to use')
+        self._create_argob('--abs_expr_sample2', choices=\
+        db_query.get_expr_sample_names(self.db_path),
+            help='Select an absolute expression sample to use')
 
         # dot colouring
         self._create_argob('--extremes_colour', default='blue', choices=['blue',

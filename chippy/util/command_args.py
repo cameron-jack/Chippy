@@ -55,7 +55,7 @@ class Args(object):
                 app = QtGui.QApplication(sys.argv)
                 # Use ArgparseUi or AutoGUI
                 #a = ArgparseUi(self.parser, **kwargs)
-                a = AutoGUI(self.argobs)
+                a = AutoGUI(self.argobs, **kwargs)
                 a.show()
                 app.exec_()
                 if a.result() == 1: # Ok pressed
@@ -237,9 +237,9 @@ class Args(object):
 
         self._create_argob('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-        self._create_argob('-H', '--fig_height', type=float, default=4*2.5,
+        self._create_argob('-H', '--fig_height', type=float, default=6*2.5,
                 help='Figure height (cm)')
-        self._create_argob('-W', '--fig_width', type=float, default=6*2.5,
+        self._create_argob('-W', '--fig_width', type=float, default=10*2.5,
                 help='Figure width (cm)')
 
         # Important note, grid_lines are an absolute scale!
@@ -274,9 +274,9 @@ class Args(object):
              help='Label for the y-axis')
         self._create_argob('--xlabel', default = 'Position relative to TSS',
                 help='Label for the x-axis')
-        self._create_argob('--xfont_size', type=int, default=12,
+        self._create_argob('--xfont_size', type=int, default=14,
                 help='font size for x label')
-        self._create_argob('--yfont_size', type=int, default=12,
+        self._create_argob('--yfont_size', type=int, default=14,
                 help='font size for y label')
         # Optional axis units text
         self._create_argob('--yaxis_units', default='',

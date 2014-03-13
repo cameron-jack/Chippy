@@ -8,9 +8,10 @@ from chippy.express.util import sample_types
 from argobs import OpenFilePath, SaveFilePath, DirPath, ArgOb
 
 from cogent.util.option_parsing import make_option
-from gui import AutoGUI
+
 try:
     from PyQt4 import QtGui
+    from gui import AutoGUI
     GUI_CAPABLE = True
 except ImportError:
     print 'Install PyQt4 to enable GUI'
@@ -114,6 +115,9 @@ class Args(object):
         self._create_argob('-s', '--sample', choices=\
                 db_query.get_all_sample_names(self.db_path),
                 help='Select an existing sample')
+        self._create_argob('--samples', nargs='+', choices=\
+                db_query.get_all_sample_names(self.db_path),
+                help='Select any number of existing samples')
         # absolute or differential expression
         self._create_argob('--expr_sample', choices=\
                 db_query.get_expr_diff_sample_names(self.db_path),
@@ -426,7 +430,10 @@ class Args(object):
 
     def _add_counts_distribution_specific_args(self):
         """ Args specific to the counts_distribution script """
-        pass
+        # Also used by expr_distribution
+        self._create_argob('plot_type', choices=['dot', 'line', 'box',
+                'hist'], default='dot',
+                help='Type of plot for comparing counts data')
 
     def _add_expr_distribution_specific_args(self):
         """ Args specific to the expr_distribution script """

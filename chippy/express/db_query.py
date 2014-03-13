@@ -422,7 +422,7 @@ def get_sample_entries(session):
 
 @_safe_query
 def get_gene_entries(session, biotype='protein_coding', chrom=None, data_path=None):
-    """ returns the number of gene entries"""
+    """ returns a list of gene entries"""
     query = _get_gene_query(session, biotype=biotype, chrom=chrom,
             data_path=data_path)
     return query.distinct().all()
@@ -430,7 +430,7 @@ def get_gene_entries(session, biotype='protein_coding', chrom=None, data_path=No
 @_safe_query
 def get_expression_entries(session, sample_name=None,
         biotype='protein_coding', chrom=None, data_path=None):
-    """ returns the number of Expression entries"""
+    """ returns a list of Expression entries"""
     query = _get_expression_query(session, sample_name=sample_name,
             biotype=biotype, chrom=chrom, data_path=data_path)
     return query.distinct().all()
@@ -439,7 +439,7 @@ def get_expression_entries(session, sample_name=None,
 def get_diff_entries(session, sample_name=None,
         biotype='protein_coding', chrom=None,
         multitest_signif_val=None, data_path=None):
-    """ Returns number of unique ExpressionDiff entries """
+    """ Returns a list of unique ExpressionDiff entries """
     query = _get_diff_query(session, sample_name=sample_name,
             biotype=biotype, multitest_signif_val=multitest_signif_val,
             chrom=chrom, data_path=data_path)
@@ -447,12 +447,13 @@ def get_diff_entries(session, sample_name=None,
 
 @_safe_query
 def get_targetgene_entries(session, sample_name=None, biotype='protein_coding'):
-    """ Returns target_gene records for a given sample """
+    """ Returns a list of target_gene records for a given sample """
     query = _get_targetgene_query(session, sample_name, biotype=biotype)
     return query.all()
 
 @_safe_query
 def get_reffile_entries(session, reffile_name=None, sample_name=None):
+    """ Returns a list of reffiles """
     query = _get_reffiles_query(session, reffile_name=reffile_name,
             sample_name=sample_name)
     return query.all()

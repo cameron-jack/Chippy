@@ -762,17 +762,17 @@ class TestQueryFunctions(TestDbBase):
         expect = ['sample 1', 'sample 2', 'sample 1', 'sample 2',
                   'sample 1', 'sample 2', 'sample 1', 'sample 2']
         expr = get_expression_entries(self.session)
-        names = [e.sample.name for e in expr]
+        names = [str(e.sample.name) for e in expr]
         self.assertEqual(names, expect)
         # return correct entries with sample name
         expect = ['sample 1', 'sample 1', 'sample 1', 'sample 1']
         expr = get_expression_entries(self.session, 'sample 1')
-        names = [e.sample.name for e in expr]
+        names = [str(e.sample.name) for e in expr]
         self.assertEqual(names, expect)
         # with file name
         expr = get_expression_entries(self.session, 'sample 1',
                 data_path='file-1.txt')
-        names = [e.sample.name for e in expr]
+        names = [str(e.sample.name) for e in expr]
         self.assertEqual(names, expect)
 
         # return correct entries if no records, no file

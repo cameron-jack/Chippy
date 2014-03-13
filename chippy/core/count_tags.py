@@ -130,7 +130,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
     elif feature_type.lower() == 'gene_3p':
         # 3' end of gene
         for gene in genes:
-            win_start, win_end = gene.getTssWindowCoords(\
+            win_start, win_end = gene.getGene3PrimeWindowCoords(\
                     window_upstream, window_downstream)
             roi = ROI(gene, win_start, win_end)
             regionsOfInterest.append(roi)

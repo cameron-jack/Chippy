@@ -284,8 +284,7 @@ def main():
     """
     rr = RunRecord('plot_counts')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse(use_scrollbars=True,
-            use_save_load_button=True, window_title='Plot Counts')
+    args = script_info['args'].parse(window_title='Plot Counts')
 
     # 1: Set feature counting metric
     counts_func = set_counts_function(args.counts_metric)

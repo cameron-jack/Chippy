@@ -382,8 +382,10 @@ class AutoGUI(QtGui.QDialog):
             if label in arg.long_form:
                 name = arg.long_form
                 # no need to add anything for Action
-                if type(value) is list:
-                    input = ', '.join(value)
+                if type(arg) == OpenFilePath:
+                    input = value
+                elif type(value) is list:
+                    input = value # we'll split it up later
                 else:
                     if arg.arg_type is not None:
                         input = str(value)
@@ -405,10 +407,18 @@ class AutoGUI(QtGui.QDialog):
                     if name.startswith('-'):
                         non_positional_parts.append(name)
                         if input is not None:
-                            non_positional_parts.append(input)
+                            if type(input) == list:
+                                for i in input:
+                                    non_positional_parts.append(i)
+                            else:
+                                non_positional_parts.append(input)
                     else: # positional args have no name
                         if input is not None:
-                            positional_parts.append(input)
+                            if type(input) == list:
+                                for i in input:
+                                    positional_parts.append(i)
+                            else:
+                                positional_parts.append(input)
 
         if self.optionalLayout.rowCount() > 0:
             for row in range(self.optionalLayout.rowCount()):
@@ -422,11 +432,20 @@ class AutoGUI(QtGui.QDialog):
                     if name.startswith('-'):
                         non_positional_parts.append(name)
                         if input is not None:
-                            non_positional_parts.append(input)
+                            if type(input) == list:
+                                for i in input:
+                                    non_positional_parts.append(i)
+                            else:
+                                non_positional_parts.append(input)
                     else: # positional args have no name
                         if input is not None:
-                            positional_parts.append(input)
+                            if type(input) == list:
+                                for i in input:
+                                    positional_parts.append(i)
+                            else:
+                                positional_parts.append(input)
 
+        # deal with non-displayed args
         for arg in self.argobs:
             if not arg.display:
                 if arg.default is not None:

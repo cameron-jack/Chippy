@@ -182,6 +182,7 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
     """
     rr = RunRecord('read_BEDgraph')
     num_tags = 0; num_bases = 0; # num_tags = num_bases/75
+    total_bases = 0 # for estimating total experiment tags
 
     try:
         if '.gz' in bedgraph_path:
@@ -242,6 +243,7 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
         if not bed_chrom in roi_chrom_dict.keys():
             continue
 
+        total_bases += bed_stop - bed_start
         for roi in roi_chrom_dict[bed_chrom]:
             if bed_stop >= roi.start: # potential for overlap
                 if bed_start <= roi.end:
@@ -270,9 +272,11 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
 
     # We estimate that each read is 75 after trimming.
     num_tags = int(ceil(num_bases / 75))
+    # Estimated total tags is total_bases / 75
+    total_tags = total_bases / 75
 
     return filled_ROIs + remaining_ROIs, num_tags, num_bases, \
-            total_BEDgraph_lines
+            total_tags
 
 @display_wrap
 def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):

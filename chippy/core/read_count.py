@@ -12,6 +12,7 @@ from chippy.util.run_record import RunRecord
 from chippy.util.util import run_command
 from gzip import GzipFile
 from math import ceil
+import numpy
 
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -21,6 +22,150 @@ __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
 __status__ = 'pre-release'
 __version__ = '0.2'
+
+def _rois_in_block(pos_block, roi_by_chrom, chrom):
+    """ get ids of any ROIs involved in current block """
+    roi_ids = []
+    if chrom not in roi_by_chrom.keys():
+        return roi_ids
+    for roi in roi_by_chrom[chrom]:
+        if roi.start >= pos_block[0]:
+            if roi.end <= pos_block[-1]:
+                roi_ids.append(roi.uniqueID())
+    return roi_ids
+
+def _add_scores_roi(score_block, pos_block, ids, all_rois, span=1):
+    """ for identified ROIs involved in a region add to their scores """
+    for id in ids:
+        start = all_rois[id].start
+        end = all_rois[id].end
+
+        scores = numpy.array(score_block)
+        for i, pos in enumerate(pos_block):
+            if start <= pos <= end:
+                for j in range(span): # add to counts for all of span
+                    all_rois[i].counts[pos+j-start] += scores[i+j]
+
+@display_wrap
+def read_wiggle(wiggle_path, ROIs, chr_prefix='', ui=None):
+    """
+        Wiggles are horrible to read from as they have either fixed span
+        scores per line or variable position and score per line. It's hard
+        to 'bundle up' many lines before considerable CPU needs to be done
+        to tie line against region.
+
+        There is NO way to estimate the number of read tags that were used
+        in the original study. We will make bases = total_score * span.
+        Tags = bases/75.
+    """
+    rr = RunRecord('read_wiggle')
+    total_score = 0 # used to calculate normalisation factors
+    roi_by_chrom = {} # to save time in parsing positions
+    all_rois = {} # ROIs by uniqueID - converted back to list at end
+    for roi in ROIs:
+        if not roi.chrom in roi_by_chrom.keys():
+            roi_by_chrom[roi.chrom] = []
+        roi_by_chrom[roi.chrom].append(roi)
+        all_rois[roi.uniqueID()] = roi
+
+    if wiggle_path.endswith('.gz'):
+        wig_file = GzipFile(wiggle_path, 'rb')
+    else:
+        try:
+            wig_file = open(wiggle_path, 'r')
+        except IOError:
+            rr.dieOnCritical('Could not open file', wiggle_path)
+
+    # get total lines in wig for pacing the progress bar
+    if not wiggle_path.endswith('.gz'):
+        command = 'wc -l ' + wiggle_path
+        returncode, stdout, stderr = run_command(command)
+        if returncode:
+            rr.addWarning('could not run wc to count WIG lines', 'error')
+            total_lines = 1
+        else:
+            total_lines = int(stdout.strip().split(' ')[0])
+            rr.addInfo('total lines in '+wiggle_path, total_lines)
+
+    # it is too slow to just check each position for its inclusion in a ROI
+    # We need to read 'blocks' of position data and then check these against
+    # our gene coords
+    pos_block = []
+    score_block = []
+    for i, line in enumerate(wig_file):
+        if i % 100 == 0:
+            msg = 'Reading wiggle entries [' + str(i) +\
+                  ' / ' + str(total_lines) + ']'
+            progress = (float(i)/float(total_lines))
+            ui.display(msg=msg, progress=progress)
+
+        if line.startswith('track'):
+            continue
+        elif line.startswith('fixed'):
+            # empty pos and score blocks into genes_scores as appropriate
+            if len(pos_block) > 0:
+                ids = _rois_in_block(pos_block, roi_by_chrom, chrom)
+                if len(ids) > 0: # add scores to appropriate genes
+                    _add_scores_roi(score_block, pos_block, ids, all_rois, span)
+                total_score += sum(numpy.array(score_block))*span
+                pos_block = []
+                score_block = []
+
+            # fixedStep chrom=chr10 start=56001 step=20 span=20
+            step_type = 'fixed'
+            step_parts = line.split(' ')
+            step = [val.strip('step=').strip()\
+                    for val in step_parts if val.startswith('step')][0]
+            span = [val.strip('span=').strip()\
+                    for val in step_parts if val.startswith('span')][0]
+            chrom = [val.strip('chrom=').strip()\
+                     for val in step_parts if val.startswith('chrom')][0]
+            start = [val.strip('start=').strip()\
+                     for val in step_parts if val.startswith('start')][0]
+            pos = int(start)
+            step = int(step)
+            span = int(span)
+        elif line.startswith('variable'):
+            # empty pos and score blocks into genes_scores as appropriate
+            if len(pos_block) > 0:
+                ids = _rois_in_block(pos_block, roi_by_chrom, chrom)
+                if len(ids) > 0: # add scores to appropriate genes
+                    _add_scores_roi(score_block, pos_block, ids, all_rois, span)
+                total_score += sum(numpy.array(score_block))*span
+                pos_block = []
+                score_block = []
+
+            step_type = 'variable'
+            step_parts = line.split(' ')
+            chrom = [val.strip('chrom=').strip()\
+                     for val in step_parts if val.startswith('chrom')][0]
+            span = 1
+        else:
+            if step_type == 'fixed':
+                pos_block.append(pos)
+                score_block.append(float(line.strip()))
+                pos += step
+
+            else: #step_type == 'variable'
+                if '\t' in line:
+                    line_parts = line.split('\t')
+                else:
+                    line_parts = line.split(' ')
+                pos_block.append(int(line_parts[0]))
+                score_block.append(float(line_parts[1].strip()))
+
+    if len(pos_block) > 0:
+        ids = _rois_in_block(pos_block, roi_by_chrom, chrom)
+        if len(ids) > 0: # add scores to appropriate genes
+            _add_scores_roi(score_block, pos_block, ids, all_rois, span)
+        total_score += sum(numpy.array(score_block))*span
+
+    ROIs = [all_rois[key] for key in all_rois.keys()]
+    num_tags = total_score / 75
+    num_bases = total_score
+    mapped_tags = num_tags
+
+    return ROIs, num_tags, num_bases, mapped_tags
 
 @display_wrap
 def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
@@ -310,6 +455,7 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
 def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
     """
         Direct ROIs to BAM, BEDgraph or BED file reader.
+        Also can work with Wiggle files but these are very slow.
         Return ROIs, the number of read tags, total counts and mapped tags
     """
 
@@ -323,6 +469,9 @@ def get_region_counts(BAMorBED, ROIs, chr_prefix=None):
     elif 'bed' in BAMorBED.lower():
         filled_ROIs, num_tags, num_bases, mapped_tags =\
                 read_BED(BAMorBED, ROIs, chr_prefix)
+    elif 'wig' in BAMorBED.lower():
+        filled_ROIs, num_tags, num_bases, mapped_tags =\
+                read_wiggle(BAMorBED, ROIs, chr_prefix)
     else:
         rr.dieOnCritical('File not recognised as BAM, BEDgraph or BED',
                 BAMorBED)

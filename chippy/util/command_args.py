@@ -150,7 +150,7 @@ class Args(object):
 
         # Export Centred Counts args
         self._create_argob('-B', '--BAMorBED', type=OpenFilePath,
-                help='Read counts, from indexed BAM, BED or BEDgraph file')
+                help='Read counts, from indexed BAM, BED, BEDgraph, or WIG file')
 
         self._create_argob('-f', '--overwrite', action='store_true',
                 help='Ignore any saved files', default=False)
@@ -158,6 +158,9 @@ class Args(object):
                 help='output to tab delimited format', default=False)
         self._create_argob('--chr_prefix', default='', help='String added by '+\
                 'aligner to prefix chromosome numbers/names.')
+
+        self._create_argob('--wig', type=OpenFilePath,
+                help='WIG file to open')
 
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """

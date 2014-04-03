@@ -68,3 +68,7 @@ class ROI(object):
         self.counts[offset_left:offset_right] += score
         bases_counted = (offset_right - offset_left) * score
         return self.counts, bases_counted
+
+    def uniqueID(self):
+        id_parts = [roi.chrom, roi.start, roi.end, roi.strand]
+        return id_parts('_'.join(map(str, id_parts)))

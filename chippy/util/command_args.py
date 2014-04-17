@@ -371,6 +371,9 @@ class Args(object):
                 help='Print recent log entries following execution',
                 display=False)
 
+        self._create_argob('--max_chrom_size', type=int, default=300000000,
+                help='Max size of chromosomes to read from file')
+
     def _add_diff_abs_plots_specific_args(self):
         """ These args are specifically for the diff_abs_plots script """
         # absolute expression only
@@ -476,7 +479,7 @@ class Args(object):
                                     help='Path to ChippyDB', display=False,
                                     default=possible_db_path)
                             self.argobs.append(db)
-                            self.optional_args.append(db)
+                            self.required_args.append(db)
                             print self.db_path, 'selected as ChipPy database'
                             break
 

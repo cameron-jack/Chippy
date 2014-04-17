@@ -31,7 +31,7 @@ def get_roi_scores_from_chrom(chrom_array, chrom, all_rois, roi_ids_by_chrom):
     except KeyError:
         id_list = []
     for id in id_list:
-        all_rois[id].score = chrom_array[all_rois[id].start:all_rois[id].end]
+        all_rois[id].counts += chrom_array[all_rois[id].start:all_rois[id].end]
 
 @display_wrap
 def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,

@@ -35,7 +35,7 @@ class ROI(object):
         self.start = start
         self.end = end
         try:
-            self.counts = numpy.zeros(end - start, dtype=numpy.uint32)
+            self.counts = numpy.zeros(end - start, dtype=numpy.float)
         except ValueError:
             print self.chrom, self.label, self.rank, self.TSS,\
                     start, end, self.strand
@@ -70,5 +70,5 @@ class ROI(object):
         return self.counts, bases_counted
 
     def uniqueID(self):
-        id_parts = [roi.chrom, roi.start, roi.end, roi.strand]
-        return id_parts('_'.join(map(str, id_parts)))
+        id_parts = [self.chrom, self.start, self.end, self.strand]
+        return '_'.join(map(str, id_parts))

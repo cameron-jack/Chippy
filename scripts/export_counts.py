@@ -37,7 +37,7 @@ req_args = ['expr_sample', 'feature_type', 'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
         'count_max_length', 'window_upstream', 'window_downstream',
         'multitest_signif_val', 'include_target',
-        'exclude_target', 'make_bedgraph']
+        'exclude_target', 'make_bedgraph', 'max_chrom_size']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -48,7 +48,7 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
-        bedgraph=False):
+        bedgraph=False, chrom_size=300000000):
     """
         builds and writes a collection of counts and expression for
         feature_type in given sample genes.
@@ -63,7 +63,8 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
         data_collection = counts_for_genes(session, sample_name, feature_type,
                 BAMorBED, chr_prefix, window_upstream, window_downstream,
                 include_target, exclude_target, bedgraph_fn,
-                multitest_signif_val=multitest_signif_val)
+                multitest_signif_val=multitest_signif_val,
+                chrom_size=chrom_size)
 
         if data_collection is not None:
             data_collection.writeToFile(collection_fn, as_table=tab_delimited,
@@ -119,7 +120,7 @@ def main():
             args.chr_prefix, window_upstream, window_downstream,
             args.multitest_signif_val, args.collection, args.overwrite,
             args.tab_delimited, include_name, exclude_name,
-            bedgraph=args.make_bedgraph)
+            bedgraph=args.make_bedgraph, chrom_size=args.max_chrom_size)
 
     session.close()
     rr.display()

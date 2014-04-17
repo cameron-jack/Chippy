@@ -62,7 +62,7 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
 
 def get_counts_ranks_ids(genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
-            bedgraph_fn=None, ui=None):
+            bedgraph_fn=None, chrom_size=300000000, ui=None):
     """
         Build regions of interest (ROI) and return as lists of counts, ranks
         and ensembl_ids, sorted by rank.
@@ -142,7 +142,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
         rr.dieOnCritical('No Regions of Interest created')
 
     ROIs, num_tags, num_bases, mapped_tags = get_region_counts(BAMorBED,
-            regionsOfInterest, chr_prefix=chr_prefix)
+            regionsOfInterest, chr_prefix=chr_prefix, chrom_size=chrom_size)
 
     if bedgraph_fn:
         write_to_bedgraph(bedgraph_fn, ROIs)
@@ -158,7 +158,8 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
 
 def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
         window_upstream, window_downstream, include_target=None,
-        exclude_target=None, bedgraph_fn=None, multitest_signif_val=None):
+        exclude_target=None, bedgraph_fn=None, multitest_signif_val=None,
+        chrom_size=300000000):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('counts_for_genes')
 
@@ -186,7 +187,7 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
     counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
-            bedgraph_fn=bedgraph_fn)
+            bedgraph_fn=bedgraph_fn, chrom_size=chrom_size)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,

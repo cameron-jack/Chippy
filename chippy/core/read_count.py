@@ -6,7 +6,6 @@ import warnings
 warnings.filterwarnings('ignore', 'Not using MPI as mpi4py not found')
 
 import re
-import gc
 from cogent.util.progress_display import display_wrap
 
 from chippy.util.run_record import RunRecord
@@ -14,6 +13,8 @@ from chippy.util.util import run_command
 from gzip import GzipFile
 from math import ceil
 import numpy
+import uuid # for generating random file names for temporary SAM entries
+import os
 
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
@@ -25,7 +26,7 @@ __status__ = 'pre-release'
 __version__ = '0.2'
 
 def get_roi_scores_from_chrom(chrom_array, chrom, all_rois, roi_ids_by_chrom):
-    """ for genes in the current chrom, slice chrom_array and sum the scores """
+    """ for genes in the current chrom, slice chrom_array and add to counts """
     try:
         id_list = roi_ids_by_chrom[chrom]
     except KeyError:
@@ -35,8 +36,13 @@ def get_roi_scores_from_chrom(chrom_array, chrom, all_rois, roi_ids_by_chrom):
             all_rois[id].counts +=\
                     chrom_array[all_rois[id].start:all_rois[id].end]
         else: # negative strand genes start at the far end and come back
-            all_rois[id].counts +=\
-                chrom_array[all_rois[id].end-1:all_rois[id].start-1:-1]
+            start = all_rois[id].start-1
+            if start < 0: # this is required to include the 0-indexed position
+                all_rois[id].counts +=\
+                        chrom_array[all_rois[id].end-1::-1]
+            else:
+                all_rois[id].counts +=\
+                        chrom_array[all_rois[id].end-1:start:-1]
 
 @display_wrap
 def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
@@ -58,8 +64,8 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
     for roi in ROIs:
         if not roi.chrom in roi_ids_by_chrom.keys():
             roi_ids_by_chrom[roi.chrom] = []
-        roi_ids_by_chrom[roi.chrom].append(roi.uniqueID())
-        all_rois[roi.uniqueID()] = roi
+        roi_ids_by_chrom[roi.chrom].append(roi.unique_id)
+        all_rois[roi.unique_id] = roi
 
     if wiggle_path.endswith('.gz'):
         wig_file = GzipFile(wiggle_path, 'rb')
@@ -82,7 +88,6 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
 
     # Read each piece of the file into an artificial chromosome (Numpy array)
     # and slice out the gene regions that we have for each gene in that chrom
-
     chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
 
     current_chrom = None
@@ -164,7 +169,8 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
     return ROIs, num_tags, num_bases, mapped_tags
 
 @display_wrap
-def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
+def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='',
+        chrom_size=300000000, ui=None):
     """
         Map BEDgraph entries to ROIs. This is essential as data uploaded
         to GEO will be BEDgraphs - we need to be able to read our own data!
@@ -178,7 +184,6 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
     """
     rr = RunRecord('read_BEDgraph')
     num_tags = 0; num_bases = 0; # num_tags = num_bases/75
-    total_bases = 0 # for estimating total experiment tags
 
     try:
         if '.gz' in bedgraph_path:
@@ -198,19 +203,19 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
         total_BEDgraph_lines = int(stdout.strip().split(' ')[0])
         rr.addInfo('total lines in '+bedgraph_path, total_BEDgraph_lines)
 
-    # separate ROIs by chrom - performance optimisation
-    roi_chrom_dict = {}
+    roi_ids_by_chrom = {} # to save time in parsing positions
+    all_rois = {} # ROIs by uniqueID - converted back to list at end
     for roi in ROIs:
-        if roi.chrom in roi_chrom_dict.keys():
-            roi_chrom_dict[roi.chrom].append(roi)
-        else:
-            roi_chrom_dict[roi.chrom] = [roi]
-    # sort by roi.start
-    for chrom_key in roi_chrom_dict.keys():
-        roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
-            key=lambda roi: roi.start)
+        if not roi.chrom in roi_ids_by_chrom.keys():
+            roi_ids_by_chrom[roi.chrom] = []
+        roi_ids_by_chrom[roi.chrom].append(roi.unique_id)
+        all_rois[roi.unique_id] = roi
 
-    filled_ROIs = []
+    # Read each piece of the file into an artificial chromosome (Numpy array)
+    # and slice out the gene regions that we have for each gene in that chrom
+    chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
+
+    current_chrom = None
     for i, bed_entry in enumerate(bed_graph):
         if i % 100 == 0:
             msg = 'Reading BEDgraph entries [' + str(i) +\
@@ -221,68 +226,59 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='', ui=None):
         if bed_entry.lower().startswith('track'):
             continue
 
-        if bed_entry.startswith(chr_prefix):
-            entry_parts = bed_entry.split('\t')
-            if len(entry_parts) == 4:
-                bed_chrom = str(entry_parts[0].lstrip(chr_prefix))
-                try:
-                    bed_start = int(entry_parts[1].strip())
-                    # 'Stop' conversion to Python space, add 1.
-                    bed_stop = int(entry_parts[2].strip()) + 1
-                    bed_score = int(entry_parts[3].strip())
-                except ValueError:
-                    # Could be a browser track line
-                    continue
-        else:
-            continue
+        # check formatting with tabs first, then space
+        bed_parts = bed_entry.split('\t')
+        if len(bed_parts) != 4:
+            bed_parts = bed_entry.split(' ')
+            if len(bed_parts) != 4:
+                continue # some sort of track or browser line
 
-        if not bed_chrom in roi_chrom_dict.keys():
-            continue
+        bed_chrom = str(bed_parts[0]).lstrip(chr_prefix)
 
-        total_bases += bed_stop - bed_start
-        for roi in roi_chrom_dict[bed_chrom]:
-            if bed_stop >= roi.start: # potential for overlap
-                if bed_start <= roi.end:
-                    #add count to ROI
-                    try:
-                        roi.counts, counted_bases = roi.add_counts_to_ROI(
-                                bed_start, bed_stop, bed_score)
-                    except RuntimeError:
-                        # input read in wrong direction or 0 sized
-                        continue
+        # check if it's time to flush the chrom counts array
+        if bed_chrom != current_chrom and current_chrom is not None:
+            get_roi_scores_from_chrom(chrom_array, current_chrom,
+                 all_rois, roi_ids_by_chrom)
+            chrom_array[:] = 0
 
-                    # num_tags -> will be 'counted_bases' / 100.
-                    num_bases += counted_bases
-                else: # no more entries for ROI
-                    filled_ROIs.append(roi)
-                    # remove ROI from further consideration
-                    del roi_chrom_dict[bed_chrom][0]
-        # get remaining ROIs not yet in filled_ROIs
-    remaining_ROIs = []
-    for chrom_key in roi_chrom_dict.keys():
-        for roi in roi_chrom_dict[chrom_key]:
-            remaining_ROIs.append(roi)
+        current_chrom = bed_chrom
+        try:
+            bed_start = int(bed_parts[1].strip())
+            bed_end = int(bed_parts[2].strip()) + 1 # slice offset
+            # score = number of reads at this location
+            bed_score = float(bed_parts[3].strip())
 
-    rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
-    rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
+            chrom_array[bed_start:bed_end] += bed_score
+            num_bases += (bed_end - bed_start) * bed_score
+            num_tags += ((bed_end - bed_start) * bed_score)/75
+        except ValueError:
+            rr.addWarning('BED file improperly formatted line', bed_entry)
+
+    # Clear last entries
+    if current_chrom is not None:
+        get_roi_scores_from_chrom(chrom_array, current_chrom,
+                all_rois, roi_ids_by_chrom)
 
     # We estimate that each read is 75 after trimming.
     num_tags = int(ceil(num_bases / 75))
     # Estimated total tags is total_bases / 75
-    total_tags = total_bases / 75
+    total_tags = num_bases / 75
 
-    return filled_ROIs + remaining_ROIs, num_tags, num_bases, \
-            total_tags
+    ROIs = [all_rois[key] for key in all_rois.keys()]
+    return ROIs, num_tags, num_bases, total_tags
 
 @display_wrap
-def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
-    """ read BED entries and add into each ROI as appropriate
-
-    BED entries are 0-offset for start, 1-offset for end - same as Python.
-
-    Output ROIs as well as total tags read and total bases added as
-    these can be used by later stage for normalisation.
+def read_BED(bedfile_path, ROIs, chr_prefix='',
+        chrom_size=300000000, ui=None):
     """
+        Read BED entries into chromosome array. Slice into each ROI.
+
+        BED entries are 0-offset for start, 1-offset for end - same as Python.
+
+        Output ROIs as well as total tags read and total bases added as
+        these can be used by later stage for normalisation.
+    """
+
     rr = RunRecord('read_BED')
     num_tags = 0; num_bases = 0
 
@@ -305,19 +301,19 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
         total_BED_lines = int(stdout.strip().split(' ')[0])
         rr.addInfo('total lines in '+bedfile_path, total_BED_lines)
 
-    # separate ROIs by chrom - performance optimisation
-    roi_chrom_dict = {}
+    roi_ids_by_chrom = {} # to save time in parsing positions
+    all_rois = {} # ROIs by uniqueID - converted back to list at end
     for roi in ROIs:
-        if roi.chrom in roi_chrom_dict.keys():
-            roi_chrom_dict[roi.chrom].append(roi)
-        else:
-            roi_chrom_dict[roi.chrom] = [roi]
+        if not roi.chrom in roi_ids_by_chrom.keys():
+            roi_ids_by_chrom[roi.chrom] = []
+        roi_ids_by_chrom[roi.chrom].append(roi.unique_id)
+        all_rois[roi.unique_id] = roi
 
-    for chrom_key in roi_chrom_dict.keys():
-        roi_chrom_dict[chrom_key] = sorted(roi_chrom_dict[chrom_key],
-                key=lambda roi: roi.start)
+    # Read each piece of the file into an artificial chromosome (Numpy array)
+    # and slice out the gene regions that we have for each gene in that chrom
+    chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
 
-    filled_ROIs = []
+    current_chrom = None
     for i, bed_entry in enumerate(bed_data):
         if i % 100 == 0:
             msg = 'Reading BED entries [' + str(i) +\
@@ -326,64 +322,71 @@ def read_BED(bedfile_path, ROIs, chr_prefix='', ui=None):
             ui.display(msg=msg, progress=progress)
 
         bed_parts = bed_entry.split('\t')
+        if len(bed_parts) <= 3:
+            continue # some sort of track or browser line
+
         bed_chrom = str(bed_parts[0]).lstrip(chr_prefix)
+
+        # check if it's time to flush the chrom counts array
+        if bed_chrom != current_chrom and current_chrom is not None:
+            get_roi_scores_from_chrom(chrom_array, current_chrom,
+                    all_rois, roi_ids_by_chrom)
+            chrom_array[:] = 0
+
+        current_chrom = bed_chrom
         try:
             bed_start = int(bed_parts[1].strip())
             bed_end = int(bed_parts[2].strip())
+
+            # don't use the quality score
+            try:
+                bed_score = float(bed_parts[4].strip())
+            except ValueError, TypeError:
+                bed_score = 1
+
+            chrom_array[bed_start:bed_end] += 1.0
+            num_bases += bed_end - bed_start
+            num_tags += (bed_end - bed_start)/75
         except ValueError:
             rr.addWarning('BED file improperly formatted line', bed_entry)
 
-        if not bed_chrom in roi_chrom_dict.keys():
-            continue
+    # Clear last entries
+    if current_chrom is not None:
+        get_roi_scores_from_chrom(chrom_array, current_chrom,
+                all_rois, roi_ids_by_chrom)
 
-        for roi in roi_chrom_dict[bed_chrom]:
-            if bed_end >= roi.start: # potential for overlap
-                if bed_start <= roi.end:
-                    #add count to ROI
-                    try:
-                        roi.counts, counted_bases = roi.add_counts_to_ROI(
-                                bed_start, bed_end)
-                    except RuntimeError:
-                        # input read in wrong direction or 0 sized
-                        continue
-
-                    num_tags += 1
-                    num_bases += counted_bases
-                else: # no more entries for ROI
-                    filled_ROIs.append(roi)
-                    # remove ROI from further consideration
-                    del roi_chrom_dict[bed_chrom][0]
-
-    # get remaining ROIs not yet in filled_ROIs
-    remaining_ROIs = []
-    for chrom_key in roi_chrom_dict.keys():
-        for roi in roi_chrom_dict[chrom_key]:
-            remaining_ROIs.append(roi)
-
-    rr.addInfo('Filled Regions of Interest', len(filled_ROIs))
-    rr.addInfo('Unfilled Regions of Interest', len(remaining_ROIs))
-
-    return filled_ROIs + remaining_ROIs, num_tags, num_bases, total_BED_lines
+    ROIs = [all_rois[key] for key in all_rois.keys()]
+    return ROIs, num_tags, num_bases, total_BED_lines
 
 @display_wrap
-def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
-    """ get sequence reads for each ROI and add the counts in.
-    Relies on Samtools view.
+def read_BAM(bam_path, ROIs, chr_prefix='', chrom_size=300000000, ui=None):
+    """
+        Get sequence reads for each chrom.
+        Relies on Samtools view.
 
-    Cogent entries are 0-offset with ends+1 so they slice perfectly into arrays
-    SAM entries are 1-offset so substract from _start to get proper slice.
+        Cogent entries are 0-offset with ends+1 so they slice perfectly into arrays
+        SAM entries are 1-offset so subtract from _start to get proper slice.
 
-    Output ROIs as well as total tags read and total bases added as
-    these can be used by later stage for normalisation.
+        Output ROIs as well as total tags read and total bases added as
+        these can be used by later stage for normalisation.
     """
     rr = RunRecord('read_BAM')
+
+    roi_ids_by_chrom = {} # to save time in parsing positions
+    all_rois = {} # ROIs by uniqueID - converted back to list at end
+    for roi in ROIs:
+        if not roi.chrom in roi_ids_by_chrom.keys():
+            roi_ids_by_chrom[roi.chrom] = []
+        roi_ids_by_chrom[roi.chrom].append(roi.unique_id)
+        all_rois[roi.unique_id] = roi
+
     # Collect stats for counts normalisation
     num_tags = 0
     num_bases = 0
     mapped_tags = 0
 
     # get total number of mapped tags first
-    command = 'samtools idxstats ' + bamfile_path
+    command = 'samtools idxstats ' + bam_path
     returncode, stdout, stderr = run_command(command)
     if returncode != 0:
         rr.dieOnCritical('Samtools idxstats died', 'Indexed correctly?')
@@ -396,14 +399,19 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
                 mapped_tags += int(mapped_reads)
 
     valid_flags = set([0, 16, 83, 99, 147, 163])
-    filled_ROIs = []
     bam_lines_seen = 0
     valid_flag_count = 0
     invalid_flag_count = 0
-    for i, roi in enumerate(ui.series(ROIs, 'Loading Regions of Interest')):
-        chrom = chr_prefix + roi.chrom # default is ''
-        command = 'samtools view ' + bamfile_path + ' ' + chrom +\
-                ':' + str(roi.start+1) + '-' + str(roi.end)
+
+    # Read each piece of the file into an artificial chromosome (Numpy array)
+    # and slice out the gene regions that we have for each gene in that chrom
+    chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
+
+    for chrom_key in roi_ids_by_chrom.keys():
+        chrom = chr_prefix + chrom_key # default is ''
+        chrom_fn = str(uuid.uuid4())
+        # get all reads per chrom
+        command = 'samtools view ' + bam_path + ' ' + chrom + ' > ' + chrom_fn
         returncode, stdout, stderr = run_command(command)
         if 'fail to determine the sequence name' in stderr:
             reported = False
@@ -411,46 +419,54 @@ def read_BAM(bamfile_path, ROIs, chr_prefix='', ui=None):
                 if chr_prefix in part:
                     reported = True
                     rr.addWarning('Possibly incorrect chromosome prefix',
-                            part)
+                        part)
             if not reported:
                 rr.addWarning('Possibly incorrect chromosome prefix', stderr)
 
         if returncode == 0:
-            bam_lines = stdout.split('\n')
-            for entry in bam_lines:
-                if not len(entry):
-                    continue
-                bam_lines_seen += 1
-                entry_parts = entry.split('\t')
-                entry_flag = int(entry_parts[1])
-                if entry_flag in valid_flags:
-                    valid_flag_count += 1
-                    # translate into 0-based space
-                    entry_start = int(entry_parts[3]) - 1
-                    length_components = map(int, re.findall(r"([\d]+)M",
-                            entry_parts[5]))
-                    entry_length = sum(length_components)
-                    entry_end = entry_start + entry_length
-                    try:
-                        roi.counts, counted_bases = roi.add_counts_to_ROI(
-                                entry_start, entry_end)
-                    except RuntimeError:
-                        # input read in wrong direction or 0 sized
+            with open(chrom_fn, 'r') as bam_lines:
+                for entry in bam_lines:
+                    if not len(entry):
                         continue
+                    bam_lines_seen += 1
 
-                    num_tags += 1
-                    num_bases += counted_bases
-                else:
-                    invalid_flag_count += 1
-            filled_ROIs.append(roi)
+                    if bam_lines_seen % 100 == 0:
+                        msg = 'Reading BAM entries [' + str(bam_lines_seen) +\
+                                ' / ' + str(mapped_tags) + ']'
+                        progress = (float(bam_lines_seen)/float(mapped_tags))
+                        ui.display(msg=msg, progress=progress)
+
+                    entry_parts = entry.split('\t')
+                    entry_flag = int(entry_parts[1])
+                    if entry_flag in valid_flags:
+                        valid_flag_count += 1
+                        # translate into 0-based space
+                        entry_start = int(entry_parts[3]) - 1
+                        length_components = map(int, re.findall(r"([\d]+)M",
+                                entry_parts[5]))
+                        entry_length = sum(length_components)
+                        entry_end = entry_start + entry_length
+
+                        chrom_array[entry_start:entry_end] += 1.0
+
+                        num_tags += 1
+                        num_bases += entry_length
+                    else:
+                        invalid_flag_count += 1
         else:
+            os.remove(chrom_fn)
             rr.dieOnCritical('Samtools view failed', 'Sorted? Indexed?')
+
+        os.remove(chrom_fn) # clean up temp chrom file
+        get_roi_scores_from_chrom(chrom_array, chrom_key, all_rois, roi_ids_by_chrom)
+        chrom_array[:] = 0
 
     rr.addInfo('Number of BAM records evaluated', bam_lines_seen)
     rr.addInfo('Number of valid BAM records seen', valid_flag_count)
     rr.addInfo('Number of invalid BAM records seen', invalid_flag_count)
 
-    return filled_ROIs, num_tags, num_bases, mapped_tags
+    ROIs = [all_rois[key] for key in all_rois.keys()]
+    return ROIs, num_tags, num_bases, mapped_tags
 
 def get_region_counts(BAMorBED, ROIs, chr_prefix=None, chrom_size=300000000):
     """

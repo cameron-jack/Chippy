@@ -44,7 +44,7 @@ def load_studies(collections, counts_func):
             dir_name = os.path.dirname(collection_file)
             base_name = os.path.basename(collection_file)
             glob_file_names = [os.path.join(dir_name, p)\
-                                     for p in glob.glob1(dir_name, base_name)]
+                    for p in glob.glob1(dir_name, base_name)]
             glob_file_names.sort()
             for f in glob_file_names:
                 collection_fns.append(os.path.abspath(f))

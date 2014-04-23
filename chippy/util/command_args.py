@@ -91,7 +91,7 @@ class Args(object):
                 help='Path to save plottable data')
         self._create_argob('--collections', type=OpenFilePath, nargs='+',
                 help='One or more, plottable data files')
-        self._create_argob('--plot_filename', type=OpenFilePath,
+        self._create_argob('--plot_filename', type=SaveFilePath,
                 help='Name of final plot file')
         self._create_argob('-e', '--expression_data', type=OpenFilePath,
                 help="Path to the expression/gene data file. Must be tab delimited.")
@@ -234,6 +234,8 @@ class Args(object):
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
+        # option is DEPRECATED, all scripts should automatically recognise
+        # their format or default to PDF
         self._create_argob('--plot_format', default='png', choices=['png', 'pdf'],
                 help="Select the plot format to output: 'png' or 'pdf'"+\
                 "[default: %default]")
@@ -273,9 +275,9 @@ class Args(object):
         self._create_argob('--title', help='Plot title')
         # Need options for size and style
         # Axis labels and font sizes
-        self._create_argob('--ylabel', default = 'Normalized counts',
+        self._create_argob('--ylabel', default = '',
              help='Label for the y-axis')
-        self._create_argob('--xlabel', default = 'Position relative to TSS',
+        self._create_argob('--xlabel', default = '',
                 help='Label for the x-axis')
         self._create_argob('--xfont_size', type=int, default=14,
                 help='font size for x label')
@@ -374,6 +376,12 @@ class Args(object):
         self._create_argob('--max_chrom_size', type=int, default=300000000,
                 help='Max size of chromosomes to read from file')
 
+        # Used by some auxiliary scripts
+        self._create_argob('--x_axis_is_log', action='store_true',
+            help='Plot x-axis with log2 values')
+        self._create_argob('--y_axis_is_log', action='store_true',
+            help='Plot y-axis with log2 values')
+
     def _add_diff_abs_plots_specific_args(self):
         """ These args are specifically for the diff_abs_plots script """
         # absolute expression only
@@ -429,21 +437,20 @@ class Args(object):
         self._create_argob('--expr_is_ranks', action='store_true',
                 help='Plot expression as ranks rather than absolute values')
 
-        self._create_argob('--x_axis_is_log', action='store_true',
-                help='Plot x-axis with log2 values')
-        self._create_argob('--y_axis_is_log', action='store_true',
-                help='Plot y-axis with log2 values')
-
     def _add_counts_distribution_specific_args(self):
         """ Args specific to the counts_distribution script """
         # Also used by expr_distribution
-        self._create_argob('plot_type', choices=['dot', 'line', 'box',
+        self._create_argob('--plot_type', choices=['dot', 'line', 'box',
                 'hist'], default='dot',
                 help='Type of plot for comparing counts data')
+        self._create_argob('--counts_region', choices=['feature', 'total',
+                'promoter', 'coding'], default='feature', help=\
+                'Region of export window for calculating score')
 
     def _add_expr_distribution_specific_args(self):
         """ Args specific to the expr_distribution script """
         pass
+        # would also use "plot_type"
 
     def getReqCogentOpts(self):
         return [argob.asCogentOpt() for argob in self.argobs\

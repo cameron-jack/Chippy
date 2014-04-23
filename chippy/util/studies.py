@@ -49,15 +49,26 @@ class Gene(object):
 
 class CountsGene(Gene):
     """ gene entry from a ChipPy study """
-    # TODO: needs updating for asymmetric windows
     Rank = 0 # low rank means higher score
     Score = 0 # whichever counts feature is chosen
     def __init__(self, counts, *args, **kwargs):
         self.counts = counts # a numpy array
-        self.feature_pos = len(self.counts)/2
-        self.feature_counts = self.counts[self.feature_pos]
-        self.promoter_counts = numpy.sum(self.counts[:len(counts)/2])
-        self.coding_counts = numpy.sum(self.counts[len(counts)/2:])
+
+        if 'window_upstream' in kwargs.keys() and\
+                'window_downstream' in kwargs.keys():
+            window_upstream = kwargs['window_upstream']
+            window_downstream = kwargs['window_downstream']
+
+            self.promoter_counts = numpy.sum(self.counts[:window_upstream])
+            self.coding_counts = numpy.sum(self.counts[window_downstream:])
+            self.feature_pos = window_upstream + 1
+            self.feature_counts = self.counts[self.feature_pos]
+        else:
+            self.promoter_counts = numpy.sum(self.counts[:len(counts)/2])
+            self.coding_counts = numpy.sum(self.counts[len(counts)/2:])
+            self.feature_pos = len(self.counts)/2
+            self.feature_counts = self.counts[self.feature_pos]
+
         self.total_counts = numpy.sum(self.counts)
         super(CountsGene, self).__init__(*args, **kwargs)
 
@@ -67,10 +78,7 @@ class CountsGene(Gene):
 
 class CountsStudy(object):
     """ A collection of CountsGene objects """
-    def __init__(self):
-        self.counts_genes = []
-
-    def load_counts(self, collection):
+    def __init__(self, collection):
         """ loads gene entries from a ChipPy collection """
         rr = RunRecord('load_counts')
 
@@ -82,21 +90,24 @@ class CountsStudy(object):
                 file1 = gzip.GzipFile(collection, 'rb')
                 data = numpy.load(file1)
                 d = data.tolist()
+                info = d['info']['args']
                 # get collection file metadata
-                window_upstream = d['window_upstream']
-                window_downstream = d['window_downstream']
-                feature_type = d['feature_type']
-                sample_name = d['sample_name']
-                species = d['species']
-                tag_count = d['tag count']
-                base_count = d['base count']
-                mapped_tags = d['mapped tags']
+                self.window_upstream = info.get('window_upstream', None)
+                self.window_downstream = info.get('window_downstream', None)
+                self.window_radius = info.get('window_radius', None)
+                self.feature_type = info.get('feature_type', None)
+                self.sample_name = info['sample_name']
+                self.species = info['species']
+                self.tag_count = info['tag count']
+                self.base_count = info.get('base count', None)
+                self.mapped_tags = info['mapped tags']
 
                 counts = d['counts']
                 labels = d['labels']
 
                 for count, label in zip(counts, labels):
-                    gene_record = CountsGene(count, str(label), collection)
+                    gene_record = CountsGene(count, str(label), collection,
+                            self.window_upstream, self.window_downstream)
                     self.counts_genes.append(gene_record)
                 rr.addInfo('genes found in ' + collection, len(labels))
 
@@ -104,6 +115,42 @@ class CountsStudy(object):
                 rr.dieOnCritical('file found but could not be read', collection)
         else:
             rr.dieOnCritical('unrecognised collection file', collection)
+
+    def normaliseByRPM(self):
+        """ Normalise counts by per million mapped tags """
+        rr = RunRecord('normaliseByRPM')
+        norm_factor = 1000000.0/self.mapped_tags
+        rr.addInfo('normalising by RPMs', norm_factor)
+
+        for gene in self.counts_genes:
+            gene.promoter_counts *= norm_factor
+            gene.coding_counts *= norm_factor
+            gene.feature_counts *= norm_factor
+            gene.total_counts *= norm_factor
+
+    def scoresAsRankedArray(self, metric, log2=False):
+        """
+            sort the gene scores based on some metric and return ordered
+            Numpy array. Return as the log base 2 scores if log2==True
+        """
+        if metric == 'feature':
+            scores = sorted([gene.feature_counts \
+                    for gene in self.counts_genes])
+        elif metric == 'total':
+            scores = sorted([gene.total_counts \
+                    for gene in self.counts_genes])
+        elif metric == 'promoter':
+            scores = sorted([gene.promoter_counts \
+                    for gene in self.counts_genes])
+        elif metric == 'coding':
+            scores = sorted([gene.coding_counts \
+                    for gene in self.counts_genes])
+
+        scores = numpy.array(scores)
+        if log2:
+            scores[scores > 0] = numpy.log2(scores[scores > 0])
+
+        return scores
 
 class ExprGene(Gene):
     """ gene entry from a microarray expression study """
@@ -117,10 +164,7 @@ class ExprGene(Gene):
 
 class ExprStudy(object):
     """ A collection of ExprGene objects """
-    def __init__(self):
-        self.expr_genes = []
-
-    def load_expr(self, expr_study, db_path, include_target=None,
+    def __init__(self, expr_study, db_path, include_target=None,
                   exclude_target=None):
         """
             loads expression records from a ChippyDB and also

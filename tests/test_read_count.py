@@ -30,7 +30,7 @@ class MinimalRegionCountTests(TestCase):
         g2 = Gene('BRCA2b', 'brca2b', 'protein_coding', 'fake_brca2',
                 'ok', 'chr_5', 151341223, 151345949, MINUS_STRAND)
         g3 = Gene('BRCA2c', 'brca2c', 'protein_coding', 'fake_brca2',
-                'ok', 'chr_11', 151341223, 151345949, PLUS_STRAND)
+                'ok', 'chr_9', 151341223, 151345949, PLUS_STRAND)
 
         ROIs = []
 
@@ -96,7 +96,7 @@ class MinimalRegionCountTests(TestCase):
         """
         ROIs, roi_ids, expected = self.setUpROIsForFiles()
         ROIs, num_tags, num_bases, mapped_tags =\
-                read_BAM('data/brca2-11_sorted.bam', ROIs)
+                read_BAM('data/brca2-11_sorted.bam', ROIs, chr_prefix='chr_')
 
         self.assertEqual(num_tags, 126) # total tags
         self.assertEqual(num_bases, 9450) # total bases

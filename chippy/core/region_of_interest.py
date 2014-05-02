@@ -45,3 +45,6 @@ class ROI(object):
         id_parts = [self.chrom, self.start, self.end, self.strand,
                     str(uuid.uuid4())]
         self.unique_id = '_'.join(map(str, id_parts))
+
+    def __repr__(self):
+        return tuple(self.chrom, self.start, self.end)

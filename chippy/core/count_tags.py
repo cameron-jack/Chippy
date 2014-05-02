@@ -60,9 +60,29 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
 
     rr.addInfo('BEDgraph data written to', bedgraph_fn)
 
-def get_counts_ranks_ids(genes, BAMorBED, feature_type,
-            chr_prefix, window_upstream, window_downstream,
-            bedgraph_fn=None, chrom_size=300000000, ui=None):
+def write_BED_windows(BED_windows_fn, regions_of_interest):
+    """
+        Create a single BED3 file entry for each ROI
+    """
+    rr = RunRecord('write_BED_windows')
+    rr.addInfo('number of records to write', len(regions_of_interest))
+
+    ROIs = sorted(regions_of_interest, key=lambda x:\
+            (x.chrom, x.start, x.end))
+
+    with open(BED_windows_fn, 'w') as bed:
+        for roi in ROIs:
+            chrom = roi.chrom
+            start = roi.start
+            end = roi.end # no BED indexing adjustment needed
+            line = '\t'.join(map(str, [chrom, start, end])) + '\n'
+            bed.write(line)
+
+    rr.addInfo('BED windows written to', BED_windows_fn)
+
+def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
+        window_upstream, window_downstream, bedgraph_fn=None,
+        BED_windows_fn=None, chrom_size=300000000, ui=None):
     """
         Build regions of interest (ROI) and return as lists of counts, ranks
         and ensembl_ids, sorted by rank.
@@ -73,7 +93,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
         number of tags (reads), number of bases counted.
     """
     rr = RunRecord('get_counts_ranks_ids')
-    regionsOfInterest = []
+    regions_of_interest = []
 
     if feature_type.lower() == 'tss':
         # Transcriptional Start Tite
@@ -81,7 +101,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
             win_start, win_end = gene.getTssWindowCoords(\
                     window_upstream, window_downstream)
             roi = ROI(gene, win_start, win_end)
-            regionsOfInterest.append(roi)
+            regions_of_interest.append(roi)
 
     elif feature_type.lower() == 'utr_exon':
         # Boundary of the 5' UTR with the first Exon
@@ -91,7 +111,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
                     window_upstream, window_downstream)
             if win_start is not None and win_end is not None:
                 roi = ROI(gene, win_start, win_end)
-                regionsOfInterest.append(roi)
+                regions_of_interest.append(roi)
 
     elif feature_type.lower() == 'intron_exon':
         # All intron/exon boundaries, except when overlapping UTR/Exon boundary
@@ -103,7 +123,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
                 if win_start is not None and win_end is not None:
                     roi = ROI(gene, win_start, win_end,
                             gene.ensembl_id+'_'+str(i))
-                    regionsOfInterest.append(roi)
+                    regions_of_interest.append(roi)
 
     elif feature_type.lower() == 'exon_intron':
         # all exon/intron boundaries, except when overlapping UTR/Exon boundary
@@ -115,7 +135,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
                 if win_start is not None and win_end is not None:
                     roi = ROI(gene, win_start, win_end,
                             gene.ensembl_id+'_'+str(i))
-                    regionsOfInterest.append(roi)
+                    regions_of_interest.append(roi)
 
     elif feature_type.lower() == 'exon_utr':
         # Boundary of the last exon with the 3' UTR - except when overlapping
@@ -125,7 +145,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
                     window_upstream, window_downstream)
             if win_start is not None and win_end is not None:
                 roi = ROI(gene, win_start, win_end)
-                regionsOfInterest.append(roi)
+                regions_of_interest.append(roi)
 
     elif feature_type.lower() == 'gene_3p':
         # 3' end of gene
@@ -133,16 +153,19 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
             win_start, win_end = gene.getGene3PrimeWindowCoords(\
                     window_upstream, window_downstream)
             roi = ROI(gene, win_start, win_end)
-            regionsOfInterest.append(roi)
+            regions_of_interest.append(roi)
 
     else:
         rr.dieOnCritical('Feature type not supported', feature_type)
 
-    if not len(regionsOfInterest):
+    if not len(regions_of_interest):
         rr.dieOnCritical('No Regions of Interest created')
 
+    if BED_windows_fn:
+        write_BED_windows(BED_windows_fn, regions_of_interest)
+
     ROIs, num_tags, num_bases, mapped_tags = get_region_counts(BAMorBED,
-            regionsOfInterest, chr_prefix=chr_prefix, chrom_size=chrom_size)
+            regions_of_interest, chr_prefix=chr_prefix, chrom_size=chrom_size)
 
     if bedgraph_fn:
         write_to_bedgraph(bedgraph_fn, ROIs)
@@ -159,7 +182,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type,
 def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
         window_upstream, window_downstream, include_target=None,
         exclude_target=None, bedgraph_fn=None, multitest_signif_val=None,
-        chrom_size=300000000):
+        BED_windows_fn=None, chrom_size=300000000):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('counts_for_genes')
 
@@ -187,7 +210,8 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
     counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags =\
             get_counts_ranks_ids(expressed_genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
-            bedgraph_fn=bedgraph_fn, chrom_size=chrom_size)
+            bedgraph_fn=bedgraph_fn, BED_windows_fn=BED_windows_fn,
+            chrom_size=chrom_size)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,

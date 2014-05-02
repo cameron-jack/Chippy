@@ -16,6 +16,13 @@ import numpy
 import uuid # for generating random file names for temporary SAM entries
 import os
 
+NO_CYVCF = False
+try:
+    import cyvcf
+except ImportError:
+    cyvcf = None
+    NO_CYVCF = True
+
 __author__ = 'Cameron Jack, Gavin Huttley'
 __copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Cameron Jack', 'Gavin Huttley']
@@ -43,6 +50,96 @@ def get_roi_scores_from_chrom(chrom_array, chrom, all_rois, roi_ids_by_chrom):
             else:
                 all_rois[id].counts +=\
                         chrom_array[all_rois[id].end-1:start:-1]
+
+@display_wrap
+def read_vcf(vcf_path, ROIs, chr_prefix='', chrom_size=300000000,
+             ui=None):
+    """
+        Either use cyvcf for ultra-fast VCF reading or do it ourselves
+    """
+    rr = RunRecord('read_wiggle')
+    total_score = 0 # used to calculate normalisation factors
+    roi_ids_by_chrom = {} # to save time in parsing positions
+    all_rois = {} # ROIs by uniqueID - converted back to list at end
+    for roi in ROIs:
+        if not roi.chrom in roi_ids_by_chrom.keys():
+            roi_ids_by_chrom[roi.chrom] = []
+        roi_ids_by_chrom[roi.chrom].append(roi.unique_id)
+        all_rois[roi.unique_id] = roi
+
+    if NO_CYVCF:
+        # Parse the VCF ourselves
+        if vcf_path.endswith('.gz'):
+            vcf_file = GzipFile(vcf_path, 'rb')
+        else:
+            try:
+                vcf_file = open(vcf_path, 'r')
+            except IOError:
+                rr.dieOnCritical('Could not open file', vcf_path)
+
+        # get total lines in wig for pacing the progress bar
+        if not vcf_path.endswith('.gz'):
+            command = 'wc -l ' + vcf_path
+        else:
+            command = 'gunzip -c ' + vcf_path + ' | wc -l'
+
+        returncode, stdout, stderr = run_command(command)
+        if returncode:
+            rr.addWarning('could not run wc to count WIG lines', 'error')
+            total_lines = 1
+        else:
+            total_lines = int(stdout.strip().split(' ')[0])
+            rr.addInfo('total lines in ' + vcf_path, total_lines)
+
+    else:
+        vcf_file = cyvcf.Reader(open(vcf_path, 'rb'))
+        total_lines = len(vcf_file)
+
+    # Read each piece of the file into an artificial chromosome (Numpy array)
+    # and slice out the gene regions that we have for each gene in that chrom
+    chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
+
+    current_chrom = None
+    for i, line in enumerate(vcf_file):
+        if i % 100 == 0:
+            msg = 'Reading VCF entries [' + str(i) +\
+                   ' / ' + str(total_lines) + ']'
+            progress = (float(i)/float(total_lines))
+            ui.display(msg=msg, progress=progress)
+
+        if line.startswith('#'):
+            continue # header line
+
+        line_parts = line.split('\t')
+        chrom = line_parts[0].strip().lstrip(chr_prefix)
+        if current_chrom is None:
+            current_chrom = chrom
+        elif current_chrom != chrom:
+            get_roi_scores_from_chrom(chrom_array, current_chrom, all_rois,
+                    roi_ids_by_chrom)
+            current_chrom = chrom
+            chrom_array[:] = 0
+
+        position = int(line_parts[1].strip())
+        if position == 0:
+            continue # telomere
+
+        try:
+            chrom_array[position:position+1] += 1.0
+        except IndexError:
+            rr.addWarning('position larger than expect chrom size', position)
+        total_score += 1
+
+    # Get last chromosome entries
+    get_roi_scores_from_chrom(chrom_array, current_chrom, all_rois,
+            roi_ids_by_chrom)
+
+    ROIs = [all_rois[key] for key in all_rois.keys()]
+    num_tags = total_score
+    num_bases = total_score * 75
+    mapped_tags = total_score
+
+    return ROIs, num_tags, num_bases, mapped_tags
 
 @display_wrap
 def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
@@ -78,13 +175,16 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
     # get total lines in wig for pacing the progress bar
     if not wiggle_path.endswith('.gz'):
         command = 'wc -l ' + wiggle_path
-        returncode, stdout, stderr = run_command(command)
-        if returncode:
-            rr.addWarning('could not run wc to count WIG lines', 'error')
-            total_lines = 1
-        else:
-            total_lines = int(stdout.strip().split(' ')[0])
-            rr.addInfo('total lines in '+wiggle_path, total_lines)
+    else:
+        command = 'gunzip -c ' + wiggle_path + ' | wc -l'
+
+    returncode, stdout, stderr = run_command(command)
+    if returncode:
+        rr.addWarning('could not run wc to count WIG lines', 'error')
+        total_lines = 1
+    else:
+        total_lines = int(stdout.strip().split(' ')[0])
+        rr.addInfo('total lines in ' + wiggle_path, total_lines)
 
     # Read each piece of the file into an artificial chromosome (Numpy array)
     # and slice out the gene regions that we have for each gene in that chrom
@@ -117,7 +217,7 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
             if current_chrom is None:
                 current_chrom = chrom
             elif current_chrom != chrom: # Empty chrom_array into genes
-                get_roi_scores_from_chrom(chrom_array, chrom, all_rois,
+                get_roi_scores_from_chrom(chrom_array, current_chrom, all_rois,
                         roi_ids_by_chrom)
                 current_chrom = chrom
                 total_score += numpy.sum(chrom_array)
@@ -140,21 +240,28 @@ def read_wiggle(wiggle_path, ROIs, chr_prefix='', chrom_size=300000000,
             if current_chrom is None:
                 current_chrom = chrom
             elif current_chrom != chrom: # Empty chrom_array into genes
-                get_roi_scores_from_chrom(chrom_array, chrom, all_rois,
+                get_roi_scores_from_chrom(chrom_array, current_chrom, all_rois,
                         roi_ids_by_chrom)
                 current_chrom = chrom
                 total_score += numpy.sum(chrom_array)
                 chrom_array[:] = 0
         else:
             if step_type == 'fixed':
-                chrom_array[pos:pos+span] = float(line.strip())/span
+                try:
+                    chrom_array[pos:pos+span] = float(line.strip())/span
+                except IndexError:
+                    rr.addWarning('position larger than expect chrom size', pos)
                 pos += step
             else: #step_type == 'variable'
                 if '\t' in line:
                     line_parts = line.split('\t')
                 else:
                     line_parts = line.split(' ')
-                chrom_array[int(line_parts[0])] = float(line_parts[1].strip())
+                pos = int(line_parts[0])
+                try:
+                    chrom_array[pos] = float(line_parts[1].strip())
+                except IndexError:
+                    rr.addWarning('position larger than expect chrom size', pos)
 
     # empty chrom_array into genes_score from the final section
     get_roi_scores_from_chrom(chrom_array, chrom, all_rois,
@@ -194,7 +301,11 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='',
         rr.dieOnCritical('No bedgraph file found', bed_graph)
 
     # get total lines in file for pacing the progress bar
-    command = 'wc -l ' + bedgraph_path
+    if not bedgraph_path.endswith('.gz'):
+        command = 'wc -l ' + bedgraph_path
+    else:
+        command = 'gunzip -c ' + bedgraph_path + ' | wc -l'
+
     returncode, stdout, stderr = run_command(command)
     if returncode:
         rr.addWarning('could not run wc to count BED lines', 'error')
@@ -238,7 +349,7 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='',
         # check if it's time to flush the chrom counts array
         if bed_chrom != current_chrom and current_chrom is not None:
             get_roi_scores_from_chrom(chrom_array, current_chrom,
-                 all_rois, roi_ids_by_chrom)
+                    all_rois, roi_ids_by_chrom)
             chrom_array[:] = 0
 
         current_chrom = bed_chrom
@@ -248,7 +359,11 @@ def read_BEDgraph(bedgraph_path, ROIs, chr_prefix='',
             # score = number of reads at this location
             bed_score = float(bed_parts[3].strip())
 
-            chrom_array[bed_start:bed_end] += bed_score
+            try:
+                chrom_array[bed_start:bed_end] += bed_score
+            except IndexError:
+                rr.addWarning('position larger than expect chrom size',
+                        bed_start)
             num_bases += (bed_end - bed_start) * bed_score
             num_tags += ((bed_end - bed_start) * bed_score)/75
         except ValueError:
@@ -292,7 +407,11 @@ def read_BED(bedfile_path, ROIs, chr_prefix='',
 
     # get total lines in file for pacing the progress bar, but
     # this is also the total number of mapped reads for normalisation
-    command = 'wc -l ' + bedfile_path
+    if not bedfile_path.endswith('.gz'):
+        command = 'wc -l ' + bedfile_path
+    else:
+        command = 'gunzip -c ' + bedfile_path + ' | wc -l'
+
     returncode, stdout, stderr = run_command(command)
     if returncode:
         rr.addWarning('could not run wc to count BED lines', 'error')
@@ -344,7 +463,11 @@ def read_BED(bedfile_path, ROIs, chr_prefix='',
             except ValueError, TypeError:
                 bed_score = 1
 
-            chrom_array[bed_start:bed_end] += 1.0
+            try:
+                chrom_array[bed_start:bed_end] += 1.0
+            except IndexError:
+                rr.addWarning('position larger than expect chrom size',
+                        bed_start)
             num_bases += bed_end - bed_start
             num_tags += (bed_end - bed_start)/75
         except ValueError:
@@ -408,18 +531,21 @@ def read_BAM(bam_path, ROIs, chr_prefix='', chrom_size=300000000, ui=None):
     chrom_array = numpy.zeros(chrom_size, dtype=numpy.float32)
 
     for chrom_key in roi_ids_by_chrom.keys():
-        chrom = chr_prefix + chrom_key # default is ''
+        if chr_prefix not in chrom_key:
+            chrom = chr_prefix + chrom_key # default is ''
+        else:
+            chrom = chrom_key
         chrom_fn = str(uuid.uuid4())
         # get all reads per chrom
         command = 'samtools view ' + bam_path + ' ' + chrom + ' > ' + chrom_fn
         returncode, stdout, stderr = run_command(command)
+
         if 'fail to determine the sequence name' in stderr:
             reported = False
             for part in stderr.split(' '):
                 if chr_prefix in part:
                     reported = True
-                    rr.addWarning('Possibly incorrect chromosome prefix',
-                        part)
+                    rr.addWarning('Possibly incorrect chromosome prefix', part)
             if not reported:
                 rr.addWarning('Possibly incorrect chromosome prefix', stderr)
 
@@ -455,7 +581,8 @@ def read_BAM(bam_path, ROIs, chr_prefix='', chrom_size=300000000, ui=None):
                         invalid_flag_count += 1
         else:
             os.remove(chrom_fn)
-            rr.dieOnCritical('Samtools view failed', 'Sorted? Indexed?')
+            rr.dieOnCritical('Samtools view failed; Sorted? Indexed?',
+                    returncode)
 
         os.remove(chrom_fn) # clean up temp chrom file
         get_roi_scores_from_chrom(chrom_array, chrom_key, all_rois, roi_ids_by_chrom)
@@ -488,9 +615,12 @@ def get_region_counts(BAMorBED, ROIs, chr_prefix=None, chrom_size=300000000):
     elif 'wig' in BAMorBED.lower():
         filled_ROIs, num_tags, num_bases, mapped_tags =\
                 read_wiggle(BAMorBED, ROIs, chr_prefix, chrom_size)
+    elif 'vcf' in BAMorBED.lower():
+        filled_ROIs, num_tags, num_bases, mapped_tags =\
+                read_vcf(BAMorBED, ROIs, chr_prefix, chrom_size)
     else:
-        rr.dieOnCritical('File not recognised as BAM, BEDgraph or BED',
-                BAMorBED)
+        rr.dieOnCritical('File not recognised as BAM, BEDgraph,'+\
+                'BED, WIG or VCF', BAMorBED)
 
     rr.addInfo('Number of read tags counted', num_tags)
     rr.addInfo('Number of total bases counted', num_bases)

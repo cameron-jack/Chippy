@@ -86,7 +86,10 @@ class Args(object):
 
         self._create_argob('--make_bedgraph', action='store_true',
                 help='Save export to BEDgraph, where name is same as '+\
-                "ChipPy DB but with a _expression-name.bedgraph' extension")
+                "collection but with a _expression-name.bedgraph' extension")
+        self._create_argob('--BED_windows', action='store_true',
+                help='Save region of interest windows to BED, where name is'+\
+                "same as collection but with '_.BED' extension")
         self._create_argob('-c', '--collection', type=SaveFilePath,
                 help='Path to save plottable data')
         self._create_argob('--collections', type=OpenFilePath, nargs='+',

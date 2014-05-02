@@ -12,7 +12,7 @@ from chippy.util.run_record import RunRecord
 from chippy.util.command_args import Args
 
 __author__ = 'Cameron Jack, Gavin Huttley'
-__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__copyright__ = 'Copyright 2011-2014, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -21,11 +21,11 @@ __status__ = 'Pre-release'
 __version__ = '0.2'
 
 script_info = {}
-script_info['title'] = 'Saves feature counts'
+script_info['title'] = 'Export feature counts'
 script_info['script_description'] = 'Saves counts data for TSS, ' +\
         'Exon-Intron, Intron-Exon or Gene-3prime boundaries ' +\
         'for a given window. Reads count info from an indexed BAM ' +\
-        'or a BED file'
+        'file, or a BED, BEDgraph, WIG or VCF file.'
 script_info['brief_description'] = 'Extracts counts from sequenced regions'
 script_info['version'] = __version__
 script_info['authors'] = __author__
@@ -36,7 +36,7 @@ pos_args = ['db_path']
 req_args = ['expr_sample', 'feature_type', 'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
         'count_max_length', 'window_upstream', 'window_downstream',
-        'multitest_signif_val', 'include_target',
+        'multitest_signif_val', 'include_target', 'BED_windows',
         'exclude_target', 'make_bedgraph', 'max_chrom_size']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -48,7 +48,7 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_target=None, exclude_target=None,
-        bedgraph=False, chrom_size=300000000):
+        bedgraph=False, BED_windows=False, chrom_size=300000000):
     """
         builds and writes a collection of counts and expression for
         feature_type in given sample genes.
@@ -58,13 +58,18 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
     if not os.path.exists(collection_fn) or overwrite:
         bedgraph_fn = None
         if bedgraph:
-            bedgraph_fn = collection_fn.split('.')[0] + '.bedgraph'
+            bedgraph_fn = '.'.join(collection_fn.split('.')[:-1]) + '.bedgraph'
+
+        BED_windows_fn = None
+        if BED_windows:
+            BED_windows_fn = '.'.join(collection_fn.split('.')[:-1]) +\
+                    '_regions.BED'
 
         data_collection = counts_for_genes(session, sample_name, feature_type,
                 BAMorBED, chr_prefix, window_upstream, window_downstream,
                 include_target, exclude_target, bedgraph_fn,
                 multitest_signif_val=multitest_signif_val,
-                chrom_size=chrom_size)
+                BED_windows_fn=BED_windows_fn, chrom_size=chrom_size)
 
         if data_collection is not None:
             data_collection.writeToFile(collection_fn, as_table=tab_delimited,
@@ -120,7 +125,8 @@ def main():
             args.chr_prefix, window_upstream, window_downstream,
             args.multitest_signif_val, args.collection, args.overwrite,
             args.tab_delimited, include_name, exclude_name,
-            bedgraph=args.make_bedgraph, chrom_size=args.max_chrom_size)
+            bedgraph=args.make_bedgraph, BED_windows=args.BED_windows,
+            chrom_size=args.max_chrom_size)
 
     session.close()
     rr.display()

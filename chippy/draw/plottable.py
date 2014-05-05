@@ -421,7 +421,10 @@ class PlottableGroups(_Plottable):
             plot_lines = sorted(plot_lines, key=lambda line: line.rank, reverse=True)
             y_series = [line.counts for line in plot_lines]
             color_series = [line.color for line in plot_lines]
-            #labels = [line.label for line in plot_lines]
+            labels = []
+            for line in plot_lines:
+                if line.study not in labels:
+                    labels.append(line.study)
 
             # Reverse ranks so that rank 0 is colored red, must be in range 0..1
             ranks = sorted([line.rank/len(plot_lines) for line in plot_lines], reverse=True)
@@ -492,7 +495,7 @@ class PlottableGroups(_Plottable):
             if plot_CI and plot_lines is not None:
                 upper = 1.96 * plot_lines[i].stderr + y_series[i]
                 lower = -1.96 * plot_lines[i].stderr + y_series[i]
-                pyplot.fill_between(x, upper, lower, alpha=alpha/3, color=plot_lines[i].color)
+                pyplot.fill_between(x, upper, lower, alpha=alpha/2.5, color=plot_lines[i].color)
 
         self.check_y_axis_scale(maxY=max(y), plot_lines=plot_lines)
 

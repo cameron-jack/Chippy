@@ -206,11 +206,11 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = N
 
         plot_lines = []
         for i,s in zip(numpy.linspace(0, 1, num_studies), per_study_lines.keys()):
-            study_color = cm.rainbow(i)
+            study_color = cm.jet(i) # cm.rainbow(i)
             rgba = colors.colorConverter.to_rgba(study_color)
             for study in studies:
                 if s == study.collection_label:
-                    for l,alpha in zip(per_study_lines[s], numpy.linspace(0, 0.9, len(per_study_lines[s]))):
+                    for l,alpha in zip(per_study_lines[s], numpy.linspace(0, 0.7, len(per_study_lines[s]))):
                         r, g, b, a = rgba
                         #l.color = (min(1, r + gamma), min(1, g + gamma), min(1, b + gamma), a)
                         l.color = (r,g,b,a-alpha)

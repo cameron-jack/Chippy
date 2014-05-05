@@ -164,20 +164,18 @@ class ExprGene(Gene):
 
 class ExprStudy(object):
     """ A collection of ExprGene objects """
-    def __init__(self, expr_study, db_path, include_target=None,
+    def __init__(self, sample_name, db_path, include_target=None,
                   exclude_target=None):
         """
             loads expression records from a ChippyDB and also
             ranks by expr
         """
         rr = RunRecord('load_expr')
-
-        sample_name = expr_study.split(' : ')[0]
         session = db_query.make_session(db_path)
 
         self.expr_genes = []
         #sample_type == 'Expression data: absolute ranked'
-        print 'Querying sample from ChippyDB', sample_name
+        print 'Querying sample from ChippyDB'
 
         sample_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
             biotype='protein_coding', data_path=None, rank_by='mean',
@@ -188,6 +186,19 @@ class ExprStudy(object):
                 gene.ensembl_id, sample_name)
             self.expr_genes.append(gene_record)
         rr.addInfo('genes found in ' + sample_name, len(sample_genes))
+
+    def scoresAsRankedArray(self, log2=False):
+        """
+            sort the gene scores based on some metric and return ordered
+            Numpy array. Return as the log base 2 scores if log2==True
+        """
+        scores = sorted([gene.Score for gene in self.expr_genes])
+
+        scores = numpy.array(scores)
+        if log2:
+            scores[scores > 0] = numpy.log2(scores[scores > 0])
+
+        return scores
 
 class _MatchedGene(object):
     """ represents a single gene with both expression and counts properties """

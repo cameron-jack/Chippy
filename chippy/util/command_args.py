@@ -120,7 +120,7 @@ class Args(object):
                 help='Select an existing sample')
         self._create_argob('--samples', nargs='+', choices=\
                 db_query.get_all_sample_names(self.db_path),
-                help='Select any number of existing samples')
+                help='Select one or more existing samples')
         # absolute or differential expression
         self._create_argob('--expr_sample', choices=\
                 db_query.get_expr_diff_sample_names(self.db_path),
@@ -130,6 +130,9 @@ class Args(object):
         self._create_argob('--abs_expr_sample', choices=\
                 db_query.get_expr_sample_names(self.db_path),
                 help='Select an absolute expression sample to use')
+        self._create_argob('--abs_expr_samples', choices=\
+                db_query.get_expr_sample_names(self.db_path), nargs='+',
+                help='Select one or more absolute expression samples to use')
         # differential expression samples only
         self._create_argob('--diff_sample', choices=\
                 db_query.get_diff_sample_names(self.db_path),

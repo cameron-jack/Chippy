@@ -23,7 +23,8 @@ __version__ = '1.0'
 script_info = {}
 script_info['title'] = 'Expression distributions'
 script_info['script_description'] = 'Dot, line, histogram or box plot '+\
-        'of expression distributions of any number of experiments'
+        'of expression distributions of any number of absolute expression'+\
+        'experiments'
 script_info['brief_description'] = 'Dot, line, histogram or box plot '+\
         'of expression distributions of any number of experiments'
 script_info['usage'] = 'You can exclude genes '+\
@@ -37,16 +38,17 @@ script_info['output_description']= 'PDF/PNG/JPEG dot, line, '+\
 script_info['help_on_no_arguments'] = True
 
 # Process command-line arguments
-req_args = ['samples']
-opt_args = ['plot_name', 'xlabel', 'title', 'ylabel']
+req_args = ['abs_expr_samples']
+opt_args = ['plot_filename', 'title', 'xlabel', 'ylabel', 'fig_height',
+            'fig_width', 'plot_type', 'y_axis_is_log']
 pos_args = ['db_path']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
-script_info['required_options'] = script_info['args'].getReqCogentargs()
-script_info['optional_options'] = script_info['args'].getOptCogentargs()
+script_info['required_options'] = script_info['args'].getReqCogentOpts()
+script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 
-def make_plot(studies, args):
+def make_plot(score_groups, fig_details, plot_type, plot_fn=None):
     """
         Create dot, line, bar plot or histogram of genes in each study by rank
     """
@@ -55,31 +57,42 @@ def make_plot(studies, args):
     fig = pyplot.figure(figsize=(fig_details.x_size, fig_details.y_size))
     ax = fig.add_subplot(111)
     pyplot.title(fig_details.title)
-    pyplot.ylabel(fig_details.yaxis_text)
-    pyplot.xlabel(fig_details.xaxis_text)
+    pyplot.ylabel(fig_details.y_text)
+    pyplot.xlabel(fig_details.x_text)
 
-    rr.addInfo('top_gene_info', 'Output plot', plot_type)
+    rcParams['xtick.direction'] = 'out'
+    rcParams['ytick.direction'] = 'out'
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
 
-    if plot_type == 'dot' and len(data_list) == 2:
-        rcParams['xtick.direction'] = 'out'
-        rcParams['ytick.direction'] = 'out'
-        ax.plot(data_list[0], data_list[1], 'o')
-        ax.xaxis.set_ticks_position('bottom')
-        ax.yaxis.set_ticks_position('left')
-
-    if plot_type == 'hist':
+    if plot_type == 'dot':
+        for scores in score_groups:
+            x = [i for i in xrange(len(scores))]
+            ax.plot(x, scores, '.')
+    elif plot_type == 'line':
+        for scores in score_groups:
+            x = [i for i in xrange(len(scores))]
+            ax.plot(x, scores)
+    elif plot_type == 'hist':
         # stacked histogram
-        pyplot.hist(data_list, bins=10, histtype='barstacked')
-
-    elif args.plot_type == 'box':
-        pyplot.boxplot(data_list)
-
+        for scores in score_groups:
+            pyplot.hist(scores, bins=20)
+    elif plot_type == 'box':
+        pyplot.boxplot(score_groups)
     else:
-        rr.addInfo('make_plots', 'plot type not supported', plot_type)
+        rr.dieOnCritical('plot type not supported', plot_type)
 
-    if plot_file:
-        outfile = plot_file + plot_type
-        pyplot.savefig(outfile, format=plot_type)
+    if plot_fn:
+        if plot_fn.lower().endswith('.pdf'):
+            pyplot.savefig(plot_fn, format='pdf')
+        elif plot_fn.lower().endswith('.jpg') or\
+             plot_fn.lower().endswith('.jpeg'):
+            pyplot.savefig(plot_fn, format='jpg')
+        elif plot_fn.lower().endswith('.png'):
+            pyplot.savefig(plot_fn, format='png')
+        else:
+            rr.addWarning('Unrecognised plot file extension. Using', 'PNG')
+            pyplot.savefig(plot_fn + '.png', format='png')
     else:
         pyplot.show()
 
@@ -90,10 +103,18 @@ def main():
     rr = RunRecord('expr_distribution')
     rr.addCommands(sys.argv)
     args = script_info['args'].parse(window_title='Expression Distribution')
+    db_path = args.db_path
 
-    studies = [ExprStudy(fn) for fn in args.samples]
+    studies = [ExprStudy(samp, db_path) for samp in args.abs_expr_samples]
 
-    make_plot(studies, args)
+    fig_details = FigureDetails(x_size=args.fig_width, y_size=args.fig_height,
+        title=args.title, x_text=args.xlabel, y_text=args.ylabel)
+
+    score_groups = []
+    for study in studies:
+        score_groups.append(study.scoresAsRankedArray(log2=args.y_axis_is_log))
+
+    make_plot(score_groups, fig_details, args.plot_type, args.plot_filename)
 
     rr.display()
 

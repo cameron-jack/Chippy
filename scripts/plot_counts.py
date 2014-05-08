@@ -169,7 +169,7 @@ def div_plots(plot_lines, div_study_name, div_by=None):
 
     return out_lines
 
-def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = None):
+def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale):
     rr = RunRecord('set_plot_colors')
     # Hack time: this is just for David's Cell-cycle plots
     num_studies = len(studies)
@@ -205,17 +205,18 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = N
                 per_study_lines[study] = [line]
 
         plot_lines = []
-        for i,s in zip(numpy.linspace(0, 1, num_studies), per_study_lines.keys()):
+        for i,s in zip(numpy.linspace(0, 1, num_studies),
+                per_study_lines.keys()):
             study_color = cm.jet(i) # cm.rainbow(i)
             rgba = colors.colorConverter.to_rgba(study_color)
             for study in studies:
                 if s == study.collection_label:
-                    for l,alpha in zip(per_study_lines[s], numpy.linspace(0, 0.7, len(per_study_lines[s]))):
+                    for l,alpha in zip(sorted(per_study_lines[s],
+                            key=lambda x: x.rank), numpy.linspace\
+                            (0, 0.7, len(per_study_lines[s]))):
                         r, g, b, a = rgba
-                        #l.color = (min(1, r + gamma), min(1, g + gamma), min(1, b + gamma), a)
                         l.color = (r,g,b,a-alpha)
                         plot_lines.append(l)
-        cmap = None
 
     elif num_studies == 1 and grey_scale:
         # grey-scale spectrum. Since background is white or black we can't
@@ -233,11 +234,15 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale, cmap = N
 
     elif num_studies == 1:
         # coolwarm, RdBu, jet - all decent options
-        cmap = 'RdBu'
+
+        # make sure plots get coloured such that genes with low expr (large
+        # number for rank get plotted blue
+        plot_lines = sorted(plot_lines, key=lambda p: p.rank)
+
         for l,i in zip(plot_lines, numpy.linspace(0, 1, len(plot_lines))):
             l.color = cm.RdBu(i)
 
-    return plot_lines, cmap
+    return plot_lines
 
 script_info = {}
 script_info['title'] = 'Plot read counts heat-mapped by gene expression'
@@ -337,8 +342,7 @@ def main():
         p = None
         if args.line_filter:
             p = args.cutoff
-        lines = study.asPlotLines(studies, group_size,
-                args.group_location, p=p)
+        lines = study.asPlotLines(group_size, args.group_location, p=p)
 
         for line in lines:
             plot_lines.append(line)
@@ -397,18 +401,13 @@ def main():
     x = numpy.arange(-window_upstream, window_downstream)
 
     # 11: set line colors
-    cmap = None
-    plot_lines, cmap = set_plot_colors(plot_lines, studies,\
-            div_name, args.bgcolor, args.grey_scale, cmap=cmap)
+    plot_lines = set_plot_colors(plot_lines, studies,\
+            div_name, args.bgcolor, args.grey_scale)
 
     # 12: Create plot
-    plot(x, y_series=None, plot_lines=plot_lines,
-            color_series=[line.color for line in plot_lines],
-            series_labels=series_labels, filename_series=filename_series,
-            label_coords=label_coords, cmap=cmap,
-            alpha=args.line_alpha, xlabel=args.xlabel,
-            ylabel=args.ylabel, title=args.title, colorbar=args.colorbar,
-            labels=[study.collection_label for study in studies],
+    plot(x, plot_lines=plot_lines, filename_series=filename_series,
+            xlabel=args.xlabel, ylabel=args.ylabel,
+            title=args.title, colorbar=args.colorbar,
             labels_size=args.legend_font_size, show_legend=args.legend,
             plot_CI=args.confidence_intervals)
 

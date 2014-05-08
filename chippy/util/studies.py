@@ -377,7 +377,7 @@ class RegionStudy(object):
         rr = RunRecord('Study')
         # Keep the source file name for labelling purposes
         fn = collection_fn.split('/')[-1].rstrip('.gz')
-        self.collection_label = fn.replace('_', ' ')
+        self.collection_label = ' '.join(fn.replace('_', ' ').split('.')[:-1])
         try:
             self.data_collection = RegionCollection(filename=collection_fn)
         except IOError:
@@ -558,9 +558,9 @@ class RegionStudy(object):
         rr = RunRecord('_groupNGeneCounts')
         plot_lines = []
         for index, (c,r,l,se) in enumerate(self.data_collection.\
-        iterTransformedGroups(group_size=group_size,
-            counts_func=self.counts_func, p=p)):
-            plot_lines.append(PlotLine(c, rank=index, label=l,
+                iterTransformedGroups(group_size=group_size,
+                counts_func=self.counts_func, p=p)):
+            plot_lines.append(PlotLine(c, rank=r, label=l,
                 study=self.collection_label, stderr=se))
 
         # If no data was returned default to groupAllCollectionCounts
@@ -570,13 +570,9 @@ class RegionStudy(object):
             plotLines = self._groupAllGeneCounts()
             return plotLines
 
-        # If a single line is created label it with the collection name
-        if len(plot_lines) == 1:
-            plot_lines[0].label = [self.collection_label]
-
         return plot_lines
 
-    def asPlotLines(self, studies, group_size, group_location, p=None):
+    def asPlotLines(self, group_size, group_location, p=None):
         """
             Returns a list of PlotLine objects from this study.
             'p' is the Chebyshev cut-off if not None

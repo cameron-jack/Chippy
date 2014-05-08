@@ -52,6 +52,8 @@ class PlotLine(object):
         super(PlotLine, self).__init__()
         self.counts = counts
         self.rank = rank
+        if type(label) == list or type(label) == tuple:
+            label = ', '.join(label)
         self.label = label
         self.study = study
         if 'color' in kwargs:
@@ -64,7 +66,8 @@ class PlotLine(object):
             self.stderr = None
 
     def __repr__(self):
-        return self.counts, self.rank, self.label
+        return ', '.join(map(str,
+                [self.counts, self.rank, self.label, self.study]))
 
     def applySmoothing(self, smooth_width):
         """ User-directed binning or smoothing of count line
@@ -98,8 +101,19 @@ class PlotLine(object):
         else:
             return numpy.array(self.counts)
 
-    def getMaxCount(self):
+    def getMaxCount(self, include_stderr=False, se_adjust=1):
         if len(self.counts) > 0:
-            return max(self.counts)
+            if not include_stderr or self.stderr is None:
+                return max(self.counts)
+            else:
+                return max(self.counts + self.stderr * se_adjust)
+        return None
+
+    def getMinCount(self, include_stderr=False, se_adjust=1):
+        if len(self.counts) > 0:
+            if not include_stderr or self.stderr is None:
+                return min(self.counts)
+            else:
+                return min(self.counts - self.stderr * se_adjust)
         return None
 

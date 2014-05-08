@@ -10,12 +10,11 @@ from chippy.core.read_count import get_region_counts
 from chippy.core.collection import RegionCollection
 from chippy.express import db_query
 from chippy.util.run_record import RunRecord
-from chippy.express.util import sample_types
 
 from chippy.util.definition import NULL_STRAND, PLUS_STRAND, MINUS_STRAND
 
 __author__ = 'Cameron Jack, Gavin Huttley'
-__copyright__ = 'Copyright 2011-2013, Gavin Huttley, Cameron Jack, Anuj Pahwa'
+__copyright__ = 'Copyright 2011-2014, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
 __maintainer__ = 'Cameron Jack'
@@ -82,7 +81,7 @@ def write_BED_windows(BED_windows_fn, regions_of_interest):
 
 def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         window_upstream, window_downstream, bedgraph_fn=None,
-        BED_windows_fn=None, chrom_size=300000000, ui=None):
+        BED_windows_fn=None, chrom_size=300000000):
     """
         Build regions of interest (ROI) and return as lists of counts, ranks
         and ensembl_ids, sorted by rank.

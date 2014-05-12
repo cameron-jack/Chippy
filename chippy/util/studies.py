@@ -376,6 +376,7 @@ class RegionStudy(object):
         super(RegionStudy, self).__init__(*args, **kwargs)
         rr = RunRecord('Study')
         # Keep the source file name for labelling purposes
+        self.collection_path = collection_fn
         fn = collection_fn.split('/')[-1].rstrip('.gz')
         self.collection_label = ' '.join(fn.replace('_', ' ').split('.')[:-1])
         try:

@@ -1,0 +1,3 @@
+gene	probeset	exp
+gene1	NA	NA
+gene2	P2	1.3

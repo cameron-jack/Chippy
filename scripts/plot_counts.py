@@ -265,7 +265,8 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'line_alpha', 'chrom', 'include_target', 'exclude_target', 'group_size',
         'group_location', 'smoothing', 'binning', 'cutoff', 'line_filter',
         'plot_series', 'text_coords', 'test_run', 'version',
-        'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals']
+        'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals',
+        'write_genes_by_rank']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -428,6 +429,19 @@ def main():
             plot.savefig(plot_fn+'.pdf', image_format='pdf')
     else:
         plot.show()
+
+    # Save ENSEMBL gene ids by rank if requested
+    if args.write_genes_by_rank:
+        for study in studies:
+            out_fn = '.'.join(study.collection_path.split('.')[:-1])+\
+                    '_genes.txt'
+            with open(out_fn, 'w') as out:
+                out.write('gene' + '\n')
+                ranks = study.data_collection.ranks
+                labels = study.data_collection.labels
+                ranks_labels = [(r, l) for r, l in zip(ranks, labels)]
+                for r, l in sorted(ranks_labels):
+                    out.write(l + '\n')
 
     rr.display()
 

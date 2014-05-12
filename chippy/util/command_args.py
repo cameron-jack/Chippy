@@ -238,6 +238,11 @@ class Args(object):
                 help='A Target Gene List in ChipPyDB', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
+        # Used to by plot_counts.py to save gene list
+        self._create_argob('--write_genes_by_rank', action='store_true',
+                help='Path to write the ENSEMBL gene ids seen in the '+\
+                'plot, from highest expression rank to lowest.')
+
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
         # option is DEPRECATED, all scripts should automatically recognise

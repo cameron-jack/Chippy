@@ -593,12 +593,13 @@ class RegionStudy(object):
             rr.dieOnCritical('group_size, wrong type or value',
                 [type(group_size), group_size])
 
-        if group_location:
+        if group_location.lower() != 'all':
             rr.addInfo('grouping genes from location', group_location)
+            plot_lines.sort(key=lambda x: x.rank)
             if group_location.lower() == 'top':
                 plot_lines = [plot_lines[0]]
             elif group_location.lower() == 'middle':
-                plot_lines = [plot_lines[len(plot_lines)/2]]
+                plot_lines = [plot_lines[int(len(plot_lines)/2)]]
             elif group_location.lower() == 'bottom':
                 plot_lines = [plot_lines[-1]]
 

@@ -168,6 +168,11 @@ class Args(object):
         self._create_argob('--wig', type=OpenFilePath,
                 help='WIG file to open')
 
+        # Used to by plot_counts.py to save gene list
+        self._create_argob('--write_genes_by_rank', action='store_true',
+            help='Path to write the ENSEMBL gene ids seen in the '+\
+                 'plot, from highest expression rank to lowest.')
+
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """
         # chrom choice
@@ -182,7 +187,7 @@ class Args(object):
                 important=True)
 
         self._create_argob('--num_genes', type=int,
-                help='Number of ranked genes to use in study')
+                help='Use this number of top-ranked genes from study')
 
         self._create_argob('--group_location', default='all',
                 choices=['all', 'top', 'middle', 'bottom'],
@@ -237,11 +242,6 @@ class Args(object):
         self._create_argob('--exclude_target', default=None,
                 help='A Target Gene List in ChipPyDB', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
-
-        # Used to by plot_counts.py to save gene list
-        self._create_argob('--write_genes_by_rank', action='store_true',
-                help='Path to write the ENSEMBL gene ids seen in the '+\
-                'plot, from highest expression rank to lowest.')
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """

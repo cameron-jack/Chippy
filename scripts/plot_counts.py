@@ -437,11 +437,10 @@ def main():
                     '_genes.txt'
             with open(out_fn, 'w') as out:
                 out.write('gene' + '\n')
-                ranks = study.data_collection.ranks
-                labels = study.data_collection.labels
-                ranks_labels = [(r, l) for r, l in zip(ranks, labels)]
-                for r, l in sorted(ranks_labels):
-                    out.write(l + '\n')
+                plot_lines.sort(key=lambda x: x.rank)
+                for line in plot_lines:
+                    for label in line.getLabelsAsList():
+                        out.write(label + '\n')
 
     rr.display()
 

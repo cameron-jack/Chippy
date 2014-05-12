@@ -117,3 +117,11 @@ class PlotLine(object):
                 return min(self.counts - self.stderr * se_adjust)
         return None
 
+    def getLabelsAsList(self):
+        if type(self.label) == str:
+            labels = self.label.split(', ')
+        elif type(self.label) == numpy.ndarray:
+            labels = self.label.tolist()
+
+        return labels
+

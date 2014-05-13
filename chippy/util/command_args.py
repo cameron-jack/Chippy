@@ -236,11 +236,13 @@ class Args(object):
                 help='Restrict plot to genes that pass multi-test '+\
                 'significance. Valid values: 1, 0, -1', default=None)
 
-        self._create_argob('--include_target', default=None,
-                help='A Target Gene List in ChipPyDB', choices=\
+        self._create_argob('--include_targets', default=None, nargs='+',
+                help='Target Gene lists in ChipPyDB to refine analysis',
+                choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
-        self._create_argob('--exclude_target', default=None,
-                help='A Target Gene List in ChipPyDB', choices=\
+        self._create_argob('--exclude_targets', default=None, nargs='+',
+                help='Target Gene lists in ChipPyDB to refine analysis',
+                choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
     def _add_plot_args(self):

@@ -287,6 +287,7 @@ def main():
         11) Set lines colors as needed
         12) Create Plot
         13) Save Plot
+        14) Save genes in plot to file in rank order (optional)
     """
     rr = RunRecord('plot_counts')
     rr.addCommands(sys.argv)
@@ -430,12 +431,10 @@ def main():
     else:
         plot.show()
 
-    # Save ENSEMBL gene ids by rank if requested
+    # 14: Save ENSEMBL gene ids by rank if requested
     if args.write_genes_by_rank:
         for study in studies:
-            out_fn = '.'.join(study.collection_path.split('.')[:-1])+\
-                    '_genes.txt'
-            with open(out_fn, 'w') as out:
+            with open(args.write_genes_by_rank, 'w') as out:
                 out.write('gene' + '\n')
                 plot_lines.sort(key=lambda x: x.rank)
                 for line in plot_lines:

@@ -258,30 +258,37 @@ def get_stable_id_genes_mapping(session):
         ids_genes = {'None':'None'}
     return ids_genes
 
-def get_gene_ids(session, chrom=None, include_target=None,
-        exclude_target=None):
-    """ returns a list (or counts) of ensembl_ids restricted by chrom,
+def get_gene_ids(session, chrom=None, include_targets=None,
+        exclude_targets=None):
+    """
+        Returns a list (or counts) of ensembl_ids restricted by chrom,
         include and exclude target_gene lists.
     """
     # limit by chrom if provided
     genes = get_gene_entries(session, chrom=chrom)
     stable_ids = [g.ensembl_id for g in genes]
 
-    if include_target is not None:
-        genes = get_targetgene_entries(session, sample_name=include_target)
-        include_ids = [g.gene.ensembl_id for g in genes]
+    if include_targets is not None:
+        include_ids = []
+        for target in include_targets:
+            genes = get_targetgene_entries(session, sample_name=target)
+            for g in genes:
+                include_ids.append(g.gene.ensembl_id)
         stable_ids = list(set(stable_ids).\
                 intersection(set(include_ids)))
 
-    if exclude_target is not None:
-        genes = get_targetgene_entries(session, sample_name=exclude_target)
-        exclude_ids = [g.gene.ensembl_id for g in genes]
+    if exclude_targets is not None:
+        exclude_ids = []
+        for target in exclude_targets:
+            genes = get_targetgene_entries(session, sample_name=target)
+            for g in genes:
+                exclude_ids.append(g.gene.ensembl_id)
         stable_ids = list(set(stable_ids)-(set(exclude_ids)))
 
     return stable_ids
 
 def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
-        chrom=None, data_path=None, include_target=None, exclude_target=None,
+        chrom=None, data_path=None, include_targets=None, exclude_targets=None,
         rank_by='mean'):
     """returns all ranked genes from a sample"""
     rr = RunRecord('get_genes_by_ranked_expr')
@@ -295,16 +302,17 @@ def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
         genes.append(gene)
 
     # keep only those genes in the include target gene set if provided
-    if include_target is not None:
-        include_genes = get_targetgene_entries(session, include_target)
+    if include_targets is not None:
+        include_genes = get_targetgene_entries(session, include_targets)
         if len(include_genes) > 0:
             include_gene_ids = set([tg.gene.ensembl_id for tg in include_genes])
             genes = [gene for gene in genes if gene.ensembl_id in \
                     include_gene_ids]
 
     # keep only those genes not in the exclude target gene set if provided
-    if exclude_target is not None:
-        exclude_genes = get_targetgene_entries(session, sample_name=exclude_target)
+    if exclude_targets is not None:
+        exclude_genes = get_targetgene_entries(session,
+                sample_name=exclude_targets)
         if len(exclude_genes) > 0:
             exclude_gene_ids = set([tg.gene.ensembl_id for tg in exclude_genes])
             genes = [gene for gene in genes if gene.ensembl_id not in \
@@ -328,8 +336,8 @@ def get_genes_by_ranked_expr(session, sample_name, biotype='protein_coding',
     return genes
 
 def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
-        biotype='protein_coding', chrom=None, data_path=None, include_target=None,
-        exclude_target=None, rank_by='mean'):
+        biotype='protein_coding', chrom=None, data_path=None,
+        include_targets=None, exclude_targets=None, rank_by='mean'):
     """returns all ranked genes from a sample difference experiment"""
     rr = RunRecord('get_genes_by_ranked_diff')
     records = get_diff_entries(session, sample_name=sample_name,
@@ -342,17 +350,17 @@ def get_genes_by_ranked_diff(session, sample_name, multitest_signif_val=None,
         gene.Scores = expressed_diff.fold_changes
         genes.append(gene)
 
-    # keep only those genes in the include target gene set if provided
-    if include_target is not None:
-        include_genes = get_targetgene_entries(session, include_target)
+    # keep only those genes in the include target gene sets if provided
+    if include_targets is not None:
+        include_genes = get_targetgene_entries(session, include_targets)
         if len(include_genes) > 0:
             include_gene_ids = set([tg.gene.ensembl_id for tg in include_genes])
             genes = [gene for gene in genes if gene.ensembl_id in\
                     include_gene_ids]
 
-    # keep only those genes not in the exclude target gene set if provided
-    if exclude_target is not None:
-        exclude_genes = get_targetgene_entries(session, exclude_target)
+    # keep only those genes not in the exclude target gene sets if provided
+    if exclude_targets is not None:
+        exclude_genes = get_targetgene_entries(session, exclude_targets)
         if len(exclude_genes) > 0:
             exclude_gene_ids = set([tg.gene.ensembl_id for tg in exclude_genes])
             genes = [gene for gene in genes if gene.ensembl_id not in\

@@ -34,9 +34,9 @@ script_info['help_on_no_arguments'] = True
 
 pos_args = ['db_path']
 req_args = ['abs_expr_sample', 'collections']
-opt_args = ['x_axis_type', 'group_location', 'include_target',
+opt_args = ['x_axis_type', 'group_location', 'include_targets',
             'fig_height', 'fig_width', 'region_feature',
-            'exclude_target', 'plot_filename', 'counts_is_ranks',
+            'exclude_targets', 'plot_filename', 'counts_is_ranks',
             'expr_is_ranks', 'x_axis_is_log', 'y_axis_is_log']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -138,8 +138,8 @@ def main():
     collection = args.collections[0]
     matched_studies = MatchedStudy(sample, collection,
             args.db_path, args.region_feature,
-            include_target=args.include_target,
-            exclude_target=args.exclude_target)
+            include_target=args.include_targets,
+            exclude_target=args.exclude_targets)
 
     print 'Creating plot points'
     plot_points = matched_studies.get_matched_genes_as_xy_plotpoints(

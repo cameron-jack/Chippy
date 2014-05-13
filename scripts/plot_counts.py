@@ -262,9 +262,9 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
         'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
-        'line_alpha', 'chrom', 'include_target', 'exclude_target', 'group_size',
-        'group_location', 'smoothing', 'binning', 'cutoff', 'line_filter',
-        'plot_series', 'text_coords', 'test_run', 'version',
+        'line_alpha', 'chrom', 'include_targets', 'exclude_targets',
+        'group_size', 'group_location', 'smoothing', 'binning', 'cutoff',
+        'line_filter', 'plot_series', 'text_coords', 'test_run', 'version',
         'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals',
         'write_genes_by_rank']
 
@@ -326,8 +326,8 @@ def main():
     # 5: Specify genes of interest to direct study
     for study in studies:
         study.filterByGenes(args.db_path, chrom=args.chrom,
-                include_sample=args.include_target,
-                exclude_sample=args.exclude_target)
+                include_samples=args.include_targets,
+                exclude_samples=args.exclude_targets)
 
     # 6: Filter studies by statistical cutoff
     for study in studies:

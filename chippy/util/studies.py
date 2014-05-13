@@ -164,8 +164,8 @@ class ExprGene(Gene):
 
 class ExprStudy(object):
     """ A collection of ExprGene objects """
-    def __init__(self, sample_name, db_path, include_target=None,
-                  exclude_target=None):
+    def __init__(self, sample_name, db_path, include_targets=None,
+                  exclude_targets=None):
         """
             loads expression records from a ChippyDB and also
             ranks by expr
@@ -179,7 +179,7 @@ class ExprStudy(object):
 
         sample_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
             biotype='protein_coding', data_path=None, rank_by='mean',
-            include_target=include_target, exclude_target=exclude_target)
+            include_targets=include_targets, exclude_targets=exclude_targets)
 
         for gene in sample_genes:
             gene_record = ExprGene(gene.MeanScore, gene.Rank,
@@ -212,14 +212,15 @@ class MatchedStudy(object):
     """
 
     def __init__(self, expr_study_name, collection_name, db_path,
-            region_feature='total_counts', include_target=None,
-            exclude_target=None):
+            region_feature='total_counts', include_targets=None,
+            exclude_targets=None):
         """
             Loads counts and expr. Calculates counts rank based on 
             region_feature. Creates a matched_gene list.
         """
         self.load_expr(expr_study_name, db_path,
-                include_target=include_target, exclude_target=exclude_target)
+                include_targets=include_targets,
+                exclude_targets=exclude_targets)
 
         self.load_counts(collection_name)
 
@@ -252,8 +253,8 @@ class MatchedStudy(object):
 
         self.common_genes = self.keepCommonGenes()
 
-    def load_expr(self, expr_study, db_path, include_target=None,
-            exclude_target=None):
+    def load_expr(self, expr_study, db_path, include_targets=None,
+            exclude_targets=None):
         """
             loads expression records from a ChippyDB and also
             ranks by expr
@@ -269,7 +270,8 @@ class MatchedStudy(object):
 
         sample_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
                 biotype='protein_coding', data_path=None, rank_by='mean',
-                include_target=include_target, exclude_target=exclude_target)
+                include_targets=include_targets,
+                exclude_targets=exclude_targets)
 
         for gene in sample_genes:
             gene_record = ExprGene(gene.MeanScore, gene.Rank,
@@ -408,30 +410,31 @@ class RegionStudy(object):
         except KeyError:
             self.feature_type = 'Unknown'
 
-    def filterByGenes(self, db_path, chrom=None, include_sample=None,
-                      exclude_sample = None):
+    def filterByGenes(self, db_path, chrom=None, include_samples=None,
+                      exclude_samples=None):
         """ keep only results that match selected genes """
 
         rr = RunRecord('filterByGenes')
-        if not include_sample and not exclude_sample and not chrom:
+        if not include_samples and not exclude_samples and not chrom:
             return
 
         rr.addInfo('Starting no. of genes', self.data_collection.N)
 
         session = make_session(db_path)
-        if include_sample:
-            rr.addInfo('Restricting plot by include sample', include_sample)
-            include_sample = include_sample.split(':')[0].strip()
+        if include_samples:
+            for sample in include_samples:
+                rr.addInfo('Restricting plot by include sample', sample)
 
-        if exclude_sample:
-            rr.addInfo('Restricting plot by exclude sample', exclude_sample)
-            exclude_sample = exclude_sample.split(':')[0].strip()
+        if exclude_samples:
+            for sample in exclude_samples:
+                rr.addInfo('Restricting plot by exclude sample', sample)
 
         if not chrom is None:
             rr.addInfo('Restricting plot to chromosome', chrom)
 
         filter_gene_ids = get_gene_ids(session, chrom=chrom,
-            include_target=include_sample, exclude_target=exclude_sample)
+                include_targets=include_samples,
+                exclude_targets=exclude_samples)
 
         self.data_collection =\
                 self.data_collection.filteredByLabel(filter_gene_ids)

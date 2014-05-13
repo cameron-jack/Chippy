@@ -169,9 +169,9 @@ class Args(object):
                 help='WIG file to open')
 
         # Used to by plot_counts.py to save gene list
-        self._create_argob('--write_genes_by_rank', action='store_true',
-            help='Path to write the ENSEMBL gene ids seen in the '+\
-                 'plot, from highest expression rank to lowest.')
+        self._create_argob('--write_genes_by_rank', type=SaveFilePath,
+                help='Path to write the ENSEMBL gene ids seen in the '+\
+                'plot, from highest expression rank to lowest.')
 
     def _add_sampling_args(self):
         """ All arguments relate to conditional selection of data """

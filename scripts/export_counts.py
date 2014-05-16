@@ -36,8 +36,8 @@ pos_args = ['db_path']
 req_args = ['expr_sample', 'feature_type', 'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
         'count_max_length', 'window_upstream', 'window_downstream',
-        'multitest_signif_val', 'include_target', 'BED_windows',
-        'exclude_target', 'make_bedgraph', 'max_chrom_size']
+        'multitest_signif_val', 'include_targets', 'BED_windows',
+        'exclude_targets', 'make_bedgraph', 'max_chrom_size']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -47,7 +47,7 @@ script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
-        tab_delimited, include_target=None, exclude_target=None,
+        tab_delimited, include_targets=None, exclude_targets=None,
         bedgraph=False, BED_windows=False, chrom_size=300000000):
     """
         builds and writes a collection of counts and expression for
@@ -67,7 +67,7 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
 
         data_collection = counts_for_genes(session, sample_name, feature_type,
                 BAMorBED, chr_prefix, window_upstream, window_downstream,
-                include_target, exclude_target, bedgraph_fn,
+                include_targets, exclude_targets, bedgraph_fn,
                 multitest_signif_val=multitest_signif_val,
                 BED_windows_fn=BED_windows_fn, chrom_size=chrom_size)
 
@@ -97,12 +97,12 @@ def main():
 
     include_name = None
     exclude_name = None
-    if args.include_target:
-        include_name = args.include_target
+    if args.include_targets:
+        include_name = args.include_targets
         rr.addInfo('include gene targets', include_name)
 
-    if args.exclude_target:
-        exclude_name = args.exclude_target
+    if args.exclude_targets:
+        exclude_name = args.exclude_targets
         rr.addInfo('exclude gene targets', exclude_name)
 
     if (args.multitest_signif_val is not None) and not \

@@ -179,8 +179,8 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
     return counts, ranks, ensembl_ids, num_tags, num_bases, mapped_tags
 
 def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
-        window_upstream, window_downstream, include_target=None,
-        exclude_target=None, bedgraph_fn=None, multitest_signif_val=None,
+        window_upstream, window_downstream, include_targets=None,
+        exclude_targets=None, bedgraph_fn=None, multitest_signif_val=None,
         BED_windows_fn=None, chrom_size=300000000):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('counts_for_genes')
@@ -189,12 +189,12 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
     if sample_name in db_query.get_expr_sample_names(session):
         print 'Getting ranked expression instances'
         expressed_genes = db_query.get_genes_by_ranked_expr(session, sample_name,
-            include_target=include_target, exclude_target=exclude_target)
+            include_targets=include_targets, exclude_targets=exclude_targets)
     elif sample_name in db_query.get_diff_sample_names(session):
         print 'Getting ranked expression difference instances'
         expressed_genes = db_query.get_genes_by_ranked_diff(session, sample_name,
             multitest_signif_val=multitest_signif_val,
-            include_target=include_target, exclude_target=exclude_target)
+            include_targets=include_targets, exclude_targets=exclude_targets)
     else:
         rr.dieOnCritical('Sample must be either', 'Absolute or Differential')
 

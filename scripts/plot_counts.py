@@ -169,8 +169,15 @@ def div_plots(plot_lines, div_study_name, div_by=None):
 
     return out_lines
 
-def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale):
+def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale,
+        restrict_colors=None):
     rr = RunRecord('set_plot_colors')
+    min_col = 0
+    max_col = 1
+    if restrict_colors:
+        col_limits = restrict_colors.split(',')
+        min_col, max_col = (float(col_limits[0]), float(col_limits[1]))
+
     # Hack time: this is just for David's Cell-cycle plots
     num_studies = len(studies)
     if div_name: # one study doesn't count for coloring
@@ -205,7 +212,7 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale):
                 per_study_lines[study] = [line]
 
         plot_lines = []
-        for i,s in zip(numpy.linspace(0, 1, num_studies),
+        for i,s in zip(numpy.linspace(min_col, max_col, num_studies),
                 per_study_lines.keys()):
             study_color = cm.jet(i) # cm.rainbow(i)
             rgba = colors.colorConverter.to_rgba(study_color)
@@ -223,6 +230,7 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale):
         # have lines that are pure black or white.
         if bgcolor == 'black':
             for i, line in enumerate(plot_lines):
+                # todo: replace this is with linspace and black/white
                 col = (240/len(plot_lines)) + ((240/len(plot_lines))*i)
                 r = col; g = col; b = col
                 line.color = '#%02x%02x%02x' % (r, g, b)
@@ -239,7 +247,9 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale):
         # number for rank get plotted blue
         plot_lines = sorted(plot_lines, key=lambda p: p.rank)
 
-        for l,i in zip(plot_lines, numpy.linspace(0, 1, len(plot_lines))):
+        # For our own plots use 0.05 and 0,85 for min_col, max_col
+        for l,i in zip(plot_lines, numpy.linspace(min_col, max_col,
+                len(plot_lines))):
             l.color = cm.RdBu(i)
 
     return plot_lines
@@ -262,10 +272,11 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'ytick_interval', 'clean_plot', 'bgcolor', 'colorbar', 'title',
         'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
-        'line_alpha', 'chrom', 'include_targets', 'exclude_targets',
-        'group_size', 'group_location', 'smoothing', 'binning', 'cutoff',
-        'line_filter', 'plot_series', 'text_coords', 'test_run', 'version',
-        'div', 'div_by', 'normalise_by_RPM', 'confidence_intervals',
+        'line_width', 'restrict_colors', 'line_alpha', 'chrom',
+        'include_targets', 'exclude_targets', 'group_size', 'group_location',
+        'smoothing', 'binning', 'cutoff', 'line_filter', 'plot_series',
+        'text_coords', 'test_run', 'version', 'div', 'div_by',
+        'normalise_by_RPM', 'confidence_intervals',
         'write_genes_by_rank']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -396,6 +407,7 @@ def main():
             yaxis_lims=ylim, xaxis_lims=(-window_upstream, window_downstream),
             xy_tick_spaces=(args.xgrid_lines, args.ygrid_lines),
             xy_tick_intervals=(args.xtick_interval, args.ytick_interval),
+            linewidth=args.line_width,
             xy_label_fontsizes=(args.xfont_size, args.yfont_size),
             vline=vline, ioff=True, colorbar=args.colorbar,
             clean=args.clean_plot)
@@ -403,8 +415,9 @@ def main():
     x = numpy.arange(-window_upstream, window_downstream)
 
     # 11: set line colors
-    plot_lines = set_plot_colors(plot_lines, studies,\
-            div_name, args.bgcolor, args.grey_scale)
+    plot_lines = set_plot_colors(plot_lines, studies,
+            div_name, args.bgcolor, args.grey_scale,
+            restrict_colors=args.restrict_colors)
 
     # 12: Create plot
     plot(x, plot_lines=plot_lines, filename_series=filename_series,
@@ -434,6 +447,7 @@ def main():
     # 14: Save ENSEMBL gene ids by rank if requested
     if args.write_genes_by_rank:
         for study in studies:
+            fn = study.collection_label + '_' + args
             with open(args.write_genes_by_rank, 'w') as out:
                 out.write('gene' + '\n')
                 plot_lines.sort(key=lambda x: x.rank)

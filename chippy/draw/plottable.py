@@ -350,7 +350,7 @@ class _Plottable(object):
 
 
     def getMaxY(self, plot_lines, plot_CI=False):
-        maxY = 0
+        maxY = 0 # plots are never totally negative
         for line in plot_lines:
             peak = line.getMaxCount(include_stderr=plot_CI, se_adjust=1.96)
             if peak > maxY:
@@ -358,7 +358,7 @@ class _Plottable(object):
         return maxY
 
     def getMinY(self, plot_lines, plot_CI=False):
-        minY = 0
+        minY = plot_lines[0].counts[0] # better than starting at zero
         for line in plot_lines:
             peak = line.getMinCount(include_stderr=plot_CI, se_adjust=1.95)
             if peak < minY:

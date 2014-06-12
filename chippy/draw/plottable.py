@@ -44,7 +44,7 @@ class _Plottable(object):
 
     def __init__(self, height, width, bgcolor, grid_off, pad=10,
             xaxis_lims=None, yaxis_lims=None, xy_tick_spaces=None,
-            xy_tick_intervals=None, linewidth=2,
+            xy_tick_intervals=None, offset_ticks=False, linewidth=2,
             xy_label_fontsizes=(12,12), vline=None,
             legend_font_size=10,
             ioff=None, colorbar=False, clean=False):
@@ -86,6 +86,7 @@ class _Plottable(object):
         self.xlabel_fontsize, self.ylabel_fontsize = xy_label_fontsizes
         self.xtick_space, self.ytick_space = xy_tick_spaces
         self.xtick_interval, self.ytick_interval = xy_tick_intervals
+        self.offset_ticks = offset_ticks
 
         self.fig = None
         self.ax = None
@@ -97,26 +98,26 @@ class _Plottable(object):
 
     ### private helper methods
 
-    def _auto_grid_lines(self, y_ceiling, test_run=False):
+    def _auto_grid_lines(self, y_diff, test_run=False):
         """ Returns a float that is a 'round' looking number to use for
             the grid lines
         """
         rr = RunRecord('_auto_grid_lines')
-        if y_ceiling > 0:
-            ypower = log10(y_ceiling)
+        if y_diff > 0:
+            ypower = log10(y_diff)
             if ypower < 0:
                 rounding_places = 0 - int(floor(ypower))
-                y_ceiling = float(ceil(y_ceiling*(10**rounding_places))/\
+                y_diff = float(ceil(y_diff*(10**rounding_places))/\
                                   (10**rounding_places))
-                grid_line_val = y_ceiling/10.0
+                grid_line_val = y_diff/10.0
             else:
-                y_ceiling = ceil(y_ceiling)
+                y_ceiling = ceil(y_diff)
                 if y_ceiling <= 10:
                     grid_line_val = round(y_ceiling/10.0, 1)
                 else:
                     grid_line_val = y_ceiling/10.0
         else:
-            rr.dieOnCritical('Y-axis ceiling must be greater than 0', y_ceiling)
+            rr.dieOnCritical('Y-axis length must be greater than 0', y_diff)
         if test_run:
             rr.addInfo('Y-grid-line spacing', '%e' % grid_line_val)
         return grid_line_val
@@ -202,21 +203,29 @@ class _Plottable(object):
         
         if self.bgcolor is not None:
             ax.set_axis_bgcolor(self.bgcolor)
-        
+
         if self.xtick_interval is not None:
             xticks = ax.xaxis.get_major_ticks()
             for i, xtick in enumerate(xticks):
-                d, r = divmod(i, self.xtick_interval)
-                if r != 0:
-                    xtick.set_visible(False)
+                if self.offset_ticks:
+                    d, r = divmod(i-1+self.xtick_interval/2, self.xtick_interval)
+                else:
+                    d, r = divmod(i-1, self.xtick_interval)
+                xtick.set_visible(False)
+                if r == 0:
+                    xtick.set_visible(True)
         
         if self.ytick_interval is not None:
             yticks = ax.yaxis.get_major_ticks()
             for i, ytick in enumerate(yticks):
-                d, r = divmod(i, self.ytick_interval)
-                if r != 0:
-                    ytick.set_visible(False)
-        
+                if self.offset_ticks:
+                    d, r = divmod(i-1+self.ytick_interval/2, self.ytick_interval)
+                else:
+                    d, r = divmod(i-1, self.ytick_interval)
+                ytick.set_visible(False)
+                if r == 0:
+                    ytick.set_visible(True)
+
         if self.vline is not None:
             # e.g. x=0, ymin=0, ymax=1, linewidth=3, linestyle='-.', color='w'
             ax.axvline(**self.vline)
@@ -294,15 +303,11 @@ class _Plottable(object):
         y_min_limit, y_max_limit = self.ylims
         # set grid-lines/tick marks
         if not self.ytick_space:
-            self.ytick_space = self._auto_grid_lines(y_max_limit,
+            self.ytick_space = self._auto_grid_lines(y_max_limit-y_min_limit,
                     test_run=test_run)
 
         if not self.ytick_interval:
-            # If self.ytick_space is even, then set to 2, otherwise 1.
-            if self.ytick_space%2 == 0:
-                self.ytick_interval = 2
-            else:
-                self.ytick_interval = 1
+            self.ytick_interval = 2
 
         rr.addInfo('Y-max plot limit', '{:e}'.format(y_max_limit))
         rr.addInfo('Y-min plot limit', '{:e}'.format(y_min_limit))
@@ -343,7 +348,7 @@ class _Plottable(object):
 
             if minY < self.ylims[0]:
                 rr.addWarning('ylimit may be too small, ymin=', str(minY))
-            elif minY/2 < self.ylims[0]:
+            elif minY/2 > self.ylims[0]:
                 rr.addWarning('ylimit may be too large, ymin=', str(minY))
         else:
             rr.addWarning('y-axis limits', 'Not set')

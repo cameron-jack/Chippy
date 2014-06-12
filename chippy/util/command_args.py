@@ -272,6 +272,9 @@ class Args(object):
                 help='number of blank ticks between labels')
         self._create_argob('--ytick_interval', type=int, default=2,
                 help='number of blank ticks between labels')
+        # offsets ticks from edge of plot
+        self._create_argob('--offset_ticks', action='store_true',
+                help='offset ticks from edge of plot')
         # Smooth top and right borders for cleaner looking plot
         self._create_argob('--clean_plot', action='store_true', default=False,
                 help='Remove tick marks and top and right borders ')

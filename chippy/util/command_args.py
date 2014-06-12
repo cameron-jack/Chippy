@@ -255,7 +255,7 @@ class Args(object):
 
         self._create_argob('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
-        self._create_argob('-H', '--fig_height', type=float, default=6*2.5,
+        self._create_argob('-H', '--fig_height', type=float, default=6.5*2.5,
                 help='Figure height (cm)')
         self._create_argob('-W', '--fig_width', type=float, default=10*2.5,
                 help='Figure width (cm)')
@@ -323,10 +323,16 @@ class Args(object):
         # Plotted line opacity
         self._create_argob('--line_alpha', type=float, default=1.0,
                 help='Opacity of lines')
+        # Line width
+        self._create_argob('--line_width', type=float, default=2.0,
+                help='Thickness of plotted lines')
 
         # Plot as grey-scale
         self._create_argob('--grey_scale', action='store_true',
                 help='Plot colour range as grey-scale')
+        # Line colour range restriction
+        self._create_argob('--restrict_colors', help='Comma separated '+\
+                '0..1 range for color spectrum limits (e.g. 0.1,0.9)')
 
         # Plot as series of images
         self._create_argob('--plot_series', action='store_true',

@@ -365,7 +365,7 @@ class _Plottable(object):
     def getMinY(self, plot_lines, plot_CI=False):
         minY = plot_lines[0].counts[0] # better than starting at zero
         for line in plot_lines:
-            peak = line.getMinCount(include_stderr=plot_CI, se_adjust=1.95)
+            peak = line.getMinCount(include_stderr=plot_CI, se_adjust=1.96)
             if peak < minY:
                 minY = peak
         return minY

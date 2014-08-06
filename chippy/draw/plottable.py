@@ -8,6 +8,7 @@ with warnings.catch_warnings():
     from matplotlib.mpl import colorbar
     from matplotlib.ticker import MultipleLocator
     from cogent.util.progress_display import display_wrap
+    from matplotlib.font_manager import FontProperties
 from chippy.util.run_record import RunRecord
 from math import log10, floor, ceil
 
@@ -45,6 +46,7 @@ class _Plottable(object):
     def __init__(self, height, width, bgcolor, grid_off, pad=10,
             xaxis_lims=None, yaxis_lims=None, xy_tick_spaces=None,
             xy_tick_intervals=None, offset_ticks=False, linewidth=2,
+            title_size=18, font=None,
             xy_label_fontsizes=(12,12), vline=None,
             legend_font_size=10,
             ioff=None, colorbar=False, clean=False):
@@ -59,6 +61,8 @@ class _Plottable(object):
         xy_tick_intervals = (x, y) display values for ticks every n (int)
         linewidth = thickness of plot lines
         xy_label_fontsizes = (x, y) font size for axis labels
+        title_size = font size for title
+        font = different font or None:default (Vera Sans)
         vline = (x, width, style, color)
         legend_font_size = font size for the plot legend
         ioff = interactive plot (True is passed in by default)
@@ -85,6 +89,8 @@ class _Plottable(object):
 
         self.xlabel_fontsize, self.ylabel_fontsize = xy_label_fontsizes
         self.xtick_space, self.ytick_space = xy_tick_spaces
+        self.font = font
+        self.title_size = title_size
         self.xtick_interval, self.ytick_interval = xy_tick_intervals
         self.offset_ticks = offset_ticks
 
@@ -171,11 +177,19 @@ class _Plottable(object):
         """returns the figure and axis ready for display"""
         if self.fig is not None:
             return self.fig, self.ax
-        
-        if self.xlabel_fontsize:
-            rc('xtick', labelsize=self.xlabel_fontsize)
-        if self.ylabel_fontsize:
-            rc('ytick', labelsize=self.ylabel_fontsize)
+
+        font = None
+        if self.font is not None:
+            font = FontProperties(font=self.font)
+            if self.xlabel_fontsize:
+                rc('xtick', labelsize=self.xlabel_fontsize, font=font)
+            if self.ylabel_fontsize:
+                rc('ytick', labelsize=self.ylabel_fontsize, font=font)
+        else:
+            if self.xlabel_fontsize:
+                rc('xtick', labelsize=self.xlabel_fontsize)
+            if self.ylabel_fontsize:
+                rc('ytick', labelsize=self.ylabel_fontsize)
         
         fig = pyplot.figure(figsize=(self.width, self.height))
         
@@ -232,15 +246,17 @@ class _Plottable(object):
         
         if self.grid:
             ax.grid(**self.grid)
-        
-        if title:
-            pyplot.title(title)
-        
+
+        if title and font:
+            pyplot.title(title, fontsize=self.title_size, font=font)
+        elif title:
+            pyplot.title(title, fontsize=self.title_size)
+
         if ylabel:
-            pyplot.ylabel(ylabel, fontsize=self.ylabel_fontsize+2)
-        
+            pyplot.ylabel(ylabel, fontsize=self.ylabel_fontsize)
+
         if xlabel:
-            pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize+2)
+            pyplot.xlabel(xlabel, fontsize=self.xlabel_fontsize)
 
         ax.ticklabel_format(scilimits=(-2,4), axis='y')
         ax.ticklabel_format(scilimits=(-5,5), axis='x')
@@ -458,9 +474,7 @@ class PlottableGroups(_Plottable):
             # Show confidence interval around each line
             if plot_CI:
                 #set shading alpha
-                alpha = line.color[3]
-                if alpha is None:
-                    alpha = 0.9
+                alpha = line.alpha
                 upper = 1.96 * line.stderr + line.counts
                 lower = -1.96 * line.stderr + line.counts
                 self.ax.fill_between(x_array, upper, lower, alpha=alpha/2.5,

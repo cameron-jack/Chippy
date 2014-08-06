@@ -759,8 +759,9 @@ class TestQueryFunctions(TestDbBase):
 
     def test_get_expression_entries(self):
         """ correctly return the expressed genes for a sample """
-        expect = ['sample 1', 'sample 2', 'sample 1', 'sample 2',
-                  'sample 1', 'sample 2', 'sample 1', 'sample 2']
+        # this is the order they were created amd added to the table
+        expect = ['sample 1', 'sample 1', 'sample 1', 'sample 1',
+                  'sample 2', 'sample 2', 'sample 2', 'sample 2']
         expr = get_expression_entries(self.session)
         names = [str(e.sample.name) for e in expr]
         self.assertEqual(names, expect)
@@ -793,8 +794,10 @@ class TestQueryFunctions(TestDbBase):
     def test_get_targetgene_entries(self):
         """ TargetGene entries should be correctly returned """
         self.populate_target_data()
-        expect1 = ['PLUS-1', 'PLUS-1', 'PLUS-3', 'MINUS-1',
-                   'MINUS-3', 'TARGET-1', 'TARGET-1']
+        # this is the order they were created and added to the table
+        expect1 = ['PLUS-1', 'TARGET-1', 'PLUS-1', 'PLUS-3',
+                   'MINUS-1', 'MINUS-3', 'TARGET-1']
+
         tgs = get_targetgene_entries(self.session)
         tg_list = [str(tg.gene.ensembl_id) for tg in tgs]
         self.assertEqual(tg_list, expect1)

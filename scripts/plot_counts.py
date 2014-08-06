@@ -270,7 +270,8 @@ req_args = ['collections', 'counts_metric']
 opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'xgrid_lines', 'ygrid_lines', 'grid_off', 'xtick_interval',
         'ytick_interval', 'offset_ticks', 'clean_plot', 'bgcolor', 'colorbar',
-        'title', 'xlabel', 'ylabel', 'xfont_size', 'yfont_size', 'legend',
+        'font', 'title', 'title_size', 'xlabel', 'ylabel', 'xfont_size',
+        'yfont_size', 'legend',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
         'line_width', 'restrict_colors', 'line_alpha', 'chrom',
         'include_targets', 'exclude_targets', 'group_size', 'group_location',
@@ -408,6 +409,7 @@ def main():
             xy_tick_spaces=(args.xgrid_lines, args.ygrid_lines),
             xy_tick_intervals=(args.xtick_interval, args.ytick_interval),
             offset_ticks=args.offset_ticks, linewidth=args.line_width,
+            title_size=args.title_size, font=args.font,
             xy_label_fontsizes=(args.xfont_size, args.yfont_size),
             vline=vline, ioff=True, colorbar=args.colorbar,
             clean=args.clean_plot)

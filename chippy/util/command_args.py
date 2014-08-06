@@ -167,6 +167,8 @@ class Args(object):
 
         self._create_argob('--wig', type=OpenFilePath,
                 help='WIG file to open')
+        self._create_argob('--exp', type=SaveFilePath,
+                help='.exp file save path')
 
         # Used to by plot_counts.py to save gene list
         self._create_argob('--write_genes_by_rank', type=SaveFilePath,
@@ -288,7 +290,10 @@ class Args(object):
 
         # Create options for font sizes, colours and labels
         # Headline of the plot
+        self._create_argob('--font', help='font name, defaults to Vera Sans')
         self._create_argob('--title', help='Plot title')
+        self._create_argob('--title_size', type=int, default=18,
+                help='font size for title')
         # Need options for size and style
         # Axis labels and font sizes
         self._create_argob('--ylabel', default = '',
@@ -334,8 +339,9 @@ class Args(object):
         self._create_argob('--grey_scale', action='store_true',
                 help='Plot colour range as grey-scale')
         # Line colour range restriction
-        self._create_argob('--restrict_colors', help='Comma separated '+\
-                '0..1 range for color spectrum limits (e.g. 0.1,0.9)')
+        self._create_argob('--restrict_colors', default='0.1,0.9',
+                help='Comma separated 0.0..1.0 range for color '+\
+                     'spectrum limits (e.g. 0.1,0.9)')
 
         # Plot as series of images
         self._create_argob('--plot_series', action='store_true',
@@ -396,7 +402,7 @@ class Args(object):
                 display=False)
 
         self._create_argob('--max_chrom_size', type=int, default=300000000,
-                help='Max size of chromosomes to read from file')
+                help='Largest possible chromosome size in bases')
 
         # Used by some auxiliary scripts
         self._create_argob('--x_axis_is_log', action='store_true',

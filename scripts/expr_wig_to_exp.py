@@ -37,7 +37,7 @@ script_info['authors'] = __author__
 script_info['output_description']= 'File with gene and expr values'
 pos_args = ['db_path']
 req_args = ['wig']
-opt_args = ['max_chrom_size', 'chr_prefix']
+opt_args = ['max_chrom_size', 'chr_prefix', 'exp']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -178,10 +178,13 @@ def main(ui=None):
             genes_by_chrom, genes_scores)
 
     # output genes and scores
-    if '.gz' in wig_fn:
-        wig_fn = '.'.join(wig_fn.split('.')[:-1])
-    out_fn = '.'.join(wig_fn.split('.')[:-1]) # cut off wig extension
-    out_fn += '.exp' # add .exp extension
+    if args.exp:
+        out_fn = args.exp
+    else:
+        if '.gz' in wig_fn:
+            wig_fn = '.'.join(wig_fn.split('.')[:-1])
+        out_fn = '.'.join(wig_fn.split('.')[:-1]) # cut off wig extension
+        out_fn += '.exp' # add .exp extension
 
     with open(out_fn, 'w') as out:
         out.write('gene\texp\n') # header

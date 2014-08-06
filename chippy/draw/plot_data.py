@@ -60,6 +60,10 @@ class PlotLine(object):
             self.color = kwargs['color']
         else:
             self.color = 'grey'
+        if 'alpha' in kwargs:
+            self.alpha = kwargs['alpha']
+        else:
+            self.alpha = 0.9
         if 'stderr' in kwargs:
             self.stderr = kwargs['stderr']
         else:

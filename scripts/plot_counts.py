@@ -449,8 +449,14 @@ def main():
     # 14: Save ENSEMBL gene ids by rank if requested
     if args.write_genes_by_rank:
         for study in studies:
-            fn = study.collection_label + '_' + args
-            with open(args.write_genes_by_rank, 'w') as out:
+            fn_parts = args.write_genes_by_rank.split('.')
+            if len(fn_parts) > 1:
+                f_ext = fn_parts[-1]
+            else:
+                f_ext = 'txt'
+            fn = '.'.join(fn_parts[:-1]) + '_' +\
+                    study.collection_label.replace(' ', '_') + '.' + f_ext
+            with open(fn, 'w') as out:
                 out.write('gene' + '\n')
                 plot_lines.sort(key=lambda x: x.rank)
                 for line in plot_lines:

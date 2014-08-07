@@ -444,10 +444,6 @@ class RegionStudy(object):
            len(self.data_collection.ranks) == 0:
             rr.dieOnCritical('Genes remaining after filtering', '0' )
 
-        # total_features used to normalise coloring
-        total_features = self.data_collection.ranks
-        self.data_collection.ranks /= total_features
-
     def filterByCutoff(self, cutoff=None):
         """ keep only results that pass Chebyshev cutoff """
         rr = RunRecord('filterByCutoff')
@@ -479,10 +475,6 @@ class RegionStudy(object):
         if self.data_collection is None or\
                 self.data_collection.ranks.max() == 0:
             rr.dieOnCritical('No data after filtering', 'Failure')
-
-        # total_features used to normalise coloring
-        total_features = self.data_collection.ranks.max()
-        self.data_collection.ranks /= total_features
 
     def normaliseByRPM(self):
         """ This requires 'mapped tags', 'tag count' or 'base count' to be present

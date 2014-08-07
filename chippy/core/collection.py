@@ -190,8 +190,10 @@ class RegionCollection(_GenericCollection):
             for name in data:
                 value = data[name]
                 self.__dict__[name] = value
-                if name == 'ranks' and value is not None:
+                if (name == 'ranks' or name == 'counts') and value is not None:
                     self.__dict__[name] = value.astype(float)
+                if name == 'labels' and value is not None:
+                    self.__dict__[name] = value.astype(str)
 
         except Exception as e:
             print "Trying to load from table"
@@ -204,7 +206,7 @@ class RegionCollection(_GenericCollection):
             for row in data.getRawData():
                 l =numpy.unicode(row[0])
                 r = numpy.float(row[1])
-                c = numpy.array(row[2:len(row)], dtype=numpy.int)
+                c = numpy.array(row[2:len(row)], dtype=numpy.float32)
 
                 ls.append(l)
                 rs.append(r)
@@ -215,7 +217,7 @@ class RegionCollection(_GenericCollection):
             self.counts = numpy.array(cs)
         
         self.N = self.counts.shape[0]
-    
+
     def asfloats(self):
         """returns new RegionCollection with counts as floats"""
         counts = self.counts.astype(float)

@@ -223,6 +223,7 @@ def set_plot_colors(plot_lines, studies, div_name, bgcolor, grey_scale,
                             (0, 0.7, len(per_study_lines[s]))):
                         r, g, b, a = rgba
                         l.color = (r,g,b,a-alpha)
+                        l.alpha = a-alpha
                         plot_lines.append(l)
 
     elif num_studies == 1 and grey_scale:

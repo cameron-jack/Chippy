@@ -3,11 +3,10 @@ import sys
 sys.path.extend(['..','../..'])
 
 from chippy.express import db_query
-from chippy.express.util import sample_types
+from chippy.express.util import sample_types, sample_type_names, \
+    sample_type_desc
 
 from argobs import OpenFilePath, SaveFilePath, DirPath, ArgOb
-
-from cogent.util.option_parsing import make_option
 
 try:
     from PyQt4 import QtGui
@@ -85,58 +84,69 @@ class Args(object):
         """ All loading and saving related arguments should go here """
 
         self._create_argob('--make_bedgraph', action='store_true',
-                help='Save export to BEDgraph, where name is same as '+\
-                "collection but with a _expression-name.bedgraph' extension")
+                help='Save exported windows to BEDgraph. The output file '+
+                'name is the same as the collection file but with an '+\
+                "'_expression-name.bedgraph' extension")
         self._create_argob('--BED_windows', action='store_true',
-                help='Save region of interest windows to BED, where name is'+\
-                "same as collection but with '_.BED' extension")
+                help='Save region of interest windows to BED. The output '+\
+                'file name is the same as collection file but with '+\
+                "a '_.BED' extension. Used for annotation.")
         self._create_argob('-c', '--collection', type=SaveFilePath,
-                help='Path to save plottable data')
+                help='Path to save plottable data. These files are given '+\
+                "the '.chp' extension for clarity")
         self._create_argob('--collections', type=OpenFilePath, nargs='+',
-                help='One or more, plottable data files')
+                help="One or more, plottable data '.chp' files")
         self._create_argob('--plot_filename', type=SaveFilePath,
-                help='Name of final plot file')
+                help='Name of final plot file (valid extensions are '+\
+                ".pdf, .png, .jpg)")
         self._create_argob('-e', '--expression_data', type=OpenFilePath,
-                help="Path to the expression/gene data file. Must be tab delimited.")
+                help='Path to the expression/gene data file, normally '+\
+                "with '.exp' file extension. Must be tab delimited.")
         self._create_argob('--allow_probeset_many_gene', action='store_true',
-                default=False, help='Allow probesets that map to multiple genes')
-        self._create_argob('--gene_id_heading',
-                default='gene',
-                help='Column containing the Ensembl gene stable ID')
-        self._create_argob('--probeset_heading',
-                default='probeset',
-                help='Column containing the probeset IDs')
-        self._create_argob('--expression_heading',
-                default='exp',
-                help='Column containing the expression scores')
+                default=False, help='Allow probesets that map to multiple '+\
+                'genes. Only used if probeset ids are present')
+        self._create_argob('--gene_id_heading', default='gene',
+                help='Column header identifier for the column containing '+\
+                'Ensembl gene stable IDs')
+        self._create_argob('--probeset_heading', default='probeset',
+                help='Column header identifier for the column containing '+\
+                'probeset IDs')
+        self._create_argob('--expression_heading', default='exp',
+                help='Column header identifier for the column containing '+\
+                'expression or expression difference scores')
         self._create_argob('--significance_heading', default='sig',
-                help='Column containing significance value')
+                help='Column header identifier for the column containing '+\
+                'significance values')
         self._create_argob('--p_value_heading', default='p_val',
-                help='Column containing difference p values')
+                help='Column header identifier for the column containing '+\
+                'expression difference p values')
         self._create_argob('--sep', default='\t', help='data field delimiter')
 
         self._create_argob('-s', '--sample', choices=\
                 db_query.get_all_sample_names(self.db_path),
-                help='Select an existing sample')
+                help='Select an existing sample by name from the DB')
         self._create_argob('--samples', nargs='+', choices=\
                 db_query.get_all_sample_names(self.db_path),
-                help='Select one or more existing samples')
+                help='Select one or more existing samples by '+\
+                'space-separated name from the DB')
         # absolute or differential expression
         self._create_argob('--expr_sample', choices=\
                 db_query.get_expr_diff_sample_names(self.db_path),
                 help='Select an existing sample (absolute or differential '+\
-                'expression) to use')
+                'expression) by name from the DB')
         # absolute expression only
         self._create_argob('--abs_expr_sample', choices=\
                 db_query.get_expr_sample_names(self.db_path),
-                help='Select an absolute expression sample to use')
+                help='Select an absolute expression sample by name from the DB')
         self._create_argob('--abs_expr_samples', choices=\
                 db_query.get_expr_sample_names(self.db_path), nargs='+',
-                help='Select one or more absolute expression samples to use')
+                help='Select one or more absolute expression samples by '+\
+                'space-separated name from the DB')
         # differential expression samples only
         self._create_argob('--diff_sample', choices=\
                 db_query.get_diff_sample_names(self.db_path),
-                help='Select a differential expression sample to use')
+                help='Select a differential expression sample by '+\
+                'name from the DB')
 
         # args for creating new sample entries
         samplesStr = ', '.join(db_query.get_all_sample_names(self.db_path))
@@ -145,30 +155,34 @@ class Args(object):
         self._create_argob('-d', '--description', help='give your sample a '+\
                 'description')
         self._create_argob('--sample_type',
-                choices=[k for k in sample_types.keys()], default='abs_expr',
-                help='One of: '+', '.join([str(k) for \
-                        k in sample_types.values()])+\
+                choices=sample_type_names, default='abs_expr',
+                help='One of: '+ ', '.join(sample_type_desc)+\
                 'Select the type of data you want entered from '+\
-                ' '.join([str(k) for k in sample_types.keys()]) )
+                ' '.join(sample_type_names))
 
-        self._create_argob('--reffile1', type=OpenFilePath, help='Related file 1')
-        self._create_argob('--reffile2', type=OpenFilePath, help='Related file 2')
+        self._create_argob('--reffile1', type=OpenFilePath,
+                help='Related file 1. First absolute expression sample in '+\
+                'differential expression experiment. Full path to file.')
+        self._create_argob('--reffile2', type=OpenFilePath,
+                help='Related file 2. Second absolute expression sample in '+\
+                'differential expression experiment. Full path to file.')
 
         # Export Centred Counts args
         self._create_argob('-B', '--BAMorBED', type=OpenFilePath,
-                help='Read counts, from indexed BAM, BED, BEDgraph, or WIG file')
+                help='Path to counts data. Indexed BAM, BED, BEDgraph, '+\
+                'or WIG file')
 
         self._create_argob('-f', '--overwrite', action='store_true',
-                help='Ignore any saved files', default=False)
+                help='Overwrite any existing file(s)', default=False)
         self._create_argob('--tab_delimited', action='store_true',
                 help='output to tab delimited format', default=False)
-        self._create_argob('--chr_prefix', default='', help='String added by '+\
-                'aligner to prefix chromosome numbers/names.')
+        self._create_argob('--chr_prefix', default='', help='String '+\
+                "prefixing chromosome numbers/names. Often 'chr' or 'chr_'")
 
         self._create_argob('--wig', type=OpenFilePath,
-                help='WIG file to open')
+                help='WIG file containing expression data to open')
         self._create_argob('--exp', type=SaveFilePath,
-                help='.exp file save path')
+                help='.exp gene expression file save path')
 
         # Used to by plot_counts.py to save gene list
         self._create_argob('--write_genes_by_rank', type=SaveFilePath,
@@ -181,49 +195,55 @@ class Args(object):
         """ All arguments relate to conditional selection of data """
         # chrom choice
         self._create_argob('-C', '--chrom', default=None,
-                help='Choose a chromosome',
+                help='Restrict study to specific chromosome',
                 choices=(db_query.get_chroms(self.db_path)) )
 
         # group genes into sets ranked by expression
         self._create_argob('-g', '--group_size', default='All',
-                help='Number of genes to group to estimate'+\
-                 ' statistic - All or a specific number',
-                important=True)
+                help='Number of genes to group together in one plotted '+\
+                "line. Can be an integer number or 'All'", important=True)
 
         self._create_argob('--num_genes', type=int,
                 help='Use this number of top-ranked genes from study')
 
         self._create_argob('--group_location', default='all',
                 choices=['all', 'top', 'middle', 'bottom'],
-                help='The representative group in a study to form a plot line')
+                help='Show only a representative group of genes in a '+\
+                'study based on their expression')
 
         self._create_argob('--ranks', action='store_true',
                 help='Use rank-based data values instead of counts or '+\
                 'expression')
 
         self._create_argob('--sample_extremes', type=float,
-                default=0.0, help='Proportion of least and most absolute '+\
-                'expressed genes to treat separately. Set to 0.0 to disable.')
+                default=0.0, help='The proportion of least- and most- '+\
+                'extreme-value absolute expressed genes to treat '+\
+                'separately. Set to 0.0 to disable.')
 
         # Use moving-mean (boxcar) smoothing on lines
         self._create_argob('--smoothing', type=int, default=0,
-                help='Window size for smoothing of plot data')
+                help='Window size for smoothing of plot data in bases '+\
+                '(integer), e.g. 50 is suitable for nucleosomes.')
 
         self._create_argob('--binning', type=int, default=0,
                 help='Display counts-per-base within integer-sized bins '+\
-                     'across the plot')
+                'of bases across the plot')
 
         # Filter out over- and under-expression outliers
-        self._create_argob('--cutoff', type=float, default = 0.05,
-                help='Probability cutoff for one-sided Chebyshev filtering '+\
+        self._create_argob('--data_cutoff', type=float, default=0.0,
+                help='Probability cutoff using one-sided Chebyshev filtering '+\
                 'of extreme gene counts. Exclude genes if the probability '
                 'of the observed tag count is less than or equal to this '+\
-                'value e.g. 0.05.')
+                'value e.g. 0.05. This implies values more than 4.36 standard '+\
+                'deviations from the mean may be outliers with p < 0.5. p=0.01 '+\
+                'gives a cut-off of 9.95 standard deviations.')
         # Filter gene counts in each line
-        self._create_argob('--line_filter', action='store_true', help='Use '+\
-                'Use two-sided Chebyshev filtering within each plottable '+\
-                'line to remove outliers. Suggested cut-off p value < 0.01 '+\
-                'as this is quite aggressive')
+        self._create_argob('--line_cutoff', type=float, default=0.0, help='Use '+\
+                'Probability cutoff using two-sided Chebyshev filtering '+\
+                'within each plottable group of genes, to remove outliers. '+\
+                'Suggested cut-off p value = 0.01 implies genes with with '+\
+                'values more than 7.07 standard deviations from the mean '+\
+                'may be outliers.')
 
         # Export Centred Counts args
         self._create_argob('--feature_type', choices=['TSS', 'UTR_Exon',
@@ -232,31 +252,27 @@ class Args(object):
                 'Intron_Exon, Exon_UTR, Gene_3p')
 
         self._create_argob('--window_upstream', type=int, default=1000,
-                help='Region start distance relative to feature')
+                help='Region start distance relative to feature in '+\
+                'bases, e.g. 1000')
         self._create_argob('--window_downstream', type=int, default=1000,
-                help='Region finish distance relative to feature')
+                help='Region finish distance relative to feature in '+\
+                'bases, e.g. 1000')
 
         self._create_argob('--multitest_signif_val', type=int,
                 help='Restrict plot to genes that pass multi-test '+\
                 'significance. Valid values: 1, 0, -1', default=None)
 
         self._create_argob('--include_targets', default=None, nargs='+',
-                help='Target Gene lists in ChipPyDB to refine analysis',
-                choices=\
+                help='Restrict the output to at most include the genes '+\
+                'in the chosen Target Gene lists.', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
         self._create_argob('--exclude_targets', default=None, nargs='+',
-                help='Target Gene lists in ChipPyDB to refine analysis',
-                choices=\
+                help='Restrict the output to not includes any genes '+\
+                'from the chosen Target Gene lists.', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
-        # option is DEPRECATED, all scripts should automatically recognise
-        # their format or default to PDF
-        self._create_argob('--plot_format', default='png', choices=['png', 'pdf'],
-                help="Select the plot format to output: 'png' or 'pdf'"+\
-                "[default: %default]")
-
         self._create_argob('-y', '--ylim', default=None,
                 help='comma separated minimum-maximum yaxis values (e.g. 0,3.5)')
         self._create_argob('-H', '--fig_height', type=float, default=6.5*2.5,
@@ -363,8 +379,9 @@ class Args(object):
                 help='Show confidence intervals around plot lines')
 
         # Uses the 'tag count' arg value in the export file
-        self._create_argob('--normalise_by_RPM', action='store_true',
-                help='Normalise by Reads Per mapped-Million')
+        self._create_argob('--no_normalise', action='store_true',
+                help="Don't normalise by Reads Per mapped-Million "+\
+                "with 'mean counts' metric")
 
     def _add_db_args(self):
         """ options for starting a ChipPy DB """
@@ -392,7 +409,13 @@ class Args(object):
 
         self._create_argob('-m', '--counts_metric',
                 choices=['mean', 'frequency', 'stdev'], default='mean',
-                help='Select the metric for combining counts')
+                help='Select the metric for combining counts. Mean '+\
+                'is RPM normalised by default. Frequency is Counts per '+\
+                'Million Base Counts window-normalised and may be '+\
+                'helpful  when reads are expected to have mis-mapped '+\
+                'due to biological confounding. Stdev plots in standard '+\
+                'deviations from the mean count and is useful for showing '+\
+                'trends in feature exaggeration or positional movement.')
 
         self._create_argob('-t', '--test_run', action='store_true',
                 help="Test run, don't write output",

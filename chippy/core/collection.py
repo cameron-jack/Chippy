@@ -367,7 +367,7 @@ class RegionCollection(_GenericCollection):
         
         return counts, ranks, labels
     
-    def itergroups(self, group_size, p=None):
+    def itergroups(self, group_size, p=0.0):
         """
             Yield counts, ranks, labels collected into groups of group_size
             using getGrouped. 'p' is the probability cut-off for Chebyshev
@@ -388,7 +388,7 @@ class RegionCollection(_GenericCollection):
             count_data = numpy.array(counts[i])
 
             # two-sided per-line Chebyshev filtering of whole gene counts
-            if p is not None:
+            if p > 0.0:
                 k = chebyshev_two_tailed(p)
                 max_ = count_data.max(axis=1)
                 mean_ = count_data.mean()
@@ -400,7 +400,7 @@ class RegionCollection(_GenericCollection):
 
             yield count_data, rank_data, label_data
 
-    def iterDescriptiveStats(self, group_size, p=None):
+    def iterDescriptiveStats(self, group_size, p=0.0):
         """
             Return column means & stdevs for each group. 'p' is the probability
             cut-off for Chebyshev filtering to apply to each group.
@@ -409,7 +409,7 @@ class RegionCollection(_GenericCollection):
             yield column_mean(counts), column_stdev(counts), rank_mean(ranks)
     
     def iterTransformedGroups(self, group_size, rank_func=rank_mean,
-                    counts_func=column_mean, p=None):
+                    counts_func=column_mean, p=0.0):
         """
             Group counts, ranks, labels, standard error, and apply a transform
             to normalised standard deviation if required. 'p' is the probability

@@ -55,6 +55,9 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
     """
     rr = RunRecord('get_collection')
 
+    if not collection_fn.endswith('.chp'):
+        collection_fn += '.chp' # ChipPy data file
+
     if not os.path.exists(collection_fn) or overwrite:
         bedgraph_fn = None
         if bedgraph:

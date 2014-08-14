@@ -37,3 +37,6 @@ sample_types = {
     'diff_expr' : 'Differential expression data',
     'target_genes' : 'Target gene list'
 }
+
+sample_type_names = [key for key in sorted(sample_types.keys())]
+sample_type_desc = [val for val in sorted(sample_types.values())]

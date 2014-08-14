@@ -546,7 +546,7 @@ class RegionStudy(object):
 
         return plot_lines
 
-    def _groupNGeneCounts(self, group_size, p=None):
+    def _groupNGeneCounts(self, group_size, p=0.0):
         """ Group counts for N genes and return as PlotLines. Defaults to
             _groupAllGeneCounts() if group size is too large.
             Called by asPlotLines()
@@ -568,13 +568,13 @@ class RegionStudy(object):
 
         return plot_lines
 
-    def asPlotLines(self, group_size, group_location, p=None):
+    def asPlotLines(self, group_size, group_location, p=0.0):
         """
             Returns a list of PlotLine objects from this study.
             'p' is the Chebyshev cut-off if not None
         """
         rr = RunRecord('asPlotLines')
-        if p is not None:
+        if p > 0.0:
             rr.addInfo('Applying per-line Chebyshev filtering', p)
 
         if type(group_size) is str and group_size.lower() == 'all':

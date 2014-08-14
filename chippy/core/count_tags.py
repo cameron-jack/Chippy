@@ -61,7 +61,8 @@ def write_to_bedgraph(bedgraph_fn, ROIs):
 
 def write_BED_windows(BED_windows_fn, regions_of_interest):
     """
-        Create a single BED3 file entry for each ROI
+        Create a single BED3 file entry for each ROI for use
+        in generating browser tracks and the like.
     """
     rr = RunRecord('write_BED_windows')
     rr.addInfo('number of records to write', len(regions_of_interest))

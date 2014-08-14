@@ -278,7 +278,7 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'include_targets', 'exclude_targets', 'group_size', 'group_location',
         'smoothing', 'binning', 'cutoff', 'line_filter', 'plot_series',
         'text_coords', 'test_run', 'version', 'div', 'div_by',
-        'normalise_by_RPM', 'confidence_intervals',
+        'no_normalise', 'confidence_intervals',
         'write_genes_by_rank']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
@@ -331,8 +331,8 @@ def main():
     else:
         div_name = None
 
-    # 4: Normalise counts if require
-    if args.normalise_by_RPM:
+    # 4: RPM Normalise counts by default
+    if not args.no_normalise and args.metric == 'mean':
         for study in studies:
             study.normaliseByRPM()
 
@@ -342,9 +342,10 @@ def main():
                 include_samples=args.include_targets,
                 exclude_samples=args.exclude_targets)
 
-    # 6: Filter studies by statistical cutoff
-    for study in studies:
-        study.filterByCutoff(args.cutoff)
+    # 6: Filter all genes in studies by statistical cutoff
+    if args.data_cutoff > 0.0:
+        for study in studies:
+            study.filterByCutoff(args.data_cutoff)
 
     # 7: Create plot lines for each study in studies
     try:
@@ -354,10 +355,9 @@ def main():
 
     plot_lines = []
     for study in studies:
-        p = None
-        if args.line_filter:
-            p = args.cutoff
-        lines = study.asPlotLines(group_size, args.group_location, p=p)
+        if args.line_cutoff > 0.0:
+            lines = study.asPlotLines(group_size, args.group_location,
+                    p=args.line_cutoff)
 
         for line in lines:
             plot_lines.append(line)

@@ -276,7 +276,7 @@ opt_args = ['plot_filename', 'ylim', 'fig_height', 'fig_width',
         'legend_font_size', 'vline_style', 'vline_width', 'grey_scale',
         'line_width', 'restrict_colors', 'line_alpha', 'chrom',
         'include_targets', 'exclude_targets', 'group_size', 'group_location',
-        'smoothing', 'binning', 'cutoff', 'line_filter', 'plot_series',
+        'smoothing', 'binning', 'data_cutoff', 'line_cutoff', 'plot_series',
         'text_coords', 'test_run', 'version', 'div', 'div_by',
         'no_normalise', 'confidence_intervals',
         'write_genes_by_rank']

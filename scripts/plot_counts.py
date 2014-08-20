@@ -355,9 +355,8 @@ def main():
 
     plot_lines = []
     for study in studies:
-        if args.line_cutoff > 0.0:
-            lines = study.asPlotLines(group_size, args.group_location,
-                    p=args.line_cutoff)
+        lines = study.asPlotLines(group_size, args.group_location,
+                p=args.line_cutoff)
 
         for line in lines:
             plot_lines.append(line)

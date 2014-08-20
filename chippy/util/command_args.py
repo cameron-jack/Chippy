@@ -370,7 +370,8 @@ class Args(object):
         self._create_argob('--text_coords', default=None,
                 help='x, y coordinates of series text (e.g. 600,3.0)')
 
-        self._create_argob('--div', help='Path to the plottable data, to divide '+\
+        self._create_argob('--div', type=OpenFilePath,
+                help='Path to the plottable data, to divide '+\
                 'other loaded plottable data')
         self._create_argob('--div_by', choices=['average', 'median', 'top'],
                 help='divide by a single line rather than line-for-line')
@@ -470,9 +471,9 @@ class Args(object):
 
         # misc. options that don't fit other categories
         self._create_argob('--plot1_name',
-                default=None, help='Output path for first plot')
+                default=SaveFilePath, help='Output path for first plot')
         self._create_argob('--plot2_name',
-                default=None, help='Output path for second plot')
+                default=SaveFilePath, help='Output path for second plot')
 
     def _add_counts_vs_expr_specific_args(self):
         """ These args are specifically for the counts_vs_expr script """
@@ -519,6 +520,11 @@ class Args(object):
         self.parser = argparse.ArgumentParser(version='ChipPy r'+str(__version__))
         self.required_args = required_args
         self.optional_args = optional_args
+
+        if self.required_args is None:
+            self.required_args = []
+        if self.optional_args is None:
+            self.optional_args = []
 
         self.argobs = []
         self.db_path = None

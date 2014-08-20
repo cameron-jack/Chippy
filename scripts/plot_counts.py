@@ -332,7 +332,7 @@ def main():
         div_name = None
 
     # 4: RPM Normalise counts by default
-    if not args.no_normalise and args.metric == 'mean':
+    if not args.no_normalise and args.counts_metric == 'mean':
         for study in studies:
             study.normaliseByRPM()
 

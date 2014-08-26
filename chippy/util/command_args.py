@@ -373,7 +373,7 @@ class Args(object):
         self._create_argob('--div', type=OpenFilePath,
                 help='Path to the plottable data, to divide '+\
                 'other loaded plottable data')
-        self._create_argob('--div_by', choices=['average', 'median', 'top'],
+        self._create_argob('--div_by', choices=['mean', 'median', 'top'],
                 help='divide by a single line rather than line-for-line')
 
         self._create_argob('--confidence_intervals', action='store_true',

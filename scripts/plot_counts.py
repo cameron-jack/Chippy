@@ -28,7 +28,7 @@ __version__ = '0.2'
 
 def load_studies(collections, counts_func):
     """
-        Load all collection data and apply filtering if needed.
+        Load all collection data as list, and apply filtering if needed.
         Return the studies plus their max common up- & down- stream
         window size.
     """
@@ -128,13 +128,13 @@ def div_plots(plot_lines, div_study_name, div_by=None):
 
     # default: divide scores line for line - maybe important if trends change
     if div_by:
-        if div_by.lower() == 'average' or div_by.lower() == 'median':
+        if div_by.lower() == 'mean' or div_by.lower() == 'median':
             # We will divide the average counts of div
             counts_lines = []
             for line in dividing_plot_lines.values():
                 counts_lines.append(line.counts)
             counts_array = numpy.array(counts_lines)
-            if div_by.lower() == 'average':
+            if div_by.lower() == 'mean':
                 div_counts = numpy.mean(counts_array, axis=0)
             else:
                 div_counts = numpy.median(counts_array, axis=0)
@@ -143,14 +143,14 @@ def div_plots(plot_lines, div_study_name, div_by=None):
                 dividing_plot_lines[key].counts = div_counts
 
         elif div_by.lower() == 'top':
-            # We will divide by the rank 0 counts of div
+            # We will divide by the rank 1 counts of div
             div_counts = None
             for line in dividing_plot_lines.values():
-                if line.rank == 0:
+                if line.rank == 1:
                     div_counts = line.counts
                     break
             if div_counts is None:
-                rr.dieOnCritical('No div counts of rank 0 found', 'Inconceivable')
+                rr.dieOnCritical('No div counts of rank 1 found', 'Inconceivable')
 
             for key in dividing_plot_lines.keys():
                 dividing_plot_lines[key].counts = div_counts
@@ -317,7 +317,7 @@ def main():
     # 3: Load divisor study if provided
     if args.div is not None:
         div_studies, div_window_upstream, div_window_downstream =\
-                load_studies(args.div, counts_func)
+                load_studies([args.div], counts_func)
         if div_window_upstream == window_upstream and \
                 div_window_downstream == window_downstream:
             print 'Windows match - using div study'
@@ -333,6 +333,7 @@ def main():
 
     # 4: RPM Normalise counts by default
     if not args.no_normalise and args.counts_metric == 'mean':
+        print 'Normalising by counts RPM'
         for study in studies:
             study.normaliseByRPM()
 

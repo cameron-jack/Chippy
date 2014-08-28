@@ -371,10 +371,16 @@ class Args(object):
                 help='x, y coordinates of series text (e.g. 600,3.0)')
 
         self._create_argob('--div', type=OpenFilePath,
-                help='Path to the plottable data, to divide '+\
-                'other loaded plottable data')
-        self._create_argob('--div_by', choices=['mean', 'median', 'top'],
-                help='divide by a single line rather than line-for-line')
+                help='Path to .chp plottable data file, to divide '+\
+                'other loaded plottable data for the purpose of '+\
+                'normalisation')
+        self._create_argob('--div_by', choices=['all', 'mean-counts',
+                'median-counts', 'top-expr', 'median-expr', 'bottom-expr'],
+                default='all', help='divide all counts lines by one of: '+\
+                'ALL div counts lines [default], div MEAN-COUNTS, '+\
+                'div MEDIAN-COUNTS, counts of the TOP-EXPRessed div '+\
+                'line, counts of the MEDIAN-EXPRessed div line, or '+\
+                'counts of the BOTTOM-EXPRessed div line.')
 
         self._create_argob('--confidence_intervals', action='store_true',
                 help='Show confidence intervals around plot lines')

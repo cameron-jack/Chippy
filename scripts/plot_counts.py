@@ -106,11 +106,25 @@ def set_counts_function(counts_metric):
         rr.dieOnCritical('Invalid count metric', counts_metric)
     return counts_func
 
-def div_plots(plot_lines, div_study_name, div_by=None):
+def safe_line_division(sample_line, dividing_line):
+    """ in case of divide-by-zero we need some robustness """
+    rr = RunRecord('safe_line_division')
+    try:
+        sample_line /= dividing_line
+    except ZeroDivisionError: # 0 counts at a base position
+        min_count = 1
+        for c in dividing_line:
+            if 0 < c < min_count:
+                min_count = c
+        sample_line /= dividing_line
+        rr.addWarning('Zero counts value seen. Setting zeros to',
+                min_count)
+    return sample_line
+
+def div_plots(plot_lines, div_study_name, div_by='all'):
     """ Divides the counts values in plot_lines by those in the divisor
             lines """
     rr = RunRecord('div_plots')
-
     # build two matching sized dicts of lines indexed by rank
     ranked_plot_lines = {}
     dividing_plot_lines = {}
@@ -123,49 +137,46 @@ def div_plots(plot_lines, div_study_name, div_by=None):
             ranked_plot_lines[line.rank].append(line)
 
         # sanity check
-        if len(ranked_plot_lines) == 0:
+        if len(ranked_plot_lines.keys()) == 0:
             rr.dieOnCritical('No plot lines.', 'Same study as div plot?')
 
     # default: divide scores line for line - maybe important if trends change
-    if div_by:
-        if div_by.lower() == 'mean' or div_by.lower() == 'median':
-            # We will divide the average counts of div
-            counts_lines = []
-            for line in dividing_plot_lines.values():
-                counts_lines.append(line.counts)
-            counts_array = numpy.array(counts_lines)
-            if div_by.lower() == 'mean':
-                div_counts = numpy.mean(counts_array, axis=0)
-            else:
-                div_counts = numpy.median(counts_array, axis=0)
+    out_lines = []
+    if div_by.lower() == 'all':
+        for ranked_index, div_index in zip(sorted(ranked_plot_lines.keys()),
+                sorted(dividing_plot_lines.keys())):
+            if ranked_index != div_index:
+                rr.dieOnCritical('Div and study plot lines do not match',
+                        [len(ranked_plot_lines), len(dividing_plot_lines)])
+            for line in ranked_plot_lines[ranked_index]:
+                line = safe_line_division(line.counts,
+                        dividing_plot_lines[ranked_plot_lines].counts)
+                out_lines.append(line)
+    else: # divide all lines by the same counts array
+        # build counts array to choose dividing counts from
+        counts_lines = []
+        div_counts = None
+        for key in sorted(dividing_plot_lines.keys()):
+            counts_lines.append(dividing_plot_lines[key].counts)
+        counts_array = numpy.array(counts_lines)
 
-            for key in dividing_plot_lines.keys():
-                dividing_plot_lines[key].counts = div_counts
-
-        elif div_by.lower() == 'top':
-            # We will divide by the rank 1 counts of div
-            div_counts = None
-            for line in dividing_plot_lines.values():
-                if line.rank == 1:
-                    div_counts = line.counts
-                    break
-            if div_counts is None:
-                rr.dieOnCritical('No div counts of rank 1 found', 'Inconceivable')
-
-            for key in dividing_plot_lines.keys():
-                dividing_plot_lines[key].counts = div_counts
-
+        if div_by.lower() == 'mean-counts': # mean counts for all div
+            div_counts = numpy.mean(counts_array, axis=0)
+        elif div_by.lower() == 'median-counts': # median counts for all div
+            div_counts = numpy.median(counts_array, axis=0)
+        elif div_by.lower() == 'top-expr': # top expressed genes counts line from div
+            div_counts = counts_array[0]
+        elif div_by.lower() == 'median-expr': # median expressed genes counts line from div
+            div_counts = counts_array[int(len(counts_array)/2)]
+        elif div_by.lower() == 'bottom-expr': # bottom expressed genes counts line from div
+            div_counts = counts_array[-1]
         else:
             rr.dieOnCritical('Unrecognised div_by type', div_by)
 
-    out_lines = []
-    for ranked_index, div_index in zip(ranked_plot_lines, dividing_plot_lines):
-        if ranked_index != div_index:
-            rr.dieOnCritical('Div and study plot lines do not match',
-                    [len(ranked_plot_lines), len(dividing_plot_lines)])
-        for line in ranked_plot_lines[ranked_index]:
-            line.counts /= dividing_plot_lines[ranked_index].counts
-            out_lines.append(line)
+        for ranked_index in ranked_plot_lines:
+            for line in ranked_plot_lines[ranked_index]:
+                line.counts = safe_line_division(line.counts, div_counts)
+                out_lines.append(line)
 
     return out_lines
 

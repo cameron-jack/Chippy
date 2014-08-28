@@ -9,7 +9,7 @@ sys.path.extend(['..'])
 from chippy.express.db_query import make_session, get_chroms, get_species,\
         get_sample_counts, get_reffile_counts, get_gene_counts, get_exon_counts,\
         get_expression_counts, get_diff_counts, get_targetgene_counts,\
-        get_reffile_entries
+        get_reffile_entries, get_all_sample_names
 from chippy.util.command_args import Args
 from chippy.util.run_record import RunRecord
 
@@ -17,10 +17,11 @@ __author__ = 'Gavin Huttley, Cameron Jack'
 __copyright__ = 'Copyright 2012, Gavin Huttley, Cameron Jack, Anuj Pahwa'
 __credits__ = ['Gavin Huttley', 'Cameron Jack']
 __license__ = 'GPL'
-__version__ = '0.9.dev'
+__version__ = '746'
 __maintainer__ = 'Cameron Jack'
 __email__ = 'cameron.jack@anu.edu.au'
-__status__ = 'Development'
+__status__ = 'Pre-release'
+
 
 pos_args = ['db_path']
 opt_args = ['sample']
@@ -38,8 +39,7 @@ script_info['optional_options'] = script_info['args'].getOptCogentOpts()
 def main():
     rr = RunRecord('db_summary')
     rr.addCommands(sys.argv)
-    args = script_info['args'].parse(use_scrollbars=True,
-            use_save_load_button=True, window_title='DB Summary')
+    args = script_info['args'].parse(window_title='DB Summary')
     session = make_session(args.db_path)
     sample_name = args.sample if args.sample else None
 
@@ -48,6 +48,7 @@ def main():
 
     if sample_name is None:
         total_samples_count = get_sample_counts(session)
+        sample_names = get_all_sample_names(session)
         total_genes_count = get_gene_counts(session)
         total_exon_count = get_exon_counts(session)
         total_expr_count = get_expression_counts(session)
@@ -65,6 +66,7 @@ def main():
     rr.addInfo('Chroms list', chroms)
     if sample_name is None:
         rr.addInfo('Total # of sample entries', total_samples_count)
+        rr.addInfo('Sample names', sample_names)
         rr.addInfo('Total # of gene entries', total_genes_count)
         rr.addInfo('Total # of exon entries', total_exon_count)
     rr.addInfo('Total # of absolute-scored gene entries', total_expr_count)

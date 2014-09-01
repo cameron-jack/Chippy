@@ -110,7 +110,7 @@ class PlotLine(object):
             if not include_stderr or self.stderr is None:
                 return max(self.counts)
             else:
-                return max(self.counts + self.stderr * se_adjust)
+                return max(self.counts) + self.stderr * se_adjust
         return None
 
     def getMinCount(self, include_stderr=False, se_adjust=1):
@@ -118,7 +118,7 @@ class PlotLine(object):
             if not include_stderr or self.stderr is None:
                 return min(self.counts)
             else:
-                return min(self.counts - self.stderr * se_adjust)
+                return min(self.counts) - self.stderr * se_adjust
         return None
 
     def getLabelsAsList(self):

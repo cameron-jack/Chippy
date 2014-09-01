@@ -39,6 +39,7 @@ def suite():
         'test_parse_bed',
         'test_parse_expr_data',
         'test_parse_sam',
+        'test_plot',
         'test_run_record',
         'test_syntax',
         'test_util'
@@ -79,3 +80,4 @@ if __name__ == '__main__':
                 remove_RR_log()
             except OSError:
                 pass # no clean-up required
+

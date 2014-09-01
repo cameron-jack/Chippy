@@ -149,8 +149,8 @@ def div_plots(plot_lines, div_study_name, div_by='all'):
                 rr.dieOnCritical('Div and study plot lines do not match',
                         [len(ranked_plot_lines), len(dividing_plot_lines)])
             for line in ranked_plot_lines[ranked_index]:
-                line = safe_line_division(line.counts,
-                        dividing_plot_lines[ranked_plot_lines].counts)
+                line.counts = safe_line_division(line.counts,
+                        dividing_plot_lines[ranked_index].counts)
                 out_lines.append(line)
     else: # divide all lines by the same counts array
         # build counts array to choose dividing counts from
@@ -333,6 +333,8 @@ def main():
                 div_window_downstream == window_downstream:
             print 'Windows match - using div study'
             studies.append(div_studies[0])
+            # alter name so we divide by the same study
+            div_studies[0].collection_label += '_div'
             div_name = div_studies[0].collection_label
         else:
             rr.dieOnCritical('Differing Data and Div up/down-stream '+\

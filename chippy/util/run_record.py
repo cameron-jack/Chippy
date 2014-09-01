@@ -71,7 +71,7 @@ class RunRecord(object):
                 print_parts = str(part)
         yield print_parts
 
-    def addDebug(self, message='', value=''):
+    def addDebug(self, message='.', value='.'):
         """ adds a debugging message about an execution """
         if type(value)==list or type(value)==tuple:
             for short_str in self._as_short_strings(value):
@@ -82,7 +82,7 @@ class RunRecord(object):
                 value_str = '<EMPTY>'
             self.logger.debug(message + '\t' + value_str)
 
-    def addInfo(self, message='', value=''):
+    def addInfo(self, message='.', value='.'):
         """ adds a communication to the user about runtime """
         if type(value)==list or type(value)==tuple:
             for short_str in self._as_short_strings(value):
@@ -93,7 +93,7 @@ class RunRecord(object):
                 value_str = '<EMPTY>'
             self.logger.info(message + '\t' + value_str)
 
-    def addWarning(self, message='', value=''):
+    def addWarning(self, message='.', value='.'):
         """ adds a runtime warning """
         if type(value)==list or type(value)==tuple:
             for short_str in self._as_short_strings(value):
@@ -104,7 +104,7 @@ class RunRecord(object):
                 value_str = '<EMPTY>'
             self.logger.warning(message + '\t' + value_str)
 
-    def addError(self, message='', value=''):
+    def addError(self, message='.', value='.'):
         """ report a non-critical runtime error """
         if type(value)==list or type(value)==tuple:
             for short_str in self._as_short_strings(value):
@@ -115,7 +115,7 @@ class RunRecord(object):
                 value_str = '<EMPTY>'
             self.logger.error(message + '\t' + value_str)
 
-    def addCritical(self, message='', value=''):
+    def addCritical(self, message='.', value='.'):
         """ report a catastrophic failure """
         if type(value)==list or type(value)==tuple:
             for short_str in self._as_short_strings(value):

@@ -146,8 +146,12 @@ def div_plots(plot_lines, div_study_name, div_by='all'):
         for ranked_index, div_index in zip(sorted(ranked_plot_lines.keys()),
                 sorted(dividing_plot_lines.keys())):
             if ranked_index != div_index:
-                rr.dieOnCritical('Div and study plot lines do not match',
+                rr.addCritical('Div and study plot lines do not match',
                         [len(ranked_plot_lines), len(dividing_plot_lines)])
+                rr.addCritical('Differences in filtering may be responsible')
+                rr.dieOnCritical('Try choosing a representative group instead',
+                        ['mean-counts', 'median-counts',
+                        'top-expr', 'median-expr', 'bottom-expr'])
             for line in ranked_plot_lines[ranked_index]:
                 line.counts = safe_line_division(line.counts,
                         dividing_plot_lines[ranked_index].counts)

@@ -408,8 +408,6 @@ class Args(object):
                 help='password for SQL Ensembl server')
         self._create_argob('--port', default=None, type=int,
                 help='Port for SQL Ensembl server')
-        self._create_argob('--dummy_data', default=False, action='store_true',
-                help='Create dummy expression data')
 
     def _add_misc_args(self):
         """ various options that don't fall into a category above """

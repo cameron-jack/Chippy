@@ -34,7 +34,7 @@ script_info['version'] = __version__
 # Process command-line arguments
 req_args = ['save_db_dir', 'save_db_prefix', 'ensembl_release', 'species',
             'hostname', 'username', 'password', 'port']
-opt_args = ['dummy_data', 'show_log']
+opt_args = ['show_log']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args)
 script_info['required_options'] = script_info['args'].getReqCogentOpts()
@@ -67,12 +67,11 @@ def main():
         add_ensembl_gene_data(session, args.species,
                 ensembl_release=args.ensembl_release, account=account)
 
-        if args.dummy_data:
-            success = create_dummy_expr(session)
-            if success:
-                rr.addInfo('Dummy data added successfully', 'Expr=1.')
-            else:
-                rr.addError('Dummy data failed to upload to DB', 'Expect bigger problems')
+        success = create_dummy_expr(session)
+        if success:
+            rr.addInfo('Dummy data added successfully', 'Expr=1.')
+        else:
+            rr.addError('Dummy data failed to upload to DB', 'Expect bigger problems')
 
         rr.addInfo('Chippy DB written', db_path)
         print os.path.realpath(db_path)

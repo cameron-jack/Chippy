@@ -144,7 +144,7 @@ def create_dummy_expr(session):
         expr_table_row = {}
         expr_table_row['gene'] = gene_id
         expr_table_row['probeset'] = 'P'+str(i)
-        expr_table_row['exp'] = 1
+        expr_table_row['exp'] = [1.0] # exp is a list of floats
         expr_table_rows.append(expr_table_row)
 
     success = add_data(session, 'dummy',

@@ -271,6 +271,10 @@ class Args(object):
                 'from the chosen Target Gene lists.', choices=\
                 [str(s) for s in db_query.get_target_gene_names(self.db_path)])
 
+        self._create_argob('--no_overlap', action='store_false',
+                help='Allow I/E plot windows to overlap other potential '+\
+                'binding sites')
+
     def _add_plot_args(self):
         """ Arguments specifically related to showing graphical plots """
         self._create_argob('-y', '--ylim', default=None,

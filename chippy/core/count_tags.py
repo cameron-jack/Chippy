@@ -82,7 +82,7 @@ def write_BED_windows(BED_windows_fn, regions_of_interest):
 
 def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         window_upstream, window_downstream, bedgraph_fn=None,
-        BED_windows_fn=None, chrom_size=300000000):
+        BED_windows_fn=None, chrom_size=300000000, no_overlap=True):
     """
         Build regions of interest (ROI) and return as lists of counts, ranks
         and ensembl_ids, sorted by rank.
@@ -108,7 +108,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         # Except when overlapping with 5' TSS
         for gene in genes:
             win_start, win_end = gene.getUTRExonWindowCoords(\
-                    window_upstream, window_downstream)
+                    window_upstream, window_downstream, no_overlap=no_overlap)
             if win_start is not None and win_end is not None:
                 roi = ROI(gene, win_start, win_end)
                 regions_of_interest.append(roi)
@@ -117,7 +117,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         # All intron/exon boundaries, except when overlapping UTR/Exon boundary
         for gene in genes:
             window_list = gene.getIntronExonWindowCoords(\
-                    window_upstream, window_downstream)
+                    window_upstream, window_downstream, no_overlap=no_overlap)
             for i, window in enumerate(window_list):
                 win_start, win_end = window
                 if win_start is not None and win_end is not None:
@@ -129,7 +129,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         # all exon/intron boundaries, except when overlapping UTR/Exon boundary
         for gene in genes:
             window_list = gene.getExonIntronWindowCoords(\
-                    window_upstream, window_downstream)
+                    window_upstream, window_downstream, no_overlap=no_overlap)
             for i, window in enumerate(window_list):
                 win_start, win_end = window
                 if win_start is not None and win_end is not None:
@@ -142,7 +142,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
         # with 3' end of gene.
         for gene in genes:
             win_start, win_end = gene.getExonUTRWindowCoords(\
-                    window_upstream, window_downstream)
+                    window_upstream, window_downstream, no_overlap=no_overlap)
             if win_start is not None and win_end is not None:
                 roi = ROI(gene, win_start, win_end)
                 regions_of_interest.append(roi)
@@ -182,7 +182,7 @@ def get_counts_ranks_ids(genes, BAMorBED, feature_type, chr_prefix,
 def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
         window_upstream, window_downstream, include_targets=None,
         exclude_targets=None, bedgraph_fn=None, multitest_signif_val=None,
-        BED_windows_fn=None, chrom_size=300000000):
+        BED_windows_fn=None, chrom_size=300000000, no_overlap=True):
     """returns a RegionCollection object wrapping the counts, ranks etc .."""
     rr = RunRecord('counts_for_genes')
 
@@ -211,7 +211,7 @@ def counts_for_genes(session, sample_name, feature_type, BAMorBED, chr_prefix,
             get_counts_ranks_ids(expressed_genes, BAMorBED, feature_type,
             chr_prefix, window_upstream, window_downstream,
             bedgraph_fn=bedgraph_fn, BED_windows_fn=BED_windows_fn,
-            chrom_size=chrom_size)
+            chrom_size=chrom_size, no_overlap=no_overlap)
 
     data = RegionCollection(counts=counts, ranks=ranks,
             labels=ensembl_ids,

@@ -37,7 +37,7 @@ req_args = ['expr_sample', 'feature_type', 'BAMorBED',  'collection']
 opt_args = ['overwrite', 'tab_delimited', 'max_read_length', 'chr_prefix',
         'count_max_length', 'window_upstream', 'window_downstream',
         'multitest_signif_val', 'include_targets', 'BED_windows',
-        'exclude_targets', 'make_bedgraph', 'max_chrom_size']
+        'exclude_targets', 'make_bedgraph', 'max_chrom_size', 'no_overlap']
 
 script_info['args'] = Args(required_args=req_args, optional_args=opt_args,
     positional_args=pos_args)
@@ -48,7 +48,8 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
         chr_prefix, window_upstream, window_downstream,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_targets=None, exclude_targets=None,
-        bedgraph=False, BED_windows=False, chrom_size=300000000):
+        bedgraph=False, BED_windows=False, chrom_size=300000000,
+        no_overlap=no_overlap):
     """
         builds and writes a collection of counts and expression for
         feature_type in given sample genes.
@@ -72,7 +73,8 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
                 BAMorBED, chr_prefix, window_upstream, window_downstream,
                 include_targets, exclude_targets, bedgraph_fn,
                 multitest_signif_val=multitest_signif_val,
-                BED_windows_fn=BED_windows_fn, chrom_size=chrom_size)
+                BED_windows_fn=BED_windows_fn, chrom_size=chrom_size,
+                no_overlap=no_overlap)
 
         if data_collection is not None:
             data_collection.writeToFile(collection_fn, as_table=tab_delimited,
@@ -129,7 +131,7 @@ def main():
             args.multitest_signif_val, args.collection, args.overwrite,
             args.tab_delimited, include_name, exclude_name,
             bedgraph=args.make_bedgraph, BED_windows=args.BED_windows,
-            chrom_size=args.max_chrom_size)
+            chrom_size=args.max_chrom_size, no_overlap=args.no_overlap)
 
     session.close()
     rr.display()

@@ -49,7 +49,7 @@ def get_collection(session, sample_name, feature_type, BAMorBED,
         multitest_signif_val, collection_fn, overwrite,
         tab_delimited, include_targets=None, exclude_targets=None,
         bedgraph=False, BED_windows=False, chrom_size=300000000,
-        no_overlap=no_overlap):
+        no_overlap=True):
     """
         builds and writes a collection of counts and expression for
         feature_type in given sample genes.
